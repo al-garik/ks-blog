@@ -1,52 +1,31 @@
 [
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About KeyStat Solutions",
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "KeyStat Solutions Technical Blog",
     "section": "",
-    "text": "Advancing clinical data analysis through innovative R-based tools and expert guidance"
+    "text": "Professional insights on clinical programming and statistical computing"
   },
   {
-    "objectID": "about.html#our-mission",
-    "href": "about.html#our-mission",
-    "title": "About KeyStat Solutions",
-    "section": "Our Mission",
-    "text": "Our Mission\nKeyStat Solutions is dedicated to:\n✅ Open Science - Making clinical data analysis accessible and transparent\n✅ Reproducible Research - Building tools for auditable, verifiable results\n✅ Professional Quality - Delivering production-ready solutions for regulatory compliance\nWe believe that powerful data analysis tools should be intuitive, well-documented, and freely available to the research community."
+    "objectID": "index.html#welcome-to-keystat-solutions",
+    "href": "index.html#welcome-to-keystat-solutions",
+    "title": "KeyStat Solutions Technical Blog",
+    "section": "Welcome to KeyStat Solutions",
+    "text": "Welcome to KeyStat Solutions\nOur technical blog provides practical, production-ready guidance on R programming, clinical trial data analysis, and statistical methods. We share real-world applications and best practices from our work in clinical researches."
   },
   {
-    "objectID": "about.html#about-this-blog",
-    "href": "about.html#about-this-blog",
-    "title": "About KeyStat Solutions",
-    "section": "About This Blog",
-    "text": "About This Blog\nOur technical blog provides curated content on:\n\n🔧 ksTFL Package - Clinical trial listings, tables, and figures\n📚 Best Practices - Professional approaches to R programming and statistical analysis\n\n🎓 Tutorials - Practical, step-by-step guides for real-world problems\n💼 Case Studies - Production solutions from our consulting work"
+    "objectID": "index.html#latest-posts",
+    "href": "index.html#latest-posts",
+    "title": "KeyStat Solutions Technical Blog",
+    "section": "Latest Posts",
+    "text": "Latest Posts"
   },
   {
-    "objectID": "about.html#our-flagship-tool-kstfl",
-    "href": "about.html#our-flagship-tool-kstfl",
-    "title": "About KeyStat Solutions",
-    "section": "Our Flagship Tool: ksTFL",
-    "text": "Our Flagship Tool: ksTFL\nksTFL (KeyStat Tables, Figures, and Listings) is an R package designed specifically for clinical trial data analysis and regulatory reporting.\n\nWhy ksTFL?\nTraditional approaches to clinical tables require: - Manual formatting and styling - Error-prone data manipulation\n- Difficult-to-maintain code - Regulatory compliance concerns\nksTFL solves this with:\n\n\n\n\n\n\n\nFeature\nBenefit\n\n\n\n\nDeclarative syntax\nWrite what you want, not how to format it\n\n\nAutomatic styling\nProfessional output with zero manual formatting\n\n\nRegulatory-ready\nBuilt with FDA/ICH compliance in mind\n\n\nReproducible\nAudit trail and version control friendly\n\n\nFlexible\nWorks with tidyverse, data.table, and base R\n\n\n\n\n\nQuick Features\n\n✅ Create tables, figures, and listings with minimal code\n✅ Automatic summary statistics and grouping\n\n✅ Publication-ready DOCX output\n✅ Conditional styling and formatting rules\n✅ Full tidyverse/tidyselect support\n✅ 100+ style atoms for fine-grained control"
-  },
-  {
-    "objectID": "about.html#get-in-touch",
-    "href": "about.html#get-in-touch",
-    "title": "About KeyStat Solutions",
-    "section": "Get in Touch",
-    "text": "Get in Touch\nWe’d love to hear from you!\n\n📧 Email: contact@keystat-solutions.com\n🐙 GitHub: github.com/keystat-solutions\n🐦 Twitter: @KeyStat_Solutions\n📦 R Universe: crow16384.r-universe.dev/ksTFL"
-  },
-  {
-    "objectID": "about.html#explore-the-blog",
-    "href": "about.html#explore-the-blog",
-    "title": "About KeyStat Solutions",
-    "section": "Explore the Blog",
-    "text": "Explore the Blog\nReady to get started? Check out our tutorial posts:\n\nGetting Started with ksTFL - Your first clinical table\nAdvanced ksTFL - Complex table structures and styling"
-  },
-  {
-    "objectID": "r-bloggers.html",
-    "href": "r-bloggers.html",
-    "title": "",
+    "objectID": "posts/2026-07-09-getting-current-script-name-in-r/index.html",
+    "href": "posts/2026-07-09-getting-current-script-name-in-r/index.html",
+    "title": "Getting Current R-script name in R automatically",
     "section": "",
-    "text": "Code\n\n\n\n\nThis page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
+    "text": "When generating clinical reports, it’s often useful to know which analysis script produced the output. The script name can be included in report headers, footers, log files, or metadata to improve traceability and simplify debugging.\nMany reporting frameworks require manually specifying the program name:\nprogram &lt;- \"t_14_01_01.R\"\nThe obvious downside is that this information must be updated whenever the script is renamed, which is easy to forget.\nA better solution is to determine the script name automatically.\nThe function below detects the currently executing script in the two most common execution modes:\n\nwhen the script is executed via source();\nwhen the script is executed with Rscript (or R --file).\n\n\n# Returns the name of the currently executing R script.\n#\n# The function works in two situations:\n#   1. When the script is executed via source()\n#   2. When the script is executed from the command line with Rscript\n#\n# If neither method can determine the script name (e.g. interactive console),\n# an empty string is returned.\ncurrent_script_name &lt;- function()\n{\n  #---------------------------------------------------------------------------\n  # Returns the current call stack together with corresponding environments.\n  # Each stack element contains:\n  #   - fn_name : name of the called function\n  #   - env     : execution environment of that call\n  #---------------------------------------------------------------------------\n  .get_stack &lt;- function() {\n    stack &lt;- sys.calls()\n    envs  &lt;- sys.frames()\n\n    # Remove the current function itself and reverse the order so the most\n    # recent calls are inspected first.\n    stack &lt;- rev(stack[-length(stack)])\n    envs  &lt;- rev(envs[-length(envs)])\n\n    if (length(stack) == 0L)\n      return(NULL)\n\n    Map(\n      function(call, env)\n        list(\n          fn_name = rlang::call_name(call),\n          env = env\n        ),\n      stack,\n      envs\n    )\n  }\n\n  #---------------------------------------------------------------------------\n  # Searches the call stack for the closest source() call.\n  #\n  # When source() executes a script, its execution environment contains\n  # the filename used for sourcing.\n  #---------------------------------------------------------------------------\n  .closest_source_frame &lt;- function() {\n    Find(\n      function(f)\n        !is.null(f$fn_name) &&\n        f$fn_name == \"source\",\n      .get_stack()\n    )\n  }\n\n  #---------------------------------------------------------------------------\n  # Returns the filename of the sourced script.\n  # Returns NULL if the script was not started via source().\n  #---------------------------------------------------------------------------\n  .current_source_filename &lt;- function() {\n    frame &lt;- .closest_source_frame()\n\n    if (is.null(frame))\n      NULL\n    else\n      frame$env$filename\n  }\n\n  #---------------------------------------------------------------------------\n  # Returns the script filename when executed with:\n  #\n  #   Rscript myscript.R\n  #\n  # or\n  #\n  #   R --file=myscript.R\n  #\n  # by inspecting command line arguments.\n  #---------------------------------------------------------------------------\n  .current_cli_filename &lt;- function() {\n\n    args &lt;- rev(commandArgs(FALSE))\n\n    file_index &lt;- grep(\"^(--file=|-f$)\", args)[1L]\n\n    if (is.na(file_index)) {\n\n      NULL\n\n    } else if (args[file_index] == \"-f\") {\n\n      args[file_index - 1L]\n\n    } else {\n\n      sub(\"^--file=\", \"\", args[file_index])\n\n    }\n  }\n\n  #---------------------------------------------------------------------------\n  # Try to determine the filename from source() first.\n  #---------------------------------------------------------------------------\n  src &lt;- .current_source_filename()\n\n  if (!is.null(src))\n    return(basename(src))\n\n  #---------------------------------------------------------------------------\n  # Otherwise try command line execution.\n  #---------------------------------------------------------------------------\n  cli &lt;- .current_cli_filename()\n\n  if (!is.null(cli))\n    return(basename(cli))\n\n  # Could not determine the script name.\n  \"\"\n}\n\nInternally, it first inspects the call stack looking for a source() frame, where R stores the filename. If no such frame exists, it falls back to examining the command-line arguments supplied to the R process.\nThis makes the function suitable for both interactive development and automated production workflows.\nUsing it is straightforward:\ncurrent_script_name()\n# [1] \"t_14_01_01.R\"\nFor example:\n\nsource(file.path(getwd(), 'output', 'the_test_script.R'))\n\nThe current script is:  the_test_script.R\n\n\nIn a clinical reporting environment, the returned filename can be used in several places:\n\ndocument headers and footers;\nreport metadata;\naudit logs;\nQC comparison reports;\nexecution logs generated by batch processes.\n\nBecause the program name is obtained automatically, there is no risk of documentation becoming inconsistent after a script is renamed. It is one less manual step to remember, making reporting workflows slightly more robust and easier to maintain.\nAlthough the implementation is compact, it provides a convenient building block for reproducible clinical reporting, where every generated output should clearly identify the program that created it.\n\nThis post was originally published on the KeyStat Solutions R Technical Blog. Visit R-Bloggers to discover more R content."
   },
   {
     "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html",
@@ -102,34 +81,13 @@
     "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#next-steps",
     "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
     "section": "Next Steps",
-    "text": "Next Steps\nNow that you understand the basics of ksTFL, you can:\n- Explore the ksTFL Documentation for advanced features\n- Check out the GitHub Repository for more real examples and scripts\n\nAleschenkov I, Larchenko V (2026). ksTFL: Framework for Clinical Tables, Figures, and Listings. R package version 0.11.9, https://crow16384.github.io/ksTFL/ https://crow16384.r-universe.dev/ksTFL.\nThis post was originally published on the KeyStat Solutions Technical Blog. Visit R-Bloggers to discover more R content."
+    "text": "Next Steps\nNow that you understand the basics of ksTFL, you can:\n- Explore the ksTFL Documentation for advanced features\n- Check out the GitHub Repository for more real examples and scripts\n- A LinkedIn Post here gives some additional context and background on the ksTFL package.\n\nAleschenkov I, Larchenko V (2026). ksTFL: Framework for Clinical Tables, Figures, and Listings. R package version 0.11.9, https://crow16384.github.io/ksTFL/ https://crow16384.r-universe.dev/ksTFL.\nThis post was originally published on the KeyStat Solutions Technical Blog. Visit R-Bloggers to discover more R content."
   },
   {
-    "objectID": "posts/2026-07-09-getting-current-script-name-in-r/index.html",
-    "href": "posts/2026-07-09-getting-current-script-name-in-r/index.html",
-    "title": "Getting Current R-script name in R automatically",
+    "objectID": "r-bloggers.html",
+    "href": "r-bloggers.html",
+    "title": "",
     "section": "",
-    "text": "When generating clinical reports, it’s often useful to know which analysis script produced the output. The script name can be included in report headers, footers, log files, or metadata to improve traceability and simplify debugging.\nMany reporting frameworks require manually specifying the program name:\nprogram &lt;- \"t_14_01_01.R\"\nThe obvious downside is that this information must be updated whenever the script is renamed, which is easy to forget.\nA better solution is to determine the script name automatically.\nThe function below detects the currently executing script in the two most common execution modes:\n\nwhen the script is executed via source();\nwhen the script is executed with Rscript (or R --file).\n\n\n# Returns the name of the currently executing R script.\n#\n# The function works in two situations:\n#   1. When the script is executed via source()\n#   2. When the script is executed from the command line with Rscript\n#\n# If neither method can determine the script name (e.g. interactive console),\n# an empty string is returned.\ncurrent_script_name &lt;- function()\n{\n  #---------------------------------------------------------------------------\n  # Returns the current call stack together with corresponding environments.\n  # Each stack element contains:\n  #   - fn_name : name of the called function\n  #   - env     : execution environment of that call\n  #---------------------------------------------------------------------------\n  .get_stack &lt;- function() {\n    stack &lt;- sys.calls()\n    envs  &lt;- sys.frames()\n\n    # Remove the current function itself and reverse the order so the most\n    # recent calls are inspected first.\n    stack &lt;- rev(stack[-length(stack)])\n    envs  &lt;- rev(envs[-length(envs)])\n\n    if (length(stack) == 0L)\n      return(NULL)\n\n    Map(\n      function(call, env)\n        list(\n          fn_name = rlang::call_name(call),\n          env = env\n        ),\n      stack,\n      envs\n    )\n  }\n\n  #---------------------------------------------------------------------------\n  # Searches the call stack for the closest source() call.\n  #\n  # When source() executes a script, its execution environment contains\n  # the filename used for sourcing.\n  #---------------------------------------------------------------------------\n  .closest_source_frame &lt;- function() {\n    Find(\n      function(f)\n        !is.null(f$fn_name) &&\n        f$fn_name == \"source\",\n      .get_stack()\n    )\n  }\n\n  #---------------------------------------------------------------------------\n  # Returns the filename of the sourced script.\n  # Returns NULL if the script was not started via source().\n  #---------------------------------------------------------------------------\n  .current_source_filename &lt;- function() {\n    frame &lt;- .closest_source_frame()\n\n    if (is.null(frame))\n      NULL\n    else\n      frame$env$filename\n  }\n\n  #---------------------------------------------------------------------------\n  # Returns the script filename when executed with:\n  #\n  #   Rscript myscript.R\n  #\n  # or\n  #\n  #   R --file=myscript.R\n  #\n  # by inspecting command line arguments.\n  #---------------------------------------------------------------------------\n  .current_cli_filename &lt;- function() {\n\n    args &lt;- rev(commandArgs(FALSE))\n\n    file_index &lt;- grep(\"^(--file=|-f$)\", args)[1L]\n\n    if (is.na(file_index)) {\n\n      NULL\n\n    } else if (args[file_index] == \"-f\") {\n\n      args[file_index - 1L]\n\n    } else {\n\n      sub(\"^--file=\", \"\", args[file_index])\n\n    }\n  }\n\n  #---------------------------------------------------------------------------\n  # Try to determine the filename from source() first.\n  #---------------------------------------------------------------------------\n  src &lt;- .current_source_filename()\n\n  if (!is.null(src))\n    return(basename(src))\n\n  #---------------------------------------------------------------------------\n  # Otherwise try command line execution.\n  #---------------------------------------------------------------------------\n  cli &lt;- .current_cli_filename()\n\n  if (!is.null(cli))\n    return(basename(cli))\n\n  # Could not determine the script name.\n  \"\"\n}\n\nInternally, it first inspects the call stack looking for a source() frame, where R stores the filename. If no such frame exists, it falls back to examining the command-line arguments supplied to the R process.\nThis makes the function suitable for both interactive development and automated production workflows.\nUsing it is straightforward:\ncurrent_script_name()\n# [1] \"t_14_01_01.R\"\nFor example:\n\nsource(file.path(getwd(), 'output', 'the_test_script.R'))\n\nThe current script is:  the_test_script.R\n\n\nIn a clinical reporting environment, the returned filename can be used in several places:\n\ndocument headers and footers;\nreport metadata;\naudit logs;\nQC comparison reports;\nexecution logs generated by batch processes.\n\nBecause the program name is obtained automatically, there is no risk of documentation becoming inconsistent after a script is renamed. It is one less manual step to remember, making reporting workflows slightly more robust and easier to maintain.\nAlthough the implementation is compact, it provides a convenient building block for reproducible clinical reporting, where every generated output should clearly identify the program that created it.\n\nThis post was originally published on the KeyStat Solutions R Technical Blog. Visit R-Bloggers to discover more R content."
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "KeyStat Solutions Technical Blog",
-    "section": "",
-    "text": "Professional insights on clinical programming and statistical computing"
-  },
-  {
-    "objectID": "index.html#welcome-to-keystat-solutions",
-    "href": "index.html#welcome-to-keystat-solutions",
-    "title": "KeyStat Solutions Technical Blog",
-    "section": "Welcome to KeyStat Solutions",
-    "text": "Welcome to KeyStat Solutions\nOur technical blog provides practical, production-ready guidance on R programming, clinical trial data analysis, and statistical methods. We share real-world applications and best practices from our work in clinical researches."
-  },
-  {
-    "objectID": "index.html#latest-posts",
-    "href": "index.html#latest-posts",
-    "title": "KeyStat Solutions Technical Blog",
-    "section": "Latest Posts",
-    "text": "Latest Posts"
+    "text": "Code\n\n\n\n\nThis page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
   }
 ]

@@ -24,7 +24,7 @@ website:
         text: Home
     right:
       - icon: github
-        href: "https://github.com/keystat-solutions"
+        href: "https://al-garik.github.io/ks-blog/"
       - icon: rss
         href: index.xml
       - text: "R-Bloggers"

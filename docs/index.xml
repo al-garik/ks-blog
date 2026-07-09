@@ -1350,6 +1350,7 @@ font-style: inherit;">"output"</span>)</span></code></pre></div></div>
 <p>Now that you understand the basics of ksTFL, you can:</p>
 <p>- Explore the <a href="https://crow16384.github.io/ksTFL/">ksTFL Documentation</a> for advanced features</p>
 <p>- Check out the <a href="https://github.com/al-garik/ksTFL-examples">GitHub Repository</a> for more real examples and scripts</p>
+<p>- A LinkedIn Post <a href="https://www.linkedin.com/feed/update/urn:li:activity:7479853700828811264/?utm_source=share&amp;utm_medium=member_desktop&amp;rcm=ACoAAAUzuu4BEDY7577xOkwgYzheanx_vKn89pk">here</a> gives some additional context and background on the ksTFL package.</p>
 <hr>
 <p>Aleschenkov I, Larchenko V (2026). <em>ksTFL: Framework for Clinical Tables, Figures, and Listings</em>. R package version 0.11.9, <a href="https://crow16384.github.io/ksTFL/" class="uri">https://crow16384.github.io/ksTFL/</a> <a href="https://crow16384.r-universe.dev/ksTFL" class="uri">https://crow16384.r-universe.dev/ksTFL</a>.</p>
 <p><em>This post was originally published on the KeyStat Solutions Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>

@@ -235,7 +235,7 @@ blockquote {
 
 // Hero section styling
 .hero-section {
-  background: linear-gradient(135deg, $keystat-primary 0%, $keystat-primary-light 100%);
+  background: url("images/background.png") center center / cover no-repeat;
   padding: 4rem 2rem;
   text-align: center;
   border-radius: 8px;
@@ -261,11 +261,20 @@ blockquote {
 }
 
 .hero-subtitle {
-  color: rgba($keystat-white, 0.9);
-  font-size: 1.2rem;
-  margin: 0;
-  font-weight: 300;
+  display: inline-block;
+  padding: .5rem 1rem;
+  color: white;
+
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,.12);
+  border-radius: 8px;
 }
+//.hero-subtitle {
+//  color: rgba($keystat-dark, 0.9);
+//  font-size: 1.2rem;
+//  margin: 0;
+//  font-weight: 300;
+//}
 
 // Featured cards styling
 .featured-grid {
