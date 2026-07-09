@@ -5,6 +5,6 @@
 feed:
   title: "KeyStat Solutions R Technical Blog"
   description: "Articles about R programming, clinical data analysis, and statistical methods"
-  categories: [R, Programming, Statistics, Clinical, ksTFL]
+  categories: [R, Programming, Statistics, Clinical Research, CDISC, Data Analysis, Reporting]
   language: en
-  link: "https://keystat-solutions.github.io/ks-blog"
+  link: "https://al-garik.github.io/ks-blog/"
