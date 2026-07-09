@@ -167,17 +167,17 @@ footer {
   }
 }
 
-// Listing item images - auto-scale and maintain aspect ratio
-.quarto-listing-item img,
-.quarto-listing .listing-item img {
-  width: 100%;
-  height: auto;
-  max-height: 250px;
-  object-fit: cover;
+// Listing card images (Quarto grid) - show full image without crop
+.quarto-listing-container-grid .card-img-top img,
+.quarto-listing-container-grid img.thumbnail-image {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  object-fit: contain !important;
   border-radius: 6px;
   margin-bottom: 1rem;
   transition: transform 0.3s ease;
-  
+
   &:hover {
     transform: scale(1.02);
   }

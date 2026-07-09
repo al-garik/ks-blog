@@ -2,12 +2,14 @@
   {
     "listing": "/r-bloggers.html",
     "items": [
+      "/posts/2026-07-09-getting-current-script-name-in-r/index.html",
       "/posts/2026-07-06-getting-started-ks-tfl/index.html"
     ]
   },
   {
     "listing": "/index.html",
     "items": [
+      "/posts/2026-07-09-getting-current-script-name-in-r/index.html",
       "/posts/2026-07-06-getting-started-ks-tfl/index.html"
     ]
   }

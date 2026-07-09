@@ -1,0 +1,186 @@
+---
+title: "Getting Current R-script name in R automatically"
+description: "How to obtain the currently sourced script name in R without hardcoding it"
+author: "Igor Aleschenkov (KeyStat Solutions)"
+date: 2026-07-09
+categories: [R, Tips, Scripts, Clinical Programming]
+image: images/post-logo.png
+---
+
+
+When generating clinical reports, it's often useful to know **which analysis script produced the output**. The script name can be included in report headers, footers, log files, or metadata to improve traceability and simplify debugging.
+
+Many reporting frameworks require manually specifying the program name:
+
+```r
+program <- "t_14_01_01.R"
+```
+
+The obvious downside is that this information must be updated whenever the script is renamed, which is easy to forget.
+
+A better solution is to determine the script name automatically.
+
+The function below detects the currently executing script in the two most common execution modes:
+
+* when the script is executed via `source()`;
+* when the script is executed with `Rscript` (or `R --file`).
+
+
+
+```{r}
+#| message: false
+#| warning: false
+
+# Returns the name of the currently executing R script.
+#
+# The function works in two situations:
+#   1. When the script is executed via source()
+#   2. When the script is executed from the command line with Rscript
+#
+# If neither method can determine the script name (e.g. interactive console),
+# an empty string is returned.
+current_script_name <- function()
+{
+  #---------------------------------------------------------------------------
+  # Returns the current call stack together with corresponding environments.
+  # Each stack element contains:
+  #   - fn_name : name of the called function
+  #   - env     : execution environment of that call
+  #---------------------------------------------------------------------------
+  .get_stack <- function() {
+    stack <- sys.calls()
+    envs  <- sys.frames()
+
+    # Remove the current function itself and reverse the order so the most
+    # recent calls are inspected first.
+    stack <- rev(stack[-length(stack)])
+    envs  <- rev(envs[-length(envs)])
+
+    if (length(stack) == 0L)
+      return(NULL)
+
+    Map(
+      function(call, env)
+        list(
+          fn_name = rlang::call_name(call),
+          env = env
+        ),
+      stack,
+      envs
+    )
+  }
+
+  #---------------------------------------------------------------------------
+  # Searches the call stack for the closest source() call.
+  #
+  # When source() executes a script, its execution environment contains
+  # the filename used for sourcing.
+  #---------------------------------------------------------------------------
+  .closest_source_frame <- function() {
+    Find(
+      function(f)
+        !is.null(f$fn_name) &&
+        f$fn_name == "source",
+      .get_stack()
+    )
+  }
+
+  #---------------------------------------------------------------------------
+  # Returns the filename of the sourced script.
+  # Returns NULL if the script was not started via source().
+  #---------------------------------------------------------------------------
+  .current_source_filename <- function() {
+    frame <- .closest_source_frame()
+
+    if (is.null(frame))
+      NULL
+    else
+      frame$env$filename
+  }
+
+  #---------------------------------------------------------------------------
+  # Returns the script filename when executed with:
+  #
+  #   Rscript myscript.R
+  #
+  # or
+  #
+  #   R --file=myscript.R
+  #
+  # by inspecting command line arguments.
+  #---------------------------------------------------------------------------
+  .current_cli_filename <- function() {
+
+    args <- rev(commandArgs(FALSE))
+
+    file_index <- grep("^(--file=|-f$)", args)[1L]
+
+    if (is.na(file_index)) {
+
+      NULL
+
+    } else if (args[file_index] == "-f") {
+
+      args[file_index - 1L]
+
+    } else {
+
+      sub("^--file=", "", args[file_index])
+
+    }
+  }
+
+  #---------------------------------------------------------------------------
+  # Try to determine the filename from source() first.
+  #---------------------------------------------------------------------------
+  src <- .current_source_filename()
+
+  if (!is.null(src))
+    return(basename(src))
+
+  #---------------------------------------------------------------------------
+  # Otherwise try command line execution.
+  #---------------------------------------------------------------------------
+  cli <- .current_cli_filename()
+
+  if (!is.null(cli))
+    return(basename(cli))
+
+  # Could not determine the script name.
+  ""
+}
+```
+
+
+Internally, it first inspects the call stack looking for a `source()` frame, where R stores the filename. If no such frame exists, it falls back to examining the command-line arguments supplied to the R process.
+
+This makes the function suitable for both interactive development and automated production workflows.
+
+Using it is straightforward:
+
+```r
+current_script_name()
+# [1] "t_14_01_01.R"
+```
+
+For example:
+```{r}
+source(file.path(getwd(), 'output', 'the_test_script.R'))
+```
+
+
+In a clinical reporting environment, the returned filename can be used in several places:
+
+* document headers and footers;
+* report metadata;
+* audit logs;
+* QC comparison reports;
+* execution logs generated by batch processes.
+
+Because the program name is obtained automatically, there is no risk of documentation becoming inconsistent after a script is renamed. It is one less manual step to remember, making reporting workflows slightly more robust and easier to maintain.
+
+Although the implementation is compact, it provides a convenient building block for reproducible clinical reporting, where every generated output should clearly identify the program that created it.
+
+------------------------------------------------------------------------
+
+*This post was originally published on the KeyStat Solutions R Technical Blog. [Visit R-Bloggers](https://www.r-bloggers.com) to discover more R content.*

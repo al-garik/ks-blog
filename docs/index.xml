@@ -10,7 +10,484 @@
 <atom:link href="https://al-garik.github.io/ks-blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Articles about R programming, and clinical data analysis and reporting</description>
 <generator>quarto-1.9.37</generator>
-<lastBuildDate>Sun, 05 Jul 2026 21:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 08 Jul 2026 21:00:00 GMT</lastBuildDate>
+<item>
+  <title>Getting Current R-script name in R automatically</title>
+  <dc:creator>Igor Aleschenkov (KeyStat Solutions)</dc:creator>
+  <link>https://al-garik.github.io/ks-blog/posts/2026-07-09-getting-current-script-name-in-r/</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>When generating clinical reports, it’s often useful to know <strong>which analysis script produced the output</strong>. The script name can be included in report headers, footers, log files, or metadata to improve traceability and simplify debugging.</p>
+<p>Many reporting frameworks require manually specifying the program name:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1">program <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"t_14_01_01.R"</span></span></code></pre></div></div>
+<p>The obvious downside is that this information must be updated whenever the script is renamed, which is easy to forget.</p>
+<p>A better solution is to determine the script name automatically.</p>
+<p>The function below detects the currently executing script in the two most common execution modes:</p>
+<ul>
+<li>when the script is executed via <code>source()</code>;</li>
+<li>when the script is executed with <code>Rscript</code> (or <code>R --file</code>).</li>
+</ul>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Returns the name of the currently executing R script.</span></span>
+<span id="cb2-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#</span></span>
+<span id="cb2-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The function works in two situations:</span></span>
+<span id="cb2-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#   1. When the script is executed via source()</span></span>
+<span id="cb2-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#   2. When the script is executed from the command line with Rscript</span></span>
+<span id="cb2-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#</span></span>
+<span id="cb2-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># If neither method can determine the script name (e.g. interactive console),</span></span>
+<span id="cb2-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># an empty string is returned.</span></span>
+<span id="cb2-9">current_script_name <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>()</span>
+<span id="cb2-10">{</span>
+<span id="cb2-11">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-12">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Returns the current call stack together with corresponding environments.</span></span>
+<span id="cb2-13">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Each stack element contains:</span></span>
+<span id="cb2-14">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#   - fn_name : name of the called function</span></span>
+<span id="cb2-15">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#   - env     : execution environment of that call</span></span>
+<span id="cb2-16">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-17">  .get_stack <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-18">    stack <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sys.calls</span>()</span>
+<span id="cb2-19">    envs  <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sys.frames</span>()</span>
+<span id="cb2-20"></span>
+<span id="cb2-21">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Remove the current function itself and reverse the order so the most</span></span>
+<span id="cb2-22">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># recent calls are inspected first.</span></span>
+<span id="cb2-23">    stack <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rev</span>(stack[<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(stack)])</span>
+<span id="cb2-24">    envs  <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rev</span>(envs[<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(envs)])</span>
+<span id="cb2-25"></span>
+<span id="cb2-26">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(stack) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>L)</span>
+<span id="cb2-27">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(<span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>)</span>
+<span id="cb2-28"></span>
+<span id="cb2-29">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Map</span>(</span>
+<span id="cb2-30">      <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(call, env)</span>
+<span id="cb2-31">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb2-32">          <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fn_name =</span> rlang<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">call_name</span>(call),</span>
+<span id="cb2-33">          <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">env =</span> env</span>
+<span id="cb2-34">        ),</span>
+<span id="cb2-35">      stack,</span>
+<span id="cb2-36">      envs</span>
+<span id="cb2-37">    )</span>
+<span id="cb2-38">  }</span>
+<span id="cb2-39"></span>
+<span id="cb2-40">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-41">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Searches the call stack for the closest source() call.</span></span>
+<span id="cb2-42">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#</span></span>
+<span id="cb2-43">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># When source() executes a script, its execution environment contains</span></span>
+<span id="cb2-44">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># the filename used for sourcing.</span></span>
+<span id="cb2-45">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-46">  .closest_source_frame <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-47">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Find</span>(</span>
+<span id="cb2-48">      <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(f)</span>
+<span id="cb2-49">        <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(f<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>fn_name) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span></span>
+<span id="cb2-50">        f<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>fn_name <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"source"</span>,</span>
+<span id="cb2-51">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">.get_stack</span>()</span>
+<span id="cb2-52">    )</span>
+<span id="cb2-53">  }</span>
+<span id="cb2-54"></span>
+<span id="cb2-55">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-56">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Returns the filename of the sourced script.</span></span>
+<span id="cb2-57">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Returns NULL if the script was not started via source().</span></span>
+<span id="cb2-58">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-59">  .current_source_filename <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-60">    frame <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">.closest_source_frame</span>()</span>
+<span id="cb2-61"></span>
+<span id="cb2-62">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(frame))</span>
+<span id="cb2-63">      <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span></span>
+<span id="cb2-64">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span></span>
+<span id="cb2-65">      frame<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>env<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>filename</span>
+<span id="cb2-66">  }</span>
+<span id="cb2-67"></span>
+<span id="cb2-68">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-69">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Returns the script filename when executed with:</span></span>
+<span id="cb2-70">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#</span></span>
+<span id="cb2-71">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#   Rscript myscript.R</span></span>
+<span id="cb2-72">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#</span></span>
+<span id="cb2-73">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># or</span></span>
+<span id="cb2-74">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#</span></span>
+<span id="cb2-75">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#   R --file=myscript.R</span></span>
+<span id="cb2-76">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#</span></span>
+<span id="cb2-77">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># by inspecting command line arguments.</span></span>
+<span id="cb2-78">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-79">  .current_cli_filename <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb2-80"></span>
+<span id="cb2-81">    args <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rev</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">commandArgs</span>(<span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>))</span>
+<span id="cb2-82"></span>
+<span id="cb2-83">    file_index <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grep</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"^(--file=|-f$)"</span>, args)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L]</span>
+<span id="cb2-84"></span>
+<span id="cb2-85">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.na</span>(file_index)) {</span>
+<span id="cb2-86"></span>
+<span id="cb2-87">      <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span></span>
+<span id="cb2-88"></span>
+<span id="cb2-89">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (args[file_index] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"-f"</span>) {</span>
+<span id="cb2-90"></span>
+<span id="cb2-91">      args[file_index <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L]</span>
+<span id="cb2-92"></span>
+<span id="cb2-93">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb2-94"></span>
+<span id="cb2-95">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sub</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"^--file="</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>, args[file_index])</span>
+<span id="cb2-96"></span>
+<span id="cb2-97">    }</span>
+<span id="cb2-98">  }</span>
+<span id="cb2-99"></span>
+<span id="cb2-100">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-101">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Try to determine the filename from source() first.</span></span>
+<span id="cb2-102">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-103">  src <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">.current_source_filename</span>()</span>
+<span id="cb2-104"></span>
+<span id="cb2-105">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(src))</span>
+<span id="cb2-106">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">basename</span>(src))</span>
+<span id="cb2-107"></span>
+<span id="cb2-108">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-109">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Otherwise try command line execution.</span></span>
+<span id="cb2-110">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#---------------------------------------------------------------------------</span></span>
+<span id="cb2-111">  cli <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">.current_cli_filename</span>()</span>
+<span id="cb2-112"></span>
+<span id="cb2-113">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(cli))</span>
+<span id="cb2-114">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">basename</span>(cli))</span>
+<span id="cb2-115"></span>
+<span id="cb2-116">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Could not determine the script name.</span></span>
+<span id="cb2-117">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span></span>
+<span id="cb2-118">}</span></code></pre></div></div>
+</div>
+<p>Internally, it first inspects the call stack looking for a <code>source()</code> frame, where R stores the filename. If no such frame exists, it falls back to examining the command-line arguments supplied to the R process.</p>
+<p>This makes the function suitable for both interactive development and automated production workflows.</p>
+<p>Using it is straightforward:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">current_script_name</span>()</span>
+<span id="cb3-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># [1] "t_14_01_01.R"</span></span></code></pre></div></div>
+<p>For example:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">source</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">file.path</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">getwd</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'output'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'the_test_script.R'</span>))</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>The current script is:  the_test_script.R</code></pre>
+</div>
+</div>
+<p>In a clinical reporting environment, the returned filename can be used in several places:</p>
+<ul>
+<li>document headers and footers;</li>
+<li>report metadata;</li>
+<li>audit logs;</li>
+<li>QC comparison reports;</li>
+<li>execution logs generated by batch processes.</li>
+</ul>
+<p>Because the program name is obtained automatically, there is no risk of documentation becoming inconsistent after a script is renamed. It is one less manual step to remember, making reporting workflows slightly more robust and easier to maintain.</p>
+<p>Although the implementation is compact, it provides a convenient building block for reproducible clinical reporting, where every generated output should clearly identify the program that created it.</p>
+<hr>
+<p><em>This post was originally published on the KeyStat Solutions R Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>
+
+
+<!-- -->
+
+
+ ]]></description>
+  <category>R</category>
+  <category>Tips</category>
+  <category>Scripts</category>
+  <category>Clinical Programming</category>
+  <guid>https://al-garik.github.io/ks-blog/posts/2026-07-09-getting-current-script-name-in-r/</guid>
+  <pubDate>Wed, 08 Jul 2026 21:00:00 GMT</pubDate>
+  <media:content url="https://al-garik.github.io/ks-blog/posts/2026-07-09-getting-current-script-name-in-r/images/post-logo.png" medium="image" type="image/png" height="58" width="144"/>
+</item>
 <item>
   <title>Getting Started with ksTFL: Creating Your First Clinical Table</title>
   <dc:creator>Igor Aleschenkov (KeyStat Solutions)</dc:creator>
