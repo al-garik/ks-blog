@@ -1,0 +1,361 @@
+/*-- scss:defaults --*/
+
+// KEYSTAT Solutions Brand Colors
+// Dark blue/teal with orange accents
+
+// Primary brand colors
+$keystat-primary: #003d5c;      // Dark blue - main color
+$keystat-primary-light: #0d5a7a;// Lighter blue for hover
+$keystat-accent: #FF8C00;       // Orange accent
+$keystat-white: #ffffff;
+$keystat-dark: #1a1a1a;
+$keystat-gray: #f5f5f5;
+
+// Override Cosmo theme variables
+$primary: $keystat-primary;
+$secondary: $keystat-accent;
+$success: $keystat-accent;
+$info: $keystat-primary-light;
+$navbar-bg: $keystat-primary;
+$navbar-fg: $keystat-white;
+$border-color: $keystat-primary;
+$link-color: $keystat-primary;
+$link-hover-color: $keystat-accent;
+
+/*-- scss:rules --*/
+
+// Navbar styling
+.navbar {
+  background: linear-gradient(90deg, $keystat-primary 0%, $keystat-primary-light 100%) !important;
+  box-shadow: 0 4px 15px rgba(0, 61, 92, 0.2);
+  border-bottom: 4px solid $keystat-accent;
+  padding: 0.75rem 1.5rem !important;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: $keystat-white !important;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+  
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.navbar-brand img {
+  height: 45px;
+  width: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.navbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  
+  .brand-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  
+  .brand-subtitle {
+    font-size: 0.75rem;
+    font-weight: 400;
+    opacity: 0.95;
+    letter-spacing: 0.3px;
+  }
+}
+
+.navbar-nav .nav-link {
+  color: $keystat-white !important;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin: 0 0.5rem;
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 4px;
+  
+  &:hover {
+    color: $keystat-accent !important;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.navbar-light .navbar-nav .nav-link.active {
+  color: $keystat-accent !important;
+  background-color: rgba(255, 140, 0, 0.1);
+  border-bottom: 2px solid $keystat-accent;
+  font-weight: 600;
+}
+
+// Buttons and links
+a {
+  color: $keystat-primary;
+  
+  &:hover {
+    color: $keystat-accent;
+  }
+}
+
+.btn-primary {
+  background-color: $keystat-primary;
+  border-color: $keystat-primary;
+  
+  &:hover {
+    background-color: $keystat-accent;
+    border-color: $keystat-accent;
+  }
+}
+
+// Code blocks styling
+.sourceCode {
+  background-color: $keystat-gray;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid $keystat-accent;
+}
+
+// Header styling
+h1, h2, h3, h4, h5, h6 {
+  color: $keystat-primary;
+  font-weight: 600;
+}
+
+h1 {
+  border-bottom: 3px solid $keystat-accent;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+// Footer styling
+footer {
+  background-color: $keystat-primary;
+  color: $keystat-white;
+  border-top: 3px solid $keystat-accent;
+}
+
+// Card styling for posts
+.card {
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 61, 92, 0.15);
+    border-color: $keystat-accent;
+  }
+}
+
+// Listing grid styling
+.quarto-listing-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 61, 92, 0.15);
+    border-color: $keystat-accent;
+  }
+}
+
+// Listing item images - auto-scale and maintain aspect ratio
+.quarto-listing-item img,
+.quarto-listing .listing-item img {
+  width: 100%;
+  height: auto;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+// Post content images - responsive and styled
+.quarto-post img,
+main img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 1.5rem 0;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 61, 92, 0.2);
+  }
+}
+
+// Search styling
+.aa-Item[aria-selected="true"] {
+  background-color: rgba(0, 61, 92, 0.1) !important;
+  
+  .aa-ItemLink {
+    background-color: rgba(0, 61, 92, 0.05);
+  }
+}
+
+// TOC (Table of Contents) styling
+nav.toc {
+  
+  a {
+    color: $keystat-primary;
+    
+    &.active {
+      color: $keystat-accent;
+      border-left: 3px solid $keystat-accent;
+      font-weight: 600;
+    }
+  }
+}
+
+// Page title styling
+.page-header {
+  border-bottom: 3px solid $keystat-accent;
+  padding-bottom: 1rem;
+}
+
+// Blockquote styling
+blockquote {
+  border-left: 4px solid $keystat-accent;
+  color: $keystat-primary;
+}
+
+// Hero section styling
+.hero-section {
+  background: linear-gradient(135deg, $keystat-primary 0%, $keystat-primary-light 100%);
+  padding: 4rem 2rem;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: 3rem;
+  box-shadow: 0 4px 15px rgba(0, 61, 92, 0.2);
+}
+
+.hero-title {
+  color: $keystat-white;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  border: none;
+  
+  &::after {
+    content: "";
+    display: block;
+    width: 100px;
+    height: 4px;
+    background-color: $keystat-accent;
+    margin: 1rem auto 0;
+  }
+}
+
+.hero-subtitle {
+  color: rgba($keystat-white, 0.9);
+  font-size: 1.2rem;
+  margin: 0;
+  font-weight: 300;
+}
+
+// Featured cards styling
+.featured-grid {
+  margin: 2rem 0;
+}
+
+.featured-card {
+  background: linear-gradient(135deg, rgba(0, 61, 92, 0.05) 0%, rgba(255, 140, 0, 0.05) 100%);
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  text-align: left;
+  
+  &:hover {
+    border-color: $keystat-accent;
+    box-shadow: 0 6px 20px rgba(0, 61, 92, 0.15);
+    transform: translateY(-4px);
+    background: linear-gradient(135deg, rgba(0, 61, 92, 0.08) 0%, rgba(255, 140, 0, 0.08) 100%);
+  }
+  
+  strong {
+    color: $keystat-primary;
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+// About page hero section
+.about-hero {
+  background: linear-gradient(135deg, $keystat-primary 0%, $keystat-primary-light 100%);
+  padding: 4rem 2rem;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: 3rem;
+  box-shadow: 0 4px 15px rgba(0, 61, 92, 0.2);
+  
+  h1 {
+    color: $keystat-white;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    border: none;
+    
+    &::after {
+      content: "";
+      display: block;
+      width: 100px;
+      height: 4px;
+      background-color: $keystat-accent;
+      margin: 1rem auto 0;
+    }
+  }
+  
+  p {
+    color: rgba($keystat-white, 0.9);
+    font-size: 1.2rem;
+    margin: 0;
+    font-weight: 300;
+  }
+}
+
+// Table styling for about page
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 2rem 0;
+  
+  th {
+    background-color: rgba(0, 61, 92, 0.1);
+    color: $keystat-primary;
+    font-weight: 600;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 3px solid $keystat-accent;
+  }
+  
+  td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  tr:hover {
+    background-color: rgba(255, 140, 0, 0.02);
+  }
+}
+
+// Badge/checkmark styling
+strong:has(+ em) {
+  color: $keystat-accent;
+}

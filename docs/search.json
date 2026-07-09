@@ -1,0 +1,128 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About KeyStat Solutions",
+    "section": "",
+    "text": "Advancing clinical data analysis through innovative R-based tools and expert guidance"
+  },
+  {
+    "objectID": "about.html#our-mission",
+    "href": "about.html#our-mission",
+    "title": "About KeyStat Solutions",
+    "section": "Our Mission",
+    "text": "Our Mission\nKeyStat Solutions is dedicated to:\n✅ Open Science - Making clinical data analysis accessible and transparent\n✅ Reproducible Research - Building tools for auditable, verifiable results\n✅ Professional Quality - Delivering production-ready solutions for regulatory compliance\nWe believe that powerful data analysis tools should be intuitive, well-documented, and freely available to the research community."
+  },
+  {
+    "objectID": "about.html#about-this-blog",
+    "href": "about.html#about-this-blog",
+    "title": "About KeyStat Solutions",
+    "section": "About This Blog",
+    "text": "About This Blog\nOur technical blog provides curated content on:\n\n🔧 ksTFL Package - Clinical trial listings, tables, and figures\n📚 Best Practices - Professional approaches to R programming and statistical analysis\n\n🎓 Tutorials - Practical, step-by-step guides for real-world problems\n💼 Case Studies - Production solutions from our consulting work"
+  },
+  {
+    "objectID": "about.html#our-flagship-tool-kstfl",
+    "href": "about.html#our-flagship-tool-kstfl",
+    "title": "About KeyStat Solutions",
+    "section": "Our Flagship Tool: ksTFL",
+    "text": "Our Flagship Tool: ksTFL\nksTFL (KeyStat Tables, Figures, and Listings) is an R package designed specifically for clinical trial data analysis and regulatory reporting.\n\nWhy ksTFL?\nTraditional approaches to clinical tables require: - Manual formatting and styling - Error-prone data manipulation\n- Difficult-to-maintain code - Regulatory compliance concerns\nksTFL solves this with:\n\n\n\n\n\n\n\nFeature\nBenefit\n\n\n\n\nDeclarative syntax\nWrite what you want, not how to format it\n\n\nAutomatic styling\nProfessional output with zero manual formatting\n\n\nRegulatory-ready\nBuilt with FDA/ICH compliance in mind\n\n\nReproducible\nAudit trail and version control friendly\n\n\nFlexible\nWorks with tidyverse, data.table, and base R\n\n\n\n\n\nQuick Features\n\n✅ Create tables, figures, and listings with minimal code\n✅ Automatic summary statistics and grouping\n\n✅ Publication-ready DOCX output\n✅ Conditional styling and formatting rules\n✅ Full tidyverse/tidyselect support\n✅ 100+ style atoms for fine-grained control"
+  },
+  {
+    "objectID": "about.html#get-in-touch",
+    "href": "about.html#get-in-touch",
+    "title": "About KeyStat Solutions",
+    "section": "Get in Touch",
+    "text": "Get in Touch\nWe’d love to hear from you!\n\n📧 Email: contact@keystat-solutions.com\n🐙 GitHub: github.com/keystat-solutions\n🐦 Twitter: @KeyStat_Solutions\n📦 R Universe: crow16384.r-universe.dev/ksTFL"
+  },
+  {
+    "objectID": "about.html#explore-the-blog",
+    "href": "about.html#explore-the-blog",
+    "title": "About KeyStat Solutions",
+    "section": "Explore the Blog",
+    "text": "Explore the Blog\nReady to get started? Check out our tutorial posts:\n\nGetting Started with ksTFL - Your first clinical table\nAdvanced ksTFL - Complex table structures and styling"
+  },
+  {
+    "objectID": "r-bloggers.html",
+    "href": "r-bloggers.html",
+    "title": "",
+    "section": "",
+    "text": "Code\n\n\n\n\nThis page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "",
+    "text": "Creating clinical trial tables, figures, and listings is one of the most time-consuming tasks in clinical statistical programming. The ksTFL R Package was designed to make this process faster, more reliable, and more enjoyable.\nIn this post, we’ll walk through the basics of ksTFL and create your first clinical table."
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#introduction",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#introduction",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "",
+    "text": "Creating clinical trial tables, figures, and listings is one of the most time-consuming tasks in clinical statistical programming. The ksTFL R Package was designed to make this process faster, more reliable, and more enjoyable.\nIn this post, we’ll walk through the basics of ksTFL and create your first clinical table."
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#why-kstfl",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#why-kstfl",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Why ksTFL?",
+    "text": "Why ksTFL?\nClinical trial deliverables require:\n\n✅ Professional formatting and alignment with regulatory standards\n✅ Reproducible, auditable code\n✅ Traceability of the data throughout the analysis pipeline\n✅ Submission-ready output without manual refinement\n\nWithout a specialized tool, generating submission-ready tables and figures from R can require significant time—sometimes more than the time spent on statistical calculations and modeling itself."
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#installation",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#installation",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Installation",
+    "text": "Installation\nInstall ksTFL from r-universe:"
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#your-first-table",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#your-first-table",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Your First Table",
+    "text": "Your First Table\nLet’s create a simple demographic summary table using sample data:\n\n# Use built-in mtcars dataset for simplicity\nspec &lt;- create_table(mtcars, cols = c(cyl, mpg, hp, wt)) |&gt;\n  add_title(\"Motor Trend Car Road Tests\", styleRef = \"i\") |&gt;\n  add_title(\"Performance Metrics by Cylinder Count\", styleRef = \"i\") |&gt;\n  add_footnote(\"Source: 1974 Motor Trend US magazine\")\n\n# Define columns with labels and styling\nspec &lt;- spec |&gt;\n  define_cols(c(mpg, hp, wt), \n              label = c(\"Miles/(US) gallon\", \"Horsepower\", \"Weight&lt;br&gt;(1000 lbs)\"),\n              valueStyleRef = \"ac\"  # align center\n              ) |&gt;\n  define_cols(cyl, \n                        label = \"N of Cylinders\",\n              dedupe = T) |&gt;\n    set_document(contentWidth = \"60%\")\n\n# Create report and render to DOCX\nreport &lt;- create_report(spec)\nwrite_doc(report, name = \"demo_table\", outDir = \"output\")\n\n\nWhat’s Happening?\n\ncreate_table(data, cols = ...) - Initialize the table with selected columns\nadd_title(), add_footnote() - Add documentation and annotations\ndefine_cols() - Configure column properties (labels, styling, visibility, deduplication, etc.)\ncreate_report() - Assemble the table specification\nwrite_doc() - Render to a professional DOCX document\n\nWith just a few lines of code, ksTFL generates a well-formatted MS Word DOCX document:"
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#key-features",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#key-features",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Key Features",
+    "text": "Key Features\n\nDeclarative Styling\nApply styles without modifying source data:\n\n# Add conditional styling - highlight high horsepower\nspec &lt;- spec |&gt;\n  compute_cols(hp &gt;=180, \n               c_style(hp, styleRef = \"fc_red\"))  # font color red\n\nThe ksTFL package includes many pre-defined atomic styles, but custom styles can also be created using the add_style() function.\n\n\nSpanning Headers\nCreate multi-column group headers:\n\nspec &lt;- spec |&gt;\n  add_span_header(cols = c(mpg, hp, wt), \n                  label = \"Performance Metrics\")\n\n\n\n\n\n\n\n\nFlexible Column Selection\nUse tidyselect helpers for column selection:\n\nspec |&gt;\n  define_cols(starts_with(\"m\"), \n              valueStyleRef = \"ar\")  # right align\n\n\n\nBuilt-in Style Atoms\nCombine predefined styles for quick formatting:\n\n# Combine multiple style attributes\nspec &lt;- add_title(spec, \"Summary\", \n                  styleRef = f_combine(\"i\", \"b\", \"fc_navy\"))"
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#complete-example-demographics-table",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#complete-example-demographics-table",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Complete Example: Demographics Table",
+    "text": "Complete Example: Demographics Table\nLet’s build a submission-ready demographics table.\nSince this article focuses on ksTFL’s rendering capabilities, the statistical calculations and data preparation are handled upstream. ksTFL does not calculate statistics by itself; rather, it transforms pre-calculated summary tables into publication-ready documents. In production code, statisticians prepare the summary data in a planar format, and ksTFL handles the table layout and formatting.\nBelow, we use a simple function that generates a data frame with calculated statistics for Age, Sex, and Race:\n\n# Simple function that generates the summary table\n# that a statistical programmer typically creates from ADSL data\ngenerate_demography_summary &lt;- function(seed = 1007L) {\n    set.seed(seed)\n    \n    rnd_stat &lt;- function(N) {\n        c(\n            sprintf(\"%.1f (%.1f)\", rnorm(1L, 48, 2), rnorm(1L, 11, 1)),\n            sprintf(\"%.1f\", rnorm(1L, 49, 2)),\n            sprintf(\"%d, %d\", sample(20:30, 1L), sample(65:75, 1L)),\n            sprintf(\"%d (%.1f%%)\", 22L, 100 * 22L / N),\n            sprintf(\"%d (%.1f%%)\", 20L, 100 * 20L / N),\n            sprintf(\"%d (%.1f%%)\", 28L, 100 * 28L / N),\n            sprintf(\"%d (%.1f%%)\", 9L, 100 * 9L / N),\n            sprintf(\"%d (%.1f%%)\", 5L, 100 * 5L / N)\n        )\n    }\n    \n    data.frame(\n        PARAM = c(rep(\"Age (years)\",3), rep(\"Sex\",2), rep(\"Race\",3)),\n        STATISTIC = c(\"Mean (SD)\", \"Median\", \"Min, Max\", \n                                    \"Female\", \"Male\", \n                                    \"White\", \"Asian\", \"Other\"),\n        PLACEBO = rnd_stat(placebo_n),\n        DRUGA = rnd_stat(drug_a_n),\n        TOTAL = rnd_stat(total_n),\n        stringsAsFactors = FALSE\n    )\n}\n\nWith the inputs provided above, the generated data frame looks like this:\n\nplacebo_n &lt;- 42L\ndrug_a_n &lt;- 44L\ntotal_n &lt;- placebo_n + drug_a_n\n\ntable_data &lt;- generate_demography_summary(seed = 1007L)\n\ntable_data\n\n        PARAM STATISTIC     PLACEBO      DRUGA       TOTAL\n1 Age (years) Mean (SD) 49.0 (11.3) 48.6 (9.8) 51.6 (12.1)\n2 Age (years)    Median        51.6       47.9        50.2\n3 Age (years)  Min, Max      26, 68     20, 75      26, 69\n4         Sex    Female  22 (52.4%) 22 (50.0%)  22 (25.6%)\n5         Sex      Male  20 (47.6%) 20 (45.5%)  20 (23.3%)\n6        Race     White  28 (66.7%) 28 (63.6%)  28 (32.6%)\n7        Race     Asian   9 (21.4%)  9 (20.5%)   9 (10.5%)\n8        Race     Other   5 (11.9%)  5 (11.4%)    5 (5.8%)\n\n\nNow let’s use ksTFL to transform this planar data frame into a submission-ready document:\n\n# Initialize ksTFL table specification\ntable_spec &lt;- create_table(table_data) |&gt;\n    # PARAM is set to invisible because we use it as a category header.\n    # This keeps the table compact and maintains a professional appearance.\n    define_cols(PARAM, label = \"Parameter\", isVisible = FALSE) |&gt;\n    # STATISTIC remains visible on every row because it distinguishes\n    # different statistics within each parameter block.\n    define_cols(STATISTIC, \n                    label = \"Parameter&lt;br&gt;Statistic\", \n                    valueStyleRef = \"indent_1\", labelStyleRef = 'al') |&gt;\n    # Treatment columns follow the same display rules, so we define them together.\n    # Although ksTFL calculates column widths automatically,\n    # we manually set them here to ensure consistent treatment column widths\n    # across the output for visual clarity and professional presentation.\n    define_cols(c(PLACEBO, DRUGA, TOTAL),\n                            label = c(paste0(\"Placebo&lt;br&gt;(N=\", placebo_n,')'), \n                                                paste0(\"Drug A&lt;br&gt;(N=\", drug_a_n,')'), \n                                                paste0(\"Total&lt;br&gt;(N=\", total_n,')')),\n                            valueStyleRef = \"ac\",\n                            colWidth = c(\"18%\", \"18%\", \"18%\")\n    ) |&gt;\n    compute_cols(\n    # The input data lacks units for categorical statistics;\n    # we add them dynamically here.\n        PARAM %in% c('Sex', 'Race'),\n        c_glue(PARAM, 'after', text=', n (%)')\n    ) |&gt;\n    # Use PARAM values as heading rows for better structure\n    compute_cols(\n        firstOf(PARAM),\n        c_addrow('above', value_from = PARAM, styleRef = f_combine('al', 'b'))\n    ) |&gt;\n    # Define titles, subtitles, and document headers/footers\n    add_title(\"Table 14.1 Demographic Summary\") |&gt;\n    add_subtitle(\"(Safety Population)\", styleRef = 'ac') |&gt;\n    add_footnote(\"Note: Values are presented as summary statistics prepared before the ksTFL stage.\") |&gt;\n    add_header(\"Example Study KSTFL-107\", \"DEMOGRAPHY\", \"Page {PAGE} of {NUMPAGES}\") |&gt;\n    add_footer(\"Basic summary table example\", \"\", format(Sys.Date(), \"%Y-%m-%d\")) |&gt;\n    # Demographic tables benefit from a moderate content width:\n    # narrow enough to keep treatment columns readable, but wide enough\n    # to avoid sparse layouts with few rows.\n    set_document(\n        contentWidth = \"50%\",\n        # ksTFL provides flexible control over footnote placement:\n        # \"doc_footer\" (in the Word footer below footer rows),\n        # \"repeated\" (under the table on every page), or\n        # \"last_page\" (under the table on the last page only)\n        footnotePlace = \"doc_footer\" \n    )\n\n# Create report and render to DOCX\nreport &lt;- create_report(table_spec)\n\nwrite_doc(report, name = \"table_14_1\", outDir = \"output\")\n\nWith just a few lines of declarative code, the planar data frame transforms into a production-ready document:\n\n\n\n\n\nThe key advantage of this approach is that the input data remains in a simple, planar format that is easy to validate and audit, without any embedded reporting artifacts or formatting logic."
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#next-steps",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#next-steps",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Next Steps",
+    "text": "Next Steps\nNow that you understand the basics of ksTFL, you can:\n- Explore the ksTFL Documentation for advanced features\n- Check out the GitHub Repository for more real examples and scripts\n\nAleschenkov I, Larchenko V (2026). ksTFL: Framework for Clinical Tables, Figures, and Listings. R package version 0.11.9, https://crow16384.github.io/ksTFL/ https://crow16384.r-universe.dev/ksTFL.\nThis post was originally published on the KeyStat Solutions Technical Blog. Visit R-Bloggers to discover more R content."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "KeyStat Solutions Technical Blog",
+    "section": "",
+    "text": "Professional insights on clinical programming and statistical computing"
+  },
+  {
+    "objectID": "index.html#welcome-to-keystat-solutions",
+    "href": "index.html#welcome-to-keystat-solutions",
+    "title": "KeyStat Solutions Technical Blog",
+    "section": "Welcome to KeyStat Solutions",
+    "text": "Welcome to KeyStat Solutions\nOur technical blog provides practical, production-ready guidance on R programming, clinical trial data analysis, and statistical methods. We share real-world applications and best practices from our work in clinical research and data science."
+  },
+  {
+    "objectID": "index.html#latest-posts",
+    "href": "index.html#latest-posts",
+    "title": "KeyStat Solutions Technical Blog",
+    "section": "Latest Posts",
+    "text": "Latest Posts"
+  }
+]

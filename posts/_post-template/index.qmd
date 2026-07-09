@@ -1,0 +1,296 @@
+---
+title: "Post Template - Copy and Use"
+description: "Template for creating new blog posts"
+author: "KeyStat Solutions"
+date: 2026-07-08
+categories: [R, Meta, Template]
+draft: true
+---
+
+This post is a template showing the standard format for blog posts. Copy this file and modify it for your own posts.
+
+## Template Structure
+
+### YAML Frontmatter
+Every post must have these fields in the header:
+
+- **title**: Main title of your post (required)
+- **description**: Short 60-character summary (required, shown in listings)
+- **author**: Author name (required)
+- **date**: Publication date in YYYY-MM-DD format (required)
+- **categories**: List of tags for organization (required)
+  - **IMPORTANT**: Always include **"R"** if the post is R-related (needed for R-Bloggers syndication)
+  - Other categories: ksTFL, Clinical Programming, Statistics, Data Analysis, etc.
+- **image**: Featured image filename (optional)
+  - Place image file in the post folder: `posts/YYYY-MM-DD-post-slug/featured.png`
+  - Reference in YAML: `image: featured.png`
+  - The image appears on the homepage listing and at the top of the post
+  - Recommended size: 800x400px or similar (16:9 aspect ratio)
+  - Supported formats: PNG, JPG, GIF
+- **draft**: Set to true to hide while editing (optional)
+
+### Including Images in Your Post
+
+**Featured Image** (shown on homepage):
+- Set in YAML frontmatter: `image: featured.png`
+- Place file in same folder as `index.qmd`
+- Automatically scaled on homepage
+
+**Images in Post Content**:
+
+Use standard Markdown syntax:
+```markdown
+![Alt text describing the image](image-filename.png)
+```
+
+Example:
+```markdown
+## Results
+
+Here's a chart showing the performance:
+
+![Performance comparison chart](performance-chart.png)
+```
+
+**Best Practices**:
+- Use descriptive alt text for accessibility
+- Keep images in the same post folder
+- Use reasonable file sizes (compress PNGs/JPGs to ~200-500KB)
+- Use landscape orientation for wide images
+- 16:9 aspect ratio works best for featured images
+
+**Image Folder Structure**:
+```
+posts/2026-07-15-my-post/
+├── index.qmd           (your post file)
+├── featured.png        (homepage listing image)
+├── chart-01.png        (inline images in post)
+└── screenshot.jpg      (more inline images)
+```
+
+### For R-Bloggers Syndication
+
+This blog is syndicated on [R-Bloggers](https://www.r-bloggers.com). To ensure your post is picked up:
+
+1. **Include "R" in categories** - This tags it for R-Bloggers RSS feed:
+   ```yaml
+   categories: [R, ksTFL, Clinical Programming]
+   ```
+
+2. **Add R-Bloggers footer** - Include this at the end of your post:
+   ```markdown
+   ---
+   
+   *This post was originally published on the KeyStat Solutions R Technical Blog. 
+   [Visit R-Bloggers](https://www.r-bloggers.com) to discover more R content.*
+   ```
+
+3. **Ensure R relevance** - Posts should contain:
+   - R code examples
+   - Discussion of R packages or tools
+   - R implementation of statistical methods
+   - R community topics
+
+### Post Naming Convention
+
+Folder name format: `YYYY-MM-DD-post-slug`
+
+Example:
+```
+posts/2026-07-15-getting-started-with-ks-tfl/
+└── index.qmd
+```
+
+## Content Structure
+
+Follow this recommended structure:
+
+1. **Introduction** - Hook and overview with R relevance
+2. **Main Content** - Organized sections with ## headings
+3. **Code Examples** - Working R examples with explanation
+4. **Visuals** - Images, charts, diagrams
+5. **Conclusion** - Summary and key takeaways
+6. **R-Bloggers Attribution** - Link back to R-Bloggers (see above)
+7. **Resources** - Links to related materials
+
+## Writing Tips
+
+### Headings Hierarchy
+```markdown
+# Title (not used - in YAML)
+## Section (main heading)
+### Subsection (secondary)
+#### Detail (rare)
+```
+
+### Code Blocks
+Include language for syntax highlighting:
+
+\`\`\`r
+# R code
+library(tidyverse)
+data <- tibble(x = 1:10, y = rnorm(10))
+\`\`\`
+
+\`\`\`python
+# Python code
+import pandas as pd
+data = pd.DataFrame({'x': range(10)})
+\`\`\`
+
+### Lists
+```markdown
+- Unordered item 1
+- Unordered item 2
+
+1. Ordered item 1
+2. Ordered item 2
+```
+
+### Emphasis
+```markdown
+*italic* or _italic_
+**bold** or __bold__
+~~strikethrough~~
+`inline code`
+```
+
+### Links
+```markdown
+[Link text](https://example.com)
+[Internal link](../2026-07-07-advanced-ks-tfl/index.html)
+[Link to section](#section-heading)
+```
+
+### Images
+```markdown
+![Alt text](images/filename.png)
+```
+
+### Tables
+```markdown
+| Column 1 | Column 2 |
+|----------|----------|
+| Row 1    | Value    |
+| Row 2    | Value    |
+```
+
+### Callout Boxes
+```markdown
+::: {.callout-note}
+This is a note callout
+:::
+
+::: {.callout-warning}
+This is a warning callout
+:::
+
+::: {.callout-tip}
+This is a helpful tip
+:::
+
+::: {.callout-important}
+This is important information
+:::
+```
+
+## SEO Guidelines
+
+### Description
+- Keep to ~60 characters
+- Include main topic
+- Write for humans, not search engines
+
+### Categories
+- Use 2-4 relevant tags
+- Consistent with existing posts
+- Examples: R, ksTFL, Tutorial, Advanced, Clinical Programming
+
+### Title
+- Clear and descriptive
+- Include keywords naturally
+- Avoid click-bait
+
+## Publishing Workflow
+
+1. **Create folder** with date and slug
+2. **Write content** in index.qmd
+3. **Set draft: true** while editing
+4. **Add images** to images/ subfolder (optional)
+5. **Render locally**: `quarto preview`
+6. **Review** in browser
+7. **Remove draft: true**
+8. **Commit and push**
+
+## Gallery of Features
+
+### Multi-Column Layout
+::: {.grid}
+
+::: {.g-col-6}
+This is the left column
+:::
+
+::: {.g-col-6}
+This is the right column
+:::
+
+:::
+
+### Quotes
+> This is a blockquote. Use it for quotes, important takeaways, or highlighted information.
+
+### Tabs (if supported)
+::: {.panel-tabset}
+
+#### Tab 1
+Content for first tab
+
+#### Tab 2
+Content for second tab
+
+:::
+
+## Before Publishing
+
+- [ ] Spell check content
+- [ ] Test all code examples
+- [ ] Verify all links work
+- [ ] Check image display
+- [ ] Review formatting
+- [ ] Update date to today
+- [ ] Remove draft: true
+- [ ] Add meaningful description
+- [ ] Select appropriate categories
+
+## File Structure Example
+
+```
+posts/2026-07-15-my-topic/
+├── index.qmd              # Main post file
+├── featured.png           # Featured image (600x400px)
+└── images/
+    ├── chart-1.png
+    ├── diagram.jpg
+    └── code-output.svg
+```
+
+## Troubleshooting
+
+**Post not appearing**: Check that `draft: true` is removed from YAML
+
+**Images not showing**: Use relative paths like `images/file.png`
+
+**Code not highlighted**: Specify language: \`\`\`r or \`\`\`python
+
+**Formatting looks wrong**: Run `quarto render` to rebuild
+
+## Additional Resources
+
+- [Quarto Markdown Docs](https://quarto.org/docs/authoring/markdown-basics.html)
+- [Quarto Blog Guide](https://quarto.org/docs/websites/website-blog.html)
+- [Common Markdown Syntax](https://www.markdownguide.org/)
+
+---
+
+**Happy writing!** Remove the `draft: true` field and this post will be published.

@@ -1,0 +1,80 @@
+---
+title: "About KeyStat Solutions"
+---
+
+::: {.about-hero}
+<h1>About KeyStat Solutions</h1>
+<p>Advancing clinical data analysis through innovative R-based tools and expert guidance</p>
+:::
+
+## Our Mission
+
+KeyStat Solutions is dedicated to:
+
+✅ **Open Science** - Making clinical data analysis accessible and transparent  
+✅ **Reproducible Research** - Building tools for auditable, verifiable results  
+✅ **Professional Quality** - Delivering production-ready solutions for regulatory compliance  
+
+We believe that powerful data analysis tools should be intuitive, well-documented, and freely available to the research community.
+
+## About This Blog
+
+Our technical blog provides curated content on:
+
+- **🔧 ksTFL Package** - Clinical trial listings, tables, and figures
+- **📚 Best Practices** - Professional approaches to R programming and statistical analysis  
+- **🎓 Tutorials** - Practical, step-by-step guides for real-world problems
+- **💼 Case Studies** - Production solutions from our consulting work
+
+---
+
+## Our Flagship Tool: ksTFL
+
+**ksTFL** (KeyStat Tables, Figures, and Listings) is an R package designed specifically for clinical trial data analysis and regulatory reporting.
+
+### Why ksTFL?
+
+Traditional approaches to clinical tables require:
+- Manual formatting and styling
+- Error-prone data manipulation  
+- Difficult-to-maintain code
+- Regulatory compliance concerns
+
+**ksTFL solves this** with:
+
+| Feature | Benefit |
+|---------|---------|
+| **Declarative syntax** | Write what you want, not how to format it |
+| **Automatic styling** | Professional output with zero manual formatting |
+| **Regulatory-ready** | Built with FDA/ICH compliance in mind |
+| **Reproducible** | Audit trail and version control friendly |
+| **Flexible** | Works with tidyverse, data.table, and base R |
+
+### Quick Features
+
+- ✅ Create tables, figures, and listings with minimal code
+- ✅ Automatic summary statistics and grouping  
+- ✅ Publication-ready DOCX output
+- ✅ Conditional styling and formatting rules
+- ✅ Full tidyverse/tidyselect support
+- ✅ 100+ style atoms for fine-grained control
+
+---
+
+## Get in Touch
+
+We'd love to hear from you!
+
+- 📧 **Email**: [contact@keystat-solutions.com](mailto:contact@keystat-solutions.com)
+- 🐙 **GitHub**: [github.com/keystat-solutions](https://github.com/keystat-solutions)
+- 🐦 **Twitter**: [@KeyStat_Solutions](https://twitter.com)
+- 📦 **R Universe**: [crow16384.r-universe.dev/ksTFL](https://crow16384.r-universe.dev/ksTFL)
+
+---
+
+## Explore the Blog
+
+Ready to get started? Check out our tutorial posts:
+
+- [Getting Started with ksTFL](/posts/2026-07-06-getting-started-ks-tfl/) - Your first clinical table
+- [Advanced ksTFL](/posts/2026-07-07-advanced-ks-tfl/) - Complex table structures and styling

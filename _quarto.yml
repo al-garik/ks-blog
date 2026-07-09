@@ -1,0 +1,60 @@
+project:
+  type: website
+  output-dir: docs
+  resources:
+    - "posts/**/*.png"
+    - "posts/**/*.jpg"
+    - "images/**/*"
+
+website:
+  title: "Technical Blog"
+  description: "Articles about R programming, and clinical data analysis and reporting"
+  site-url: "https://al-garik.github.io/ks-blog/"
+  favicon: "images/favicon.png"
+  
+  navbar:
+    background: primary
+    foreground: light
+    search: true
+    logo: "images/keystat-logo.svg"
+    logo-alt: "KeyStat Solutions"    
+    logo-href: "https://keystatsolutions.com"    
+    left:
+      - href: index.qmd
+        text: Home
+    right:
+      - icon: github
+        href: "https://github.com/keystat-solutions"
+      - icon: rss
+        href: index.xml
+      - text: "R-Bloggers"
+        href: "https://www.r-bloggers.com"
+        aria-label: "R-Bloggers Community"
+  
+  page-footer:
+    background: dark
+    left: |
+      © 2026 KeyStat Solutions. All rights reserved.
+    center: |
+      Powered by [Quarto](https://quarto.org/)
+    right: |
+      Made with ❤️ for the R community
+
+format:
+  html:
+    theme: 
+      - cosmo
+      - style.scss
+    toc: true
+    toc-depth: 2
+    code-fold: false
+    code-tools: true
+    lightbox: true
+    grid:
+      sidebar-width: 300px
+      body-width: 900px
+      margin-width: 300px
+
+# Enable RSS feed generation
+metadata-files:
+  - _metadata.yml

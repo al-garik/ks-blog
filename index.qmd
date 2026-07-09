@@ -1,0 +1,25 @@
+---
+title: "KeyStat Solutions Technical Blog"
+subtitle: "Exploring R programming, clinical data analysis, and statistical computing"
+page-layout: full
+
+listing:
+  contents: posts
+  sort: "date desc"
+  type: grid
+  grid-columns: 2
+  fields: [image, date, title, author, categories, description]
+  max-items: 20
+  feed: true
+---
+
+::: {.hero-section}
+<h1 class="hero-title">R Technical Blog</h1>
+<p class="hero-subtitle">Professional insights on clinical programming and statistical computing</p>
+:::
+
+## Welcome to KeyStat Solutions
+
+Our technical blog provides **practical, production-ready** guidance on R programming, clinical trial data analysis, and statistical methods. We share real-world applications and best practices from our work in clinical researches.
+
+## Latest Posts

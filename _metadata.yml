@@ -1,0 +1,10 @@
+# Global metadata for all pages
+# Used for RSS feed and other site-level settings
+
+# Feed configuration
+feed:
+  title: "KeyStat Solutions R Technical Blog"
+  description: "Articles about R programming, clinical data analysis, and statistical methods"
+  categories: [R, Programming, Statistics, Clinical, ksTFL]
+  language: en
+  link: "https://keystat-solutions.github.io/ks-blog"

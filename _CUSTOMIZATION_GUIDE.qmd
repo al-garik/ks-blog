@@ -1,0 +1,405 @@
+# Blog Customization Guide
+
+This guide explains how to customize the blog's appearance and functionality.
+
+## Quick Customizations
+
+### Change Blog Title
+
+Edit `_quarto.yml`:
+```yaml
+website:
+  title: "Your Custom Title"
+  description: "Your custom description"
+```
+
+### Change Color Theme
+
+Popular Quarto themes:
+
+```yaml
+format:
+  html:
+    theme: cosmo          # Current (modern, light)
+    # OR
+    theme: darkly         # Dark theme
+    # OR
+    theme: flatly         # Minimal, flat design
+    # OR
+    theme: litera          # Clean, professional
+    # OR
+    theme: simplex        # Very minimal
+    # OR
+    theme: spacelab       # Space-like
+```
+
+### Change Featured Image Size
+
+Edit `index.qmd` listing config:
+```yaml
+listing:
+  grid-columns: 2        # 2 columns (1, 2, 3, or 4)
+  max-items: 20          # How many posts to show
+```
+
+### Add Social Media Links
+
+Edit `_quarto.yml` navbar right section:
+```yaml
+navbar:
+  right:
+    - icon: twitter
+      href: "https://twitter.com/yourhandle"
+    - icon: github
+      href: "https://github.com/yourorg"
+    - icon: linkedin
+      href: "https://linkedin.com/in/yourprofile"
+    - icon: mastodon
+      href: "https://mastodon.social/@yourhandle"
+```
+
+Available icons: twitter, github, linkedin, mastodon, instagram, facebook, youtube, email, rss
+
+## Advanced Customizations
+
+### Custom CSS
+
+Create `custom.css` in root:
+```css
+/* Custom color for code blocks */
+pre {
+  background-color: #f5f5f5;
+}
+
+/* Custom link colors */
+a {
+  color: #0066cc;
+}
+```
+
+Reference in `_quarto.yml`:
+```yaml
+format:
+  html:
+    css: custom.css
+```
+
+### Custom HTML Header/Footer
+
+In `_quarto.yml`:
+```yaml
+website:
+  page-footer:
+    background: dark
+    left: "© 2026 Your Company"
+    center: "[Home](/) | [Blog](/posts) | [About](/about.qmd)"
+    right: "Contact: hello@example.com"
+```
+
+### Modify Navigation Bar
+
+Current structure:
+```yaml
+navbar:
+  background: primary      # Color: primary, light, dark
+  search: true             # Enable search
+  left:                    # Left side links
+    - href: index.qmd
+      text: Home
+  right:                   # Right side links (social icons)
+    - icon: github
+      href: "https://github.com"
+```
+
+Add more sections:
+```yaml
+navbar:
+  left:
+    - href: index.qmd
+      text: Home
+    - href: about.qmd
+      text: About
+    - text: Categories
+      menu:
+        - text: R Programming
+          href: posts/index.html?search=R
+        - text: ksTFL
+          href: posts/index.html?search=ksTFL
+```
+
+## Site Structure Changes
+
+### Add New Pages
+
+1. Create `.qmd` file in root:
+```bash
+echo '---
+title: "Resources"
+---
+
+# Helpful Resources
+
+[ksTFL Package](https://github.com/...)
+[R Documentation](https://r-project.org)
+' > resources.qmd
+```
+
+2. Add to navbar in `_quarto.yml`:
+```yaml
+navbar:
+  left:
+    - href: index.qmd
+      text: Home
+    - href: resources.qmd
+      text: Resources
+```
+
+### Customize Homepage
+
+Edit `index.qmd`:
+```yaml
+---
+title: "My Custom Homepage"
+page-layout: full        # Remove sidebar
+---
+
+# Welcome!
+
+Your custom content here...
+```
+
+### Create Archive or Categories Page
+
+Create `archive.qmd`:
+```qmd
+---
+title: "Post Archive"
+---
+
+## Posts by Category
+
+```{r}
+#| echo: false
+# This would list posts by category
+# Quarto may provide built-in tools for this
+```
+```
+
+## Styling
+
+### Font Changes
+
+Add to `custom.css`:
+```css
+body {
+  font-family: 'Georgia', serif;
+  font-size: 16px;
+}
+
+h1, h2, h3 {
+  font-family: 'Arial', sans-serif;
+}
+```
+
+### Code Block Styling
+
+```css
+code {
+  background-color: #f4f4f4;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+pre code {
+  background-color: #f5f5f5;
+  display: block;
+  padding: 12px;
+  border-left: 4px solid #0066cc;
+}
+```
+
+### Link Styling
+
+```css
+a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #0052a3;
+}
+```
+
+## Advanced Features
+
+### Enable Code Tools
+
+```yaml
+format:
+  html:
+    code-tools: true
+    code-fold: false
+    code-overflow: wrap
+```
+
+Options:
+- `code-tools: true` - Add copy button to code blocks
+- `code-fold: false` - Don't hide code by default
+- `code-overflow: wrap` - Wrap long lines
+
+### Search Configuration
+
+Quarto search is automatic, but you can customize:
+
+```yaml
+website:
+  navbar:
+    search: true
+    
+# Search indexes all pages automatically
+```
+
+### Analytics (Optional)
+
+Add Google Analytics or similar in `_metadata.yml`:
+```yaml
+website:
+  google-analytics:
+    tracking-id: "G-XXXXXXXXXX"
+    anonymize-ip: true
+```
+
+### RSS Feed Customization
+
+In `_metadata.yml`:
+```yaml
+feed:
+  title: "My Blog Title"
+  description: "Feed description"
+  categories: [R, Programming]
+  language: en
+```
+
+## Testing Changes Locally
+
+```bash
+# Preview with live reload
+quarto preview
+
+# Check specific rendering issues
+quarto render
+
+# Clean rebuild
+rm -rf _freeze/
+quarto render
+```
+
+## Performance Optimization
+
+### Cache Rendering
+
+```yaml
+execute:
+  cache: true
+```
+
+### Lazy Load Images
+
+```yaml
+format:
+  html:
+    lightbox: true  # Already configured
+```
+
+### Minimize CSS/JS
+
+Quarto does this automatically in render mode.
+
+## Mobile Responsiveness
+
+Quarto is mobile-responsive by default. To test:
+
+```bash
+# Preview and check on mobile device
+quarto preview
+# Then visit from phone/tablet using local IP
+```
+
+## Troubleshooting Customizations
+
+### Changes not appearing
+```bash
+# Clean cache and rebuild
+rm -rf _freeze
+quarto render
+```
+
+### CSS not applied
+- Check file path is correct
+- Ensure CSS syntax is valid
+- Clear browser cache (Ctrl+Shift+Delete)
+
+### Theme not working
+- Verify theme name spelling in _quarto.yml
+- Run `quarto render` to rebuild
+- Check Quarto theme documentation
+
+## Theme-Specific Options
+
+### Cosmo Theme (Current)
+- Clean, modern look
+- Good contrast
+- Professional appearance
+- Recommended for technical blogs
+
+### Darkly Theme
+- Dark background
+- Light text
+- Good for eye comfort
+- Less contrast for some elements
+
+### Flatly Theme
+- Flat design principles
+- Minimal shadows/gradients
+- Modern, simple look
+- Smaller file sizes
+
+## Resources
+
+- [Quarto Website Documentation](https://quarto.org/docs/websites/)
+- [Quarto Theming](https://quarto.org/docs/output-formats/html-themes.html)
+- [Quarto CSS Customization](https://quarto.org/docs/output-formats/html-basics.html#css)
+
+## Common Customization Recipes
+
+### Hide Table of Contents
+```yaml
+format:
+  html:
+    toc: false
+```
+
+### Make Posts Full Width
+```yaml
+page-layout: full
+```
+
+### Add Custom Sidebar
+```yaml
+sidebar:
+  - id: nav
+    contents:
+      - href: index.qmd
+        text: Home
+      - href: about.qmd
+        text: About
+```
+
+### Dark Mode Toggle
+Currently not built-in, but possible with custom HTML/JS
+
+---
+
+**Need help?** Check the main README.md or contact contact@keystat-solutions.com

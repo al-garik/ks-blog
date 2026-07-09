@@ -1,0 +1,39 @@
+# Quarto
+.quarto/
+_freeze/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+.venv
+
+# R
+.Rhistory
+.Rapp.history
+.RData
+.Rproj.user/
+*.Rproj
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output (not needed when using docs/ for GitHub Pages)
+# docs/  # We keep this for GitHub Pages
+
+# Package files
+*.tar.gz
+*.zip
+
+/.quarto/
+**/*.quarto_ipynb

@@ -1,0 +1,894 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>Technical Blog</title>
+<link>https://al-garik.github.io/ks-blog/r-bloggers.html</link>
+<atom:link href="https://al-garik.github.io/ks-blog/r-bloggers.xml" rel="self" type="application/rss+xml"/>
+<description>Articles about R programming, and clinical data analysis and reporting</description>
+<generator>quarto-1.9.37</generator>
+<lastBuildDate>Sun, 05 Jul 2026 21:00:00 GMT</lastBuildDate>
+<item>
+  <title>Getting Started with ksTFL: Creating Your First Clinical Table</title>
+  <dc:creator>Igor Aleschenkov (KeyStat Solutions)</dc:creator>
+  <link>https://al-garik.github.io/ks-blog/posts/2026-07-06-getting-started-ks-tfl/</link>
+  <description><![CDATA[ 
+
+
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>Creating clinical trial tables, figures, and listings is one of the most time-consuming tasks in clinical statistical programming. The <a href="https://crow16384.r-universe.dev/ksTFL">ksTFL R Package</a> was designed to make this process faster, more reliable, and more enjoyable.</p>
+<p>In this post, we’ll walk through the basics of ksTFL and create your first clinical table.</p>
+</section>
+<section id="why-kstfl" class="level2">
+<h2 class="anchored" data-anchor-id="why-kstfl">Why ksTFL?</h2>
+<p>Clinical trial deliverables require:</p>
+<ul>
+<li>✅ Professional formatting and alignment with regulatory standards</li>
+<li>✅ Reproducible, auditable code</li>
+<li>✅ Traceability of the data throughout the analysis pipeline</li>
+<li>✅ Submission-ready output without manual refinement</li>
+</ul>
+<p>Without a specialized tool, generating submission-ready tables and figures from R can require significant time—sometimes more than the time spent on statistical calculations and modeling itself.</p>
+</section>
+<section id="installation" class="level2">
+<h2 class="anchored" data-anchor-id="installation">Installation</h2>
+<p>Install ksTFL from r-universe:</p>
+</section>
+<section id="your-first-table" class="level2">
+<h2 class="anchored" data-anchor-id="your-first-table">Your First Table</h2>
+<p>Let’s create a simple demographic summary table using sample data:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Use built-in mtcars dataset for simplicity</span></span>
+<span id="cb1-2">spec <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_table</span>(mtcars, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cols =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(cyl, mpg, hp, wt)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_title</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Motor Trend Car Road Tests"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">styleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"i"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_title</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Performance Metrics by Cylinder Count"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">styleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"i"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_footnote</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Source: 1974 Motor Trend US magazine"</span>)</span>
+<span id="cb1-6"></span>
+<span id="cb1-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Define columns with labels and styling</span></span>
+<span id="cb1-8">spec <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> spec <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define_cols</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(mpg, hp, wt), </span>
+<span id="cb1-10">              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Miles/(US) gallon"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Horsepower"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Weight&lt;br&gt;(1000 lbs)"</span>),</span>
+<span id="cb1-11">              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">valueStyleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ac"</span>  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># align center</span></span>
+<span id="cb1-12">              ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-13">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define_cols</span>(cyl, </span>
+<span id="cb1-14">                        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"N of Cylinders"</span>,</span>
+<span id="cb1-15">              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dedupe =</span> T) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-16">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set_document</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">contentWidth =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"60%"</span>)</span>
+<span id="cb1-17"></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create report and render to DOCX</span></span>
+<span id="cb1-19">report <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_report</span>(spec)</span>
+<span id="cb1-20"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">write_doc</span>(report, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"demo_table"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">outDir =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"output"</span>)</span></code></pre></div></div>
+</div>
+<section id="whats-happening" class="level3">
+<h3 class="anchored" data-anchor-id="whats-happening">What’s Happening?</h3>
+<ol type="1">
+<li><strong><code>create_table(data, cols = ...)</code></strong> - Initialize the table with selected columns</li>
+<li><strong><code>add_title()</code>, <code>add_footnote()</code></strong> - Add documentation and annotations</li>
+<li><strong><code>define_cols()</code></strong> - Configure column properties (labels, styling, visibility, deduplication, etc.)</li>
+<li><strong><code>create_report()</code></strong> - Assemble the table specification</li>
+<li><strong><code>write_doc()</code></strong> - Render to a professional DOCX document</li>
+</ol>
+<p>With just a few lines of code, ksTFL generates a well-formatted MS Word DOCX document:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/simple_demog.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="https://al-garik.github.io/ks-blog/posts/2026-07-06-getting-started-ks-tfl/images/simple_demog.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></a></p>
+</figure>
+</div>
+</section>
+</section>
+<section id="key-features" class="level2">
+<h2 class="anchored" data-anchor-id="key-features">Key Features</h2>
+<section id="declarative-styling" class="level3">
+<h3 class="anchored" data-anchor-id="declarative-styling">Declarative Styling</h3>
+<p>Apply styles without modifying source data:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Add conditional styling - highlight high horsepower</span></span>
+<span id="cb2-2">spec <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> spec <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">compute_cols</span>(hp <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">180</span>, </span>
+<span id="cb2-4">               <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c_style</span>(hp, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">styleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fc_red"</span>))  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># font color red</span></span></code></pre></div></div>
+</div>
+<p>The ksTFL package includes many pre-defined atomic styles, but custom styles can also be created using the <code>add_style()</code> function.</p>
+</section>
+<section id="spanning-headers" class="level3">
+<h3 class="anchored" data-anchor-id="spanning-headers">Spanning Headers</h3>
+<p>Create multi-column group headers:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1">spec <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> spec <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_span_header</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cols =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(mpg, hp, wt), </span>
+<span id="cb3-3">                  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Performance Metrics"</span>)</span></code></pre></div></div>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/styles1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="https://al-garik.github.io/ks-blog/posts/2026-07-06-getting-started-ks-tfl/images/styles1.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></a></p>
+</figure>
+</div>
+</section>
+<section id="flexible-column-selection" class="level3">
+<h3 class="anchored" data-anchor-id="flexible-column-selection">Flexible Column Selection</h3>
+<p>Use tidyselect helpers for column selection:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1">spec <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define_cols</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">starts_with</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"m"</span>), </span>
+<span id="cb4-3">              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">valueStyleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ar"</span>)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># right align</span></span></code></pre></div></div>
+</div>
+</section>
+<section id="built-in-style-atoms" class="level3">
+<h3 class="anchored" data-anchor-id="built-in-style-atoms">Built-in Style Atoms</h3>
+<p>Combine predefined styles for quick formatting:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Combine multiple style attributes</span></span>
+<span id="cb5-2">spec <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_title</span>(spec, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Summary"</span>, </span>
+<span id="cb5-3">                  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">styleRef =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">f_combine</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"i"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"b"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fc_navy"</span>))</span></code></pre></div></div>
+</div>
+</section>
+</section>
+<section id="complete-example-demographics-table" class="level2">
+<h2 class="anchored" data-anchor-id="complete-example-demographics-table">Complete Example: Demographics Table</h2>
+<p>Let’s build a submission-ready demographics table.</p>
+<p>Since this article focuses on ksTFL’s rendering capabilities, the statistical calculations and data preparation are handled upstream. ksTFL does not calculate statistics by itself; rather, it transforms pre-calculated summary tables into publication-ready documents. In production code, statisticians prepare the summary data in a planar format, and ksTFL handles the table layout and formatting.</p>
+<p>Below, we use a simple function that generates a data frame with calculated statistics for Age, Sex, and Race:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Simple function that generates the summary table</span></span>
+<span id="cb6-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># that a statistical programmer typically creates from ADSL data</span></span>
+<span id="cb6-3">generate_demography_summary <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">seed =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1007</span>L) {</span>
+<span id="cb6-4">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set.seed</span>(seed)</span>
+<span id="cb6-5">    </span>
+<span id="cb6-6">    rnd_stat <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(N) {</span>
+<span id="cb6-7">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb6-8">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%.1f (%.1f)"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">48</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">11</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)),</span>
+<span id="cb6-9">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%.1f"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">49</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)),</span>
+<span id="cb6-10">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%d, %d"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sample</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">30</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sample</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">65</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">75</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L)),</span>
+<span id="cb6-11">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%d (%.1f%%)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">22</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">22</span>L <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> N),</span>
+<span id="cb6-12">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%d (%.1f%%)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>L <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> N),</span>
+<span id="cb6-13">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%d (%.1f%%)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>L <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> N),</span>
+<span id="cb6-14">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%d (%.1f%%)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>L <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> N),</span>
+<span id="cb6-15">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%d (%.1f%%)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>L <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> N)</span>
+<span id="cb6-16">        )</span>
+<span id="cb6-17">    }</span>
+<span id="cb6-18">    </span>
+<span id="cb6-19">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.frame</span>(</span>
+<span id="cb6-20">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">PARAM =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Age (years)"</span>,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Sex"</span>,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Race"</span>,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)),</span>
+<span id="cb6-21">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">STATISTIC =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Mean (SD)"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Median"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Min, Max"</span>, </span>
+<span id="cb6-22">                                    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Female"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Male"</span>, </span>
+<span id="cb6-23">                                    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"White"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Asian"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Other"</span>),</span>
+<span id="cb6-24">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">PLACEBO =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnd_stat</span>(placebo_n),</span>
+<span id="cb6-25">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">DRUGA =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnd_stat</span>(drug_a_n),</span>
+<span id="cb6-26">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">TOTAL =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnd_stat</span>(total_n),</span>
+<span id="cb6-27">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stringsAsFactors =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb6-28">    )</span>
+<span id="cb6-29">}</span></code></pre></div></div>
+</div>
+<p>With the inputs provided above, the generated data frame looks like this:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1">placebo_n <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">42</span>L</span>
+<span id="cb7-2">drug_a_n <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">44</span>L</span>
+<span id="cb7-3">total_n <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> placebo_n <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> drug_a_n</span>
+<span id="cb7-4"></span>
+<span id="cb7-5">table_data <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">generate_demography_summary</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">seed =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1007</span>L)</span>
+<span id="cb7-6"></span>
+<span id="cb7-7">table_data</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        PARAM STATISTIC     PLACEBO      DRUGA       TOTAL
+1 Age (years) Mean (SD) 49.0 (11.3) 48.6 (9.8) 51.6 (12.1)
+2 Age (years)    Median        51.6       47.9        50.2
+3 Age (years)  Min, Max      26, 68     20, 75      26, 69
+4         Sex    Female  22 (52.4%) 22 (50.0%)  22 (25.6%)
+5         Sex      Male  20 (47.6%) 20 (45.5%)  20 (23.3%)
+6        Race     White  28 (66.7%) 28 (63.6%)  28 (32.6%)
+7        Race     Asian   9 (21.4%)  9 (20.5%)   9 (10.5%)
+8        Race     Other   5 (11.9%)  5 (11.4%)    5 (5.8%)</code></pre>
+</div>
+</div>
+<p>Now let’s use ksTFL to transform this planar data frame into a submission-ready document:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Initialize ksTFL table specification</span></span>
+<span id="cb9-2">table_spec <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_table</span>(table_data) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-3">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># PARAM is set to invisible because we use it as a category header.</span></span>
+<span id="cb9-4">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># This keeps the table compact and maintains a professional appearance.</span></span>
+<span id="cb9-5">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define_cols</span>(PARAM, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Parameter"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">isVisible =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># STATISTIC remains visible on every row because it distinguishes</span></span>
+<span id="cb9-7">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># different statistics within each parameter block.</span></span>
+<span id="cb9-8">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define_cols</span>(STATISTIC, </span>
+<span id="cb9-9">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Parameter&lt;br&gt;Statistic"</span>, </span>
+<span id="cb9-10">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">valueStyleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"indent_1"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">labelStyleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'al'</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-11">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Treatment columns follow the same display rules, so we define them together.</span></span>
+<span id="cb9-12">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Although ksTFL calculates column widths automatically,</span></span>
+<span id="cb9-13">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># we manually set them here to ensure consistent treatment column widths</span></span>
+<span id="cb9-14">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># across the output for visual clarity and professional presentation.</span></span>
+<span id="cb9-15">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define_cols</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(PLACEBO, DRUGA, TOTAL),</span>
+<span id="cb9-16">                            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste0</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Placebo&lt;br&gt;(N="</span>, placebo_n,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">')'</span>), </span>
+<span id="cb9-17">                                                <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste0</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Drug A&lt;br&gt;(N="</span>, drug_a_n,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">')'</span>), </span>
+<span id="cb9-18">                                                <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste0</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Total&lt;br&gt;(N="</span>, total_n,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">')'</span>)),</span>
+<span id="cb9-19">                            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">valueStyleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ac"</span>,</span>
+<span id="cb9-20">                            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colWidth =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"18%"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"18%"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"18%"</span>)</span>
+<span id="cb9-21">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-22">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">compute_cols</span>(</span>
+<span id="cb9-23">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The input data lacks units for categorical statistics;</span></span>
+<span id="cb9-24">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># we add them dynamically here.</span></span>
+<span id="cb9-25">        PARAM <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Sex'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Race'</span>),</span>
+<span id="cb9-26">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c_glue</span>(PARAM, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'after'</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">text=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">', n (%)'</span>)</span>
+<span id="cb9-27">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-28">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Use PARAM values as heading rows for better structure</span></span>
+<span id="cb9-29">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">compute_cols</span>(</span>
+<span id="cb9-30">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">firstOf</span>(PARAM),</span>
+<span id="cb9-31">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c_addrow</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'above'</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value_from =</span> PARAM, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">styleRef =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">f_combine</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'al'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'b'</span>))</span>
+<span id="cb9-32">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-33">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Define titles, subtitles, and document headers/footers</span></span>
+<span id="cb9-34">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_title</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Table 14.1 Demographic Summary"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-35">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_subtitle</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"(Safety Population)"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">styleRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'ac'</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-36">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_footnote</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Note: Values are presented as summary statistics prepared before the ksTFL stage."</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-37">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_header</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Example Study KSTFL-107"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"DEMOGRAPHY"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Page {PAGE} of {NUMPAGES}"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-38">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_footer</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Basic summary table example"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">format</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.Date</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%Y-%m-%d"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb9-39">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Demographic tables benefit from a moderate content width:</span></span>
+<span id="cb9-40">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># narrow enough to keep treatment columns readable, but wide enough</span></span>
+<span id="cb9-41">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># to avoid sparse layouts with few rows.</span></span>
+<span id="cb9-42">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set_document</span>(</span>
+<span id="cb9-43">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">contentWidth =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"50%"</span>,</span>
+<span id="cb9-44">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># ksTFL provides flexible control over footnote placement:</span></span>
+<span id="cb9-45">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># "doc_footer" (in the Word footer below footer rows),</span></span>
+<span id="cb9-46">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># "repeated" (under the table on every page), or</span></span>
+<span id="cb9-47">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># "last_page" (under the table on the last page only)</span></span>
+<span id="cb9-48">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">footnotePlace =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_footer"</span> </span>
+<span id="cb9-49">    )</span>
+<span id="cb9-50"></span>
+<span id="cb9-51"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create report and render to DOCX</span></span>
+<span id="cb9-52">report <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_report</span>(table_spec)</span>
+<span id="cb9-53"></span>
+<span id="cb9-54"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">write_doc</span>(report, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"table_14_1"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">outDir =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"output"</span>)</span></code></pre></div></div>
+</div>
+<p>With just a few lines of declarative code, the planar data frame transforms into a production-ready document:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/table_14_1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="https://al-garik.github.io/ks-blog/posts/2026-07-06-getting-started-ks-tfl/images/table_14_1.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></a></p>
+</figure>
+</div>
+<p>The key advantage of this approach is that the input data remains in a simple, planar format that is easy to validate and audit, without any embedded reporting artifacts or formatting logic.</p>
+</section>
+<section id="next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="next-steps">Next Steps</h2>
+<p>Now that you understand the basics of ksTFL, you can:</p>
+<p>- Explore the <a href="https://crow16384.github.io/ksTFL/">ksTFL Documentation</a> for advanced features</p>
+<p>- Check out the <a href="https://github.com/al-garik/ksTFL-examples">GitHub Repository</a> for more real examples and scripts</p>
+<hr>
+<p>Aleschenkov I, Larchenko V (2026). <em>ksTFL: Framework for Clinical Tables, Figures, and Listings</em>. R package version 0.11.9, <a href="https://crow16384.github.io/ksTFL/" class="uri">https://crow16384.github.io/ksTFL/</a> <a href="https://crow16384.r-universe.dev/ksTFL" class="uri">https://crow16384.r-universe.dev/ksTFL</a>.</p>
+<p><em>This post was originally published on the KeyStat Solutions Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>
+
+
+<!-- -->
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>ksTFL</category>
+  <category>Clinical Programming</category>
+  <guid>https://al-garik.github.io/ks-blog/posts/2026-07-06-getting-started-ks-tfl/</guid>
+  <pubDate>Sun, 05 Jul 2026 21:00:00 GMT</pubDate>
+  <media:content url="https://al-garik.github.io/ks-blog/posts/2026-07-06-getting-started-ks-tfl/images/post_logo.png" medium="image" type="image/png" height="47" width="144"/>
+</item>
+</channel>
+</rss>
