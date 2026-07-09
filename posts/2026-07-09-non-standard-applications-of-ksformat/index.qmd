@@ -1,5 +1,5 @@
 ---
-title: "Non-standard Applications of `ksformat` R-Packgage in Clinical Trials and Other Tasks"
+title: "Non-standard Applications of `ksformat` R-Package in Clinical Trials and Other Tasks"
 description: "This post covers some unusual and interesting application of the ksformat package in clinical trials"
 author: "Vladimir Larchenko (KeyStat Solutions)"
 date: 2026-07-09

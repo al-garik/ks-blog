@@ -86,56 +86,56 @@
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html",
     "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html",
-    "title": "Non-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
     "section": "",
     "text": "ksformat is usually described as a SAS PROC FORMAT-like tool for ordinary value-to-label lookup. In practice, the package is useful in places where a clinical trial workflow needs more than a plain dictionary:\n\nprotocol-defined visit windows\nsubject- or arm-specific bucketing rules\ncomposite keys built from multiple columns\nreverse lookups for data cleaning and QC\nreport-ready numeric display for listings and summaries\n\nThis article shows a few non-standard uses that come up in clinical trials and adjacent data tasks."
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#value-blocks-for-discrete-lookup",
     "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#value-blocks-for-discrete-lookup",
-    "title": "Non-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
     "section": "VALUE blocks for discrete lookup",
     "text": "VALUE blocks for discrete lookup\n\nfparse(text = '\nVALUE sex (character)\n  \"M\" = \"Male\"\n  \"F\" = \"Female\"\n  .missing = \"Unknown\"\n  .other = \"Other\"\n;\n\nVALUE age_group (numeric)\n  [0, 18)    = \"Child\"\n  [18, 65)   = \"Adult\"\n  [65, HIGH] = \"Senior\"\n;\n')"
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#invalue-blocks-for-reverse-lookup",
     "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#invalue-blocks-for-reverse-lookup",
-    "title": "Non-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
     "section": "INVALUE blocks for reverse lookup",
     "text": "INVALUE blocks for reverse lookup\n\nfparse(text = '\nINVALUE sex_inv\n  \"Male\" = \"M\"\n  \"Female\" = \"F\"\n  .missing = \"U\"\n;\n')"
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#date-time-and-datetime-patterns",
     "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#date-time-and-datetime-patterns",
-    "title": "Non-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
     "section": "Date, time, and datetime patterns",
     "text": "Date, time, and datetime patterns\nThis is the direct fparse() equivalent of fnew_date(). For these blocks, pattern = ... is the right way to specify the display format.\n\nfparse(text = '\nVALUE enrldt (date)\n  pattern = \"DATE9.\"\n  .missing = \"Not Enrolled\"\n;\n\nVALUE visit_time (time)\n  pattern = \"TIME8.\"\n;\n\nVALUE stamp (datetime)\n  pattern = \"DATETIME20.\"\n;\n')"
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#numeric-display-patterns",
     "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#numeric-display-patterns",
-    "title": "Non-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
     "section": "Numeric display patterns",
     "text": "Numeric display patterns\nNumeric display formatting now has its own parser syntax. Put the pattern in the VALUE header and keep the block otherwise empty except for optional .missing / .other directives.\n\nfparse(text = '\nVALUE currency (numeric, pattern: \"$%,.2f\")\n  .missing = \"NO DATA\"\n;\n\nVALUE pct (numeric, pattern: \"%.1f%%\")\n;\n')\n\ntibble(\n  raw = c(1234.56, -7890.12, 0, NA),\n  currency = fputn(c(1234.56, -7890.12, 0, NA), \"currency\"),\n  pct = fputn(c(0, 12.3, -4.5, NA), \"pct\")\n)\n\n# A tibble: 4 × 3\n     raw currency   pct  \n   &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;\n1  1235. $1,234.56  0.0% \n2 -7890. -$7,890.12 12.3%\n3     0  $0.00      -4.5%\n4    NA  NO DATA    &lt;NA&gt;"
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#range-formats",
     "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#range-formats",
-    "title": "Non-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
     "section": "Range formats",
     "text": "Range formats\nRange formats are expressed with interval notation. The same syntax works for numeric, date_range, and datetime_range blocks.\n\nfparse(text = '\nVALUE study_period (date_range)\n  [2024-01-01, 2024-02-01) = \"Screening\"\n  [2024-02-01, 2024-06-01) = \"Treatment\"\n  [2024-06-01, HIGH]       = \"Follow-up\"\n;\n\nVALUE shift (datetime_range)\n  [2024-01-15 00:00, 2024-01-15 08:00) = \"Night\"\n  [2024-01-15 08:00, 2024-01-15 16:00) = \"Day\"\n  [2024-01-15 16:00, 2024-01-16 00:00) = \"Evening\"\n;\n')"
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#stratified-range-formats",
     "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#stratified-range-formats",
-    "title": "Non-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
     "section": "Stratified range formats",
     "text": "Stratified range formats\nstratified_range combines a stratum with an inner range. The parser accepts the friendly STRATUM|[low, high) form.\n\nfparse(text = '\nVALUE visit_window (stratified_range, range_subtype: numeric)\n  \"ARM_A\"|[0, 7)     = \"Baseline\"\n  \"ARM_A\"|[7, 28)    = \"Wk1-3\"\n  \"ARM_B\"|[0, 14)    = \"Baseline\"\n  .other              = \"Outside\"\n;\n')"
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#when-to-use-fnew-anyway",
     "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#when-to-use-fnew-anyway",
-    "title": "Non-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
     "section": "When to use fnew() anyway",
     "text": "When to use fnew() anyway\nfnew() remains the most concise way to create a report-formatting object when you already know you want a display pattern. fparse() is useful when the rule needs to be stored as text, versioned in a spec, or generated from another tool.\n\nfnew(\"$%,.2f\", type = \"numeric\", name = \"currency_direct\")\nfputn(c(1234.56, -7890.12, 0), \"currency_direct\")\n\n[1] \"$1,234.56\"  \"-$7,890.12\" \"$0.00\""
   },
@@ -144,6 +144,6 @@
     "href": "r-bloggers.html",
     "title": "",
     "section": "",
-    "text": "Code\n\n\n\n\nThis page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Packgage in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
+    "text": "Code\n\n\n\n\nThis page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
   }
 ]
