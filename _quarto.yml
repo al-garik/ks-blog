@@ -48,7 +48,7 @@ format:
     toc: true
     toc-depth: 2
     code-fold: false
-    code-tools: true
+    code-tools: false
     lightbox: true
     grid:
       sidebar-width: 300px

@@ -21,6 +21,13 @@
     "text": "Latest Posts"
   },
   {
+    "objectID": "index.html#all-posts",
+    "href": "index.html#all-posts",
+    "title": "KeyStat Solutions Technical Blog",
+    "section": "All Posts",
+    "text": "All Posts\nBelow is a condensed list of all posts grouped by year and month.\n\n2026\n\nJuly\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\nGetting Current R-script name in R automatically\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table"
+  },
+  {
     "objectID": "posts/2026-07-09-getting-current-script-name-in-r/index.html",
     "href": "posts/2026-07-09-getting-current-script-name-in-r/index.html",
     "title": "Getting Current R-script name in R automatically",
@@ -184,8 +191,8 @@
   {
     "objectID": "r-bloggers.html",
     "href": "r-bloggers.html",
-    "title": "",
+    "title": "Technical Blog",
     "section": "",
-    "text": "Code\n\n\n\n\nThis page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\n\nR\n\nksTFL\n\nclinical trial\n\nr-package\n\nClinical Reporting\n\n\n\nPerformance comparison of Reporter and ksTFL R-packages\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 13, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
+    "text": "This page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\n\nR\n\nksTFL\n\nclinical trial\n\nr-package\n\nClinical Reporting\n\n\n\nPerformance comparison of Reporter and ksTFL R-packages\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 13, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
   }
 ]

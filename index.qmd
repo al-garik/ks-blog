@@ -3,6 +3,10 @@ title: "KeyStat Solutions Technical Blog"
 subtitle: "Exploring R programming, clinical data analysis, and statistical computing"
 page-layout: full
 
+format:
+  html:
+    toc-depth: 5
+
 listing:
   contents: posts
   sort: "date desc"
@@ -23,6 +27,16 @@ listing:
 Our technical blog provides **practical, production-ready** guidance on R programming, clinical trial data analysis, and statistical methods. We share real-world applications and best practices from our work in clinical researches.
 
 ## Latest Posts
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  var listing = document.getElementById("listing-listing");
+  var latest = document.getElementById("latest-posts");
+  if (listing && latest) {
+    latest.appendChild(listing);
+  }
+});
+</script>
 
 ## All Posts
 
@@ -84,7 +98,8 @@ for (y in years) {
     subm <- sub[format(sub$date, "%m") == mm, , drop = FALSE]
     for (i in seq_len(nrow(subm))) {
       row <- subm[i, ]
-      cat(sprintf("- [%s](posts/%s/)\n", row$title, row$slug))
+      # Emit a heading for each post so it appears in the page TOC
+      cat(sprintf("##### [%s](posts/%s/)\n\n", row$title, row$slug))
     }
     cat("\n")
   }
