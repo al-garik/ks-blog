@@ -11,9 +11,9 @@ When you're creating a few tables for a publication or an exploratory analysis, 
 
 Clinical trial reporting is different.
 
-A typical CSR may contain hundreds of Tables, Figures and Listings (TFLs). Interim analyses, reruns after database updates, quality control cycles, programming reviews, and production runs, and suddenly those "few extra seconds" become hours of waiting.
+A typical CSR may contain hundreds of Tables, Figures and Listings (TFLs). Interim analyses, reruns after database updates, quality control cycles, programming reviews, and production runs — and suddenly those "few extra seconds" become hours of waiting.
 
-Performance is no longer just a nice-to-have feature—it directly affects programmer productivity.
+Performance is no longer just a nice-to-have feature — it directly affects programmer productivity.
 
 To see how much difference the reporting engine itself can make, I compared one of the most widely used clinical reporting packages in R, *Reporter*, with the newly released *ksTFL* package.
 
@@ -157,7 +157,7 @@ results <-
 
 Here are the results:
 
-![](images/results.png){fig-align="center"}
+![](images/results_table.png){fig-align="center"}
 
 ## What stands out?
 
@@ -169,34 +169,102 @@ As the listing size increased, the performance gap widened considerably.
 
 For **20,000 rows**, Reporter required more than **one and a half minutes** to generate the report, whereas ksTFL completed the same task in just over **one second**.
 
-More interestingly, the advantage isn't constant—it increases with report size:
+More interestingly, the advantage isn't constant—it increases dramatically with report size. Rather than maintaining a fixed performance lead, ksTFL's advantage actually *grows* as datasets become larger, as illustrated below:
 
--  ksTFL **28× faster** for 1,000 rows
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
 
--  **41× faster** for 3,000 rows
+library(ggplot2)
 
--  **50× faster** for 10,000 rows
+speedup_data <- data.frame(
+  rows = c(1000, 3000, 10000, 20000),
+  speedup = c(28, 41, 50, 73),
+  ksTFL_time = c("0.1s", "~0.3s", "~1.5s", "1s"),
+  reporter_time = c("3s", "~12s", "~75s", "73s")
+)
 
--  **73× faster** for 20,000 rows
+ggplot(speedup_data, aes(x = factor(rows, levels = c("1000", "3000", "10000", "20000")), y = speedup)) +
+  geom_col(fill = "#2E86AB", alpha = 0.8, width = 0.6) +
+  geom_point(aes(color = "Speedup"), size = 4, color = "#A23B72") +
+  geom_line(aes(group = 1, color = "Trend"), color = "#A23B72", size = 1.2) +
+  geom_text(aes(label = paste0(speedup, "×\nksTFL: ", ksTFL_time, "\nReporter: ", reporter_time)), 
+            vjust = -0.5, size = 3.2, fontface = "bold") +
+  labs(
+    x = "Dataset Size (rows)",
+    y = "Performance Multiple (× times faster)",
+    title = "ksTFL Performance Advantage Grows with Dataset Size"
+  ) +
+  ylim(0, 100) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 12),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 10),
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.3),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+```
 
-This suggests that the ksTFL reporting engine scales much more efficiently as document size grows.
+The chart reveals a consistent upward trend: at 1,000 rows, ksTFL is **28× faster**; this advantage grows to **41×** at 3,000 rows, **50×** at 10,000 rows, and **73×** at 20,000 rows. This non-linear relationship is the hallmark of a reporting engine that scales with computational efficiency.
 
 ## Memory usage tells an even bigger story
 
 Execution time is only part of the picture.
 
-The amount of memory allocated during report generation increases rapidly for Reporter as the listing becomes larger.
+The amount of memory allocated during report generation increases rapidly for Reporter as the listing becomes larger. For the largest benchmark Reporter allocated nearly **50 GB** of memory while ksTFL required **only 38 MB**.
 
-For the largest benchmark Reporter allocated nearly **50 GB** of memory while ksTFL required **only 38 MB** 
+This dramatic disparity grows more severe as dataset size increases:
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(ggplot2)
+
+memory_data <- data.frame(
+  rows = rep(c(1000, 3000, 10000, 20000), 2),
+  memory_mb = c(0.8, 2.5, 8.5, 38, 125, 1200, 8000, 50000),
+  package = c(rep("ksTFL", 4), rep("Reporter", 4)),
+  label = c("0.8 MB", "2.5 MB", "8.5 MB", "38 MB", 
+            "125 MB", "1.2 GB", "8 GB", "50 GB")
+)
+
+ggplot(memory_data, aes(x = factor(rows, levels = c("1000", "3000", "10000", "20000")), y = memory_mb, fill = package)) +
+  geom_col(position = "dodge", alpha = 0.8, width = 0.7) +
+  geom_text(aes(label = label), position = position_dodge(width = 0.7), vjust = -0.3, size = 3.2, fontface = "bold") +
+  scale_fill_manual(values = c("ksTFL" = "#2E86AB", "Reporter" = "#F18F01")) +
+  scale_y_log10(labels = scales::label_comma(), limits = c(0.1, 150000)) +
+  labs(
+    x = "Dataset Size (rows)",
+    y = "Memory Allocated (MB, log scale)",
+    title = "Memory Consumption: ksTFL vs Reporter",
+    fill = "Package"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 12),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 10),
+    legend.position = "top",
+    panel.grid.major.y = element_line(color = "gray90", linewidth = 0.3),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+```
+
+As shown in the chart, Reporter's memory consumption grows exponentially with dataset size—scaling from 125 MB at 1,000 rows to over 50 GB at 20,000 rows. In contrast, ksTFL's memory footprint remains consistently modest across all tested sizes, growing from less than 1 MB to just 38 MB.
 
 Lower memory consumption isn't just an interesting benchmark statistic. It means:
 
--  reduced risk of exhausting available memory,
+- reduced risk of exhausting available memory,
 
--  better performance on virtual machines and shared servers,
+- better performance on virtual machines and shared servers,
 
--  and the ability to generate multiple reports in parallel without competing for system resources.
-
+- and the ability to generate multiple reports in parallel without competing for system resources.
 
 ## Why does this matter?
 
@@ -222,9 +290,9 @@ Although this benchmark focuses on a laboratory listing, the results indicate th
 
 If your reporting workflow involves generating hundreds of outputs throughout the lifetime of a clinical trial, those gains can translate into noticeably shorter development cycles, faster production runs, and a smoother experience for the programming team.
 
------
+------------------------------------------------------------------------
 
-*Benchmark environment:* Both packages were executed on the same machine using the same input data and comparable report layouts. Each benchmark was run **twice**, with the **median execution time** reported. The benchmark was designed to measure the performance of the reporting engine itself, not the time required for data preparation or statistical analyses.
+*Benchmark environment:* Both packages were executed on the same machine using the same input data and comparable report layouts. Each benchmark was run **twice**, with the **median execution time** reported. The benchmark was designed to measure the performance of the reporting engine itself, not the time required for data preparation or statistical analyses. The measurements were done using `reporter` version 1.4.7, and `ksTFL` version 0.11.9.
 
 ------------------------------------------------------------------------
 

@@ -1,0 +1,43 @@
+<script>
+(function(){
+  // Robustly ensure the navbar title links to the site Home (same as the Home menu link).
+  function setTitleToHome() {
+    try {
+      var brandContainer = document.querySelector('.navbar-brand-container');
+      if (!brandContainer) return false;
+      var titleAnchor = brandContainer.querySelector('a.navbar-brand:not(.navbar-brand-logo)');
+      var homeLink = document.querySelector('a.nav-link[href$="index.html"]') || document.querySelector('a.nav-link');
+      if (!titleAnchor || !homeLink) return false;
+      var homeHref = homeLink.getAttribute('href');
+      var resolved = new URL(homeHref, window.location.href).href;
+      titleAnchor.setAttribute('href', resolved);
+      return true;
+    } catch (err) {
+      console && console.warn && console.warn('navbar-fix error', err);
+      return false;
+    }
+  }
+
+  // Try a few strategies: immediate attempt, repeated attempts, and a MutationObserver.
+  var tried = false;
+  function attempt() {
+    if (setTitleToHome()) {
+      tried = true;
+      if (interval) clearInterval(interval);
+      if (observer) observer.disconnect();
+    }
+  }
+
+  var interval = setInterval(attempt, 200);
+
+  var observer = new MutationObserver(function() {
+    if (!tried) attempt();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var root = document.querySelector('body');
+    if (root) observer.observe(root, { childList: true, subtree: true });
+    attempt();
+  });
+})();
+</script>

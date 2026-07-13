@@ -102,6 +102,49 @@ ul.task-list li input[type="checkbox"] {
     }
   })
   </script>
+<script>
+(function(){
+  // Robustly ensure the navbar title links to the site Home (same as the Home menu link).
+  function setTitleToHome() {
+    try {
+      var brandContainer = document.querySelector('.navbar-brand-container');
+      if (!brandContainer) return false;
+      var titleAnchor = brandContainer.querySelector('a.navbar-brand:not(.navbar-brand-logo)');
+      var homeLink = document.querySelector('a.nav-link[href$="index.html"]') || document.querySelector('a.nav-link');
+      if (!titleAnchor || !homeLink) return false;
+      var homeHref = homeLink.getAttribute('href');
+      var resolved = new URL(homeHref, window.location.href).href;
+      titleAnchor.setAttribute('href', resolved);
+      return true;
+    } catch (err) {
+      console && console.warn && console.warn('navbar-fix error', err);
+      return false;
+    }
+  }
+
+  // Try a few strategies: immediate attempt, repeated attempts, and a MutationObserver.
+  var tried = false;
+  function attempt() {
+    if (setTitleToHome()) {
+      tried = true;
+      if (interval) clearInterval(interval);
+      if (observer) observer.disconnect();
+    }
+  }
+
+  var interval = setInterval(attempt, 200);
+
+  var observer = new MutationObserver(function() {
+    if (!tried) attempt();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var root = document.querySelector('body');
+    if (root) observer.observe(root, { childList: true, subtree: true });
+    attempt();
+  });
+})();
+</script>
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -285,7 +328,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 <div class="quarto-listing quarto-listing-container-grid" id="listing-listing">
 <div class="list grid quarto-listing-cols-2">
-<div class="g-col-1" data-index="0" data-categories="UiUyQ2tzVEZMJTJDY2xpbmljYWwlMjB0cmlhbCUyQ3ItcGFja2FnZSUyQ0NsaW5pY2FsJTIwUmVwb3J0aW5n" data-listing-date-sort="1783890000000" data-listing-file-modified-sort="1783688929412" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="7" data-listing-word-count-sort="1277">
+<div class="g-col-1" data-index="0" data-categories="UiUyQ2tzVEZMJTJDY2xpbmljYWwlMjB0cmlhbCUyQ3ItcGFja2FnZSUyQ0NsaW5pY2FsJTIwUmVwb3J0aW5n" data-listing-date-sort="1783890000000" data-listing-file-modified-sort="1783936449582" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="10" data-listing-word-count-sort="1821">
 <a href="./posts/2026-07-13-reporter-vs-ksTFL-performance/index.html" class="quarto-grid-link">
 <div class="quarto-grid-item card h-100 card-left">
 <p class="card-img-top">
