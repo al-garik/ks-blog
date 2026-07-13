@@ -10,7 +10,487 @@
 <atom:link href="https://al-garik.github.io/ks-blog/r-bloggers.xml" rel="self" type="application/rss+xml"/>
 <description>Articles about R programming, and clinical data analysis and reporting</description>
 <generator>quarto-1.9.37</generator>
-<lastBuildDate>Wed, 08 Jul 2026 21:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 12 Jul 2026 21:00:00 GMT</lastBuildDate>
+<item>
+  <title>How Long Are You Ready to Wait for Your Clinical Tables?</title>
+  <dc:creator>Igor Aleschenkov (KeyStat Solutions)</dc:creator>
+  <link>https://al-garik.github.io/ks-blog/posts/2026-07-13-reporter-vs-ksTFL-performance/</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>When you’re creating a few tables for a publication or an exploratory analysis, report generation time usually isn’t something you think about. If a table takes a couple of seconds to produce, you simply move on to the next task.</p>
+<p>Clinical trial reporting is different.</p>
+<p>A typical CSR may contain hundreds of Tables, Figures and Listings (TFLs). Interim analyses, reruns after database updates, quality control cycles, programming reviews, and production runs, and suddenly those “few extra seconds” become hours of waiting.</p>
+<p>Performance is no longer just a nice-to-have feature—it directly affects programmer productivity.</p>
+<p>To see how much difference the reporting engine itself can make, I compared one of the most widely used clinical reporting packages in R, <em>Reporter</em>, with the newly released <em>ksTFL</em> package.</p>
+<section id="benchmark-setup" class="level2">
+<h2 class="anchored" data-anchor-id="benchmark-setup">Benchmark setup</h2>
+<p>The goal was to compare the document generation engines rather than data preparation or statistical computation.</p>
+<p>A realistic laboratory listing dataset was generated with dummy data containing: 10 investigative sites, 20 subjects per site, Subject demographics (Age and Sex), Laboratory category (Chemistry and Hematology), Laboratory parameter, Assessment date, Visit, Laboratory result, Unit, and Low / Normal / High indicator</p>
+<pre><code>   SITE         USUBJID AGE SEX     LBCAT     LBTEST      LBDTC     VISIT LBORRES LBORRESU LBNRIND
+1   001 ABC-101-001-001  31   M Chemistry        ALT 2024-02-20 Screening   124.0      U/L  NORMAL
+2   001 ABC-101-001-001  31   M Chemistry        AST 2024-02-20 Screening    66.0      U/L  NORMAL
+3   001 ABC-101-001-001  31   M Chemistry        ALP 2024-02-20 Screening   111.9      U/L  NORMAL
+4   001 ABC-101-001-001  31   M Chemistry  Bilirubin 2024-02-20 Screening   130.5   umol/L  NORMAL
+5   001 ABC-101-001-001  31   M Chemistry    Albumin 2024-02-20 Screening    89.2      g/L  NORMAL
+6   001 ABC-101-001-001  31   M Chemistry Creatinine 2024-02-20 Screening   124.0   umol/L  NORMAL
+7   001 ABC-101-001-001  31   M Chemistry       Urea 2024-02-20 Screening   140.0   mmol/L     LOW
+8   001 ABC-101-001-001  31   M Chemistry    Glucose 2024-02-20 Screening   113.6   mmol/L  NORMAL
+9   001 ABC-101-001-001  31   M Chemistry        ALT 2024-06-03  Baseline   101.8      U/L  NORMAL
+10  001 ABC-101-001-001  31   M Chemistry        AST 2024-06-03  Baseline   115.6      U/L  NORMAL</code></pre>
+<p>The following functions were created to run with the <code>bench</code> package.</p>
+<section id="reporter" class="level3">
+<h3 class="anchored" data-anchor-id="reporter">Reporter</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(reporter)</span>
+<span id="cb2-2"></span>
+<span id="cb2-3">reporter_bench <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(nrows) {</span>
+<span id="cb2-4"></span>
+<span id="cb2-5">tbl <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_table</span>(lab <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">head</span>(nrows)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-6">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">page_by</span>(SITE,   <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Site: "</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-7">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'SITE'</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">visible =</span> F) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-8">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'USUBJID'</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dedupe =</span> T)</span>
+<span id="cb2-9"></span>
+<span id="cb2-10">rpt <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span></span>
+<span id="cb2-11">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_report</span>(</span>
+<span id="cb2-12">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reporter_LabListing.rtf"</span>,  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">output_type=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"RTF"</span>,</span>
+<span id="cb2-13">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">font=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Courier"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">font_size=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span></span>
+<span id="cb2-14">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-15">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">page_header</span>(</span>
+<span id="cb2-16">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">left=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ABC-101"</span>,</span>
+<span id="cb2-17">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">center=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Laboratory Listing"</span>,</span>
+<span id="cb2-18">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">right=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"CSR"</span></span>
+<span id="cb2-19">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-20">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">titles</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Listing 14.3.1"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Laboratory Results Listings by Site"</span>   ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-21">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_content</span>(tbl) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-22">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">footnotes</span>(</span>
+<span id="cb2-23">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"LOW = Below reference range"</span>,</span>
+<span id="cb2-24">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"HIGH = Above reference range"</span></span>
+<span id="cb2-25">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-26">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">page_footer</span>(</span>
+<span id="cb2-27">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">left=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">format</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.Date</span>()),</span>
+<span id="cb2-28">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">center=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Confidential"</span>,</span>
+<span id="cb2-29">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">right=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Page [pg] of [tpg]"</span></span>
+<span id="cb2-30">    )</span>
+<span id="cb2-31"></span>
+<span id="cb2-32">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">write_report</span>(rpt)</span>
+<span id="cb2-33">    </span>
+<span id="cb2-34">}</span></code></pre></div></div>
+</div>
+</section>
+<section id="kstfl" class="level3">
+<h3 class="anchored" data-anchor-id="kstfl">ksTFL</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(ksTFL)</span>
+<span id="cb3-2"></span>
+<span id="cb3-3">ksTFL_bench <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(nrows) {</span>
+<span id="cb3-4"></span>
+<span id="cb3-5">data <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> lab <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">head</span>(nrows)</span>
+<span id="cb3-6"></span>
+<span id="cb3-7">listing <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_table</span>(data) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-8">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_header</span>( <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ABC-101"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Laboratory Listing"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"CSR"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_footer</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">format</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.Date</span>()), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Confidential"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Page {PAGE} of {NUMPAGES}"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-10">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_title</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Listing 14.3.1"</span>,   <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Laboratory Results Listings by Site"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-11">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_subtitle</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Site: #ByGroup1"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-12">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_footnote</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"LOW = Below reference range"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"HIGH = Above reference range"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-13">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define_cols</span>(SITE, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">isVisible =</span> F, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">isGrouping =</span> T) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb3-14">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">define_cols</span>(USUBJID, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dedupe =</span> T)</span>
+<span id="cb3-15"></span>
+<span id="cb3-16">rep <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_report</span>(listing)</span>
+<span id="cb3-17"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">write_doc</span>(rep, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'ksTFL_LabListing'</span>)</span>
+<span id="cb3-18"></span>
+<span id="cb3-19">}</span></code></pre></div></div>
+</div>
+<p>Both packages generated essentially the same report:</p>
+<ul>
+<li>Laboratory data listing</li>
+<li>Paginated by Site Number</li>
+<li>Standard clinical titles</li>
+<li>Dynamic subtitle with Site Number</li>
+<li>Page headers and footers</li>
+<li>Footnotes</li>
+<li>Default formatting</li>
+</ul>
+<p>Here are the side-by-side view of the first page of the created documents:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/documents.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="https://al-garik.github.io/ks-blog/posts/2026-07-13-reporter-vs-ksTFL-performance/images/documents.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></a></p>
+</figure>
+</div>
+<p>The benchmark was repeated using datasets containing 1000, 3000, 10000, and 20000 listing records. Each benchmark was executed twice, and the median execution time was reported.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(bench)</span>
+<span id="cb4-2"></span>
+<span id="cb4-3">sizes <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3000</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10000</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20000</span>)</span>
+<span id="cb4-4"></span>
+<span id="cb4-5">results <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span></span>
+<span id="cb4-6">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(</span>
+<span id="cb4-7">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lapply</span>(sizes, <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(n) {</span>
+<span id="cb4-8">            </span>
+<span id="cb4-9">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Benchmarking"</span>, n, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rows...</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb4-10">            </span>
+<span id="cb4-11">            x <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span></span>
+<span id="cb4-12">                bench<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mark</span>(</span>
+<span id="cb4-13">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Reporter =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">reporter_bench</span>(n),</span>
+<span id="cb4-14">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ksTFL    =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ksTFL_bench</span>(n),</span>
+<span id="cb4-15">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">iterations =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,</span>
+<span id="cb4-16">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">check =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>,</span>
+<span id="cb4-17">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">memory =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>,</span>
+<span id="cb4-18">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">time_unit =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"s"</span></span>
+<span id="cb4-19">                )</span>
+<span id="cb4-20">            </span>
+<span id="cb4-21">            x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>nrows <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> n</span>
+<span id="cb4-22">            </span>
+<span id="cb4-23">            x</span>
+<span id="cb4-24">        })</span>
+<span id="cb4-25">    )</span></code></pre></div></div>
+</div>
+<p>Here are the results:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/results.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="https://al-garik.github.io/ks-blog/posts/2026-07-13-reporter-vs-ksTFL-performance/images/results.png" class="img-fluid quarto-figure quarto-figure-center figure-img"></a></p>
+</figure>
+</div>
+</section>
+</section>
+<section id="what-stands-out" class="level2">
+<h2 class="anchored" data-anchor-id="what-stands-out">What stands out?</h2>
+<p>The difference is immediately noticeable.</p>
+<p>Even for a relatively small listing of <strong>1,000 rows</strong>, <strong>ksTFL</strong> completed report generation in just over <strong>100 milliseconds</strong>, while <strong>Reporter</strong> required almost <strong>3 seconds</strong>.</p>
+<p>As the listing size increased, the performance gap widened considerably.</p>
+<p>For <strong>20,000 rows</strong>, Reporter required more than <strong>one and a half minutes</strong> to generate the report, whereas ksTFL completed the same task in just over <strong>one second</strong>.</p>
+<p>More interestingly, the advantage isn’t constant—it increases with report size:</p>
+<ul>
+<li><p>ksTFL <strong>28× faster</strong> for 1,000 rows</p></li>
+<li><p><strong>41× faster</strong> for 3,000 rows</p></li>
+<li><p><strong>50× faster</strong> for 10,000 rows</p></li>
+<li><p><strong>73× faster</strong> for 20,000 rows</p></li>
+</ul>
+<p>This suggests that the ksTFL reporting engine scales much more efficiently as document size grows.</p>
+</section>
+<section id="memory-usage-tells-an-even-bigger-story" class="level2">
+<h2 class="anchored" data-anchor-id="memory-usage-tells-an-even-bigger-story">Memory usage tells an even bigger story</h2>
+<p>Execution time is only part of the picture.</p>
+<p>The amount of memory allocated during report generation increases rapidly for Reporter as the listing becomes larger.</p>
+<p>For the largest benchmark Reporter allocated nearly <strong>50 GB</strong> of memory while ksTFL required <strong>only 38 MB</strong></p>
+<p>Lower memory consumption isn’t just an interesting benchmark statistic. It means:</p>
+<ul>
+<li><p>reduced risk of exhausting available memory,</p></li>
+<li><p>better performance on virtual machines and shared servers,</p></li>
+<li><p>and the ability to generate multiple reports in parallel without competing for system resources.</p></li>
+</ul>
+</section>
+<section id="why-does-this-matter" class="level2">
+<h2 class="anchored" data-anchor-id="why-does-this-matter">Why does this matter?</h2>
+<p>In real-world clinical reporting, the document generation step is only one part of the overall workflow. Data preparation, derivations and statistical analyses often account for a large proportion of the total runtime.</p>
+<p>However, once the analysis datasets are ready, the reporting engine becomes the final stage and sometimes repeated over and over again.</p>
+<p>During study development, programmers regenerate reports after every change, QC programmers independently recreate the same outputs, and complete production runs are repeated for interim analyses, database updates and final deliverables.</p>
+<p>A study containing a few hundred outputs may therefore generate <strong>thousands of report files</strong> over its lifetime.</p>
+<p>Even if each individual report saves only a few seconds, those savings accumulate into hours of reduced waiting time for programmers and much faster production cycles.</p>
+</section>
+<section id="final-thoughts" class="level2">
+<h2 class="anchored" data-anchor-id="final-thoughts">Final thoughts</h2>
+<p>Performance isn’t the only criterion when selecting a reporting framework. Functionality, output quality, flexibility and ease of use are equally important.</p>
+<p>Nevertheless, report generation speed becomes increasingly valuable as studies become larger and reporting workflows become more automated.</p>
+<p>One particularly interesting observation from this benchmark is that <strong>the performance advantage of ksTFL grows as report size increases</strong>. Rather than maintaining a constant lead, ksTFL becomes progressively faster relative to Reporter while simultaneously requiring dramatically less memory.</p>
+<p>Although this benchmark focuses on a laboratory listing, the results indicate that the underlying document generation engine scales efficiently and remains responsive even for substantially larger reports.</p>
+<p>If your reporting workflow involves generating hundreds of outputs throughout the lifetime of a clinical trial, those gains can translate into noticeably shorter development cycles, faster production runs, and a smoother experience for the programming team.</p>
+<hr>
+<p><em>Benchmark environment:</em> Both packages were executed on the same machine using the same input data and comparable report layouts. Each benchmark was run <strong>twice</strong>, with the <strong>median execution time</strong> reported. The benchmark was designed to measure the performance of the reporting engine itself, not the time required for data preparation or statistical analyses.</p>
+<hr>
+<pre><code>Aleschenkov I, Larchenko V (2026). _ksTFL: Framework for Clinical Tables,
+  Figures, and Listings_. R package version 0.11.9,
+  &lt;https://crow16384.github.io/ksTFL/,https://crow16384.r-universe.dev/ksTFL&gt;</code></pre>
+<p><em>This post was originally published on the KeyStat Solutions R Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>
+
+
+<!-- -->
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>ksTFL</category>
+  <category>clinical trial</category>
+  <category>r-package</category>
+  <category>Clinical Reporting</category>
+  <guid>https://al-garik.github.io/ks-blog/posts/2026-07-13-reporter-vs-ksTFL-performance/</guid>
+  <pubDate>Sun, 12 Jul 2026 21:00:00 GMT</pubDate>
+  <media:content url="https://al-garik.github.io/ks-blog/posts/2026-07-13-reporter-vs-ksTFL-performance/images/post-logo.png" medium="image" type="image/png" height="81" width="144"/>
+</item>
 <item>
   <title>Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks</title>
   <dc:creator>Vladimir Larchenko (KeyStat Solutions)</dc:creator>

@@ -9,7 +9,7 @@ listing:
   type: grid
   grid-columns: 2
   fields: [image, date, title, author, categories, description]
-  max-items: 20
+  max-items: 6
   feed: true
 ---
 
@@ -23,3 +23,70 @@ listing:
 Our technical blog provides **practical, production-ready** guidance on R programming, clinical trial data analysis, and statistical methods. We share real-world applications and best practices from our work in clinical researches.
 
 ## Latest Posts
+
+## All Posts
+
+Below is a condensed list of all posts grouped by year and month.
+
+```{r}
+#| echo: false
+#| results: asis
+
+# Gather all post index files
+files <- list.files("posts", pattern = "index.qmd", recursive = TRUE, full.names = TRUE)
+
+get_meta <- function(f) {
+  lines <- readLines(f, warn = FALSE)
+  idx <- which(grepl("^---\\s*$", lines))
+  if (length(idx) >= 2) {
+    fm <- lines[(idx[1] + 1):(idx[2] - 1)]
+    title_line <- fm[grepl("^title\\s*:", fm)][1]
+    date_line <- fm[grepl("^date\\s*:", fm)][1]
+    title <- if (!is.na(title_line)) sub('^title\\s*:\\s*', '', title_line) else basename(dirname(f))
+    title <- gsub('^\\s*["]|["]\\s*$', '', title)
+    date_str <- if (!is.na(date_line)) sub('^date\\s*:\\s*', '', date_line) else NA
+    date_str <- gsub('^\\s*["\']|["\']\\s*$', '', date_str)
+    date <- if (!is.na(date_str) && nzchar(date_str)) as.Date(date_str) else NA
+  } else {
+    title <- basename(dirname(f))
+    date <- NA
+  }
+  slug <- basename(dirname(f))
+  list(title = title, date = date, slug = slug)
+}
+
+posts <- lapply(files, get_meta)
+posts_df <- data.frame(
+  title = sapply(posts, `[[`, "title"),
+  date = as.Date(sapply(posts, function(x) as.character(x$date))),
+  slug = sapply(posts, `[[`, "slug"),
+  stringsAsFactors = FALSE
+)
+
+# Exclude template directory
+posts_df <- posts_df[posts_df$slug != "_post-template", , drop = FALSE]
+
+# Order by date desc
+posts_df <- posts_df[order(posts_df$date, decreasing = TRUE), , drop = FALSE]
+
+years <- unique(format(posts_df$date, "%Y"))
+years <- years[!is.na(years)]
+years <- sort(years, decreasing = TRUE)
+
+for (y in years) {
+  cat(sprintf("\n### %s\n\n", y))
+  sub <- posts_df[format(posts_df$date, "%Y") == y, , drop = FALSE]
+  months <- unique(format(sub$date, "%m"))
+  months <- months[order(as.integer(months), decreasing = TRUE)]
+  for (mm in months) {
+    month_name <- month.name[as.integer(mm)]
+    cat(sprintf("\n#### %s\n\n", month_name))
+    subm <- sub[format(sub$date, "%m") == mm, , drop = FALSE]
+    for (i in seq_len(nrow(subm))) {
+      row <- subm[i, ]
+      cat(sprintf("- [%s](posts/%s/)\n", row$title, row$slug))
+    }
+    cat("\n")
+  }
+}
+```
