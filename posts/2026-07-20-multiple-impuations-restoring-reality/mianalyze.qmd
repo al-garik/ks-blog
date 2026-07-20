@@ -1,0 +1,848 @@
+---
+title: "Multiple Imputation Analysis with `mianalyze()`"
+subtitle: "Rubin's Rules and Barnard-Rubin Degrees of Freedom"
+author: "Vladimir Larchenko"
+date: "2026-07-18"
+number-sections: false
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    html-math-method: mathjax
+execute:
+  warning: false
+  message: false
+editor:
+  markdown:
+    wrap: 72
+vignette: >
+  %\VignetteIndexEntry{Multiple Imputation Analysis with mianalyze()}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+![](mianalyze0.png){fig-align="center"}
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# Introduction
+
+Missing data are common in clinical trials, observational studies,
+registries, and real-world evidence analyses. A standard approach for
+handling missing values is **multiple imputation (MI)**, where several
+complete datasets are generated, each containing plausible replacements
+for missing observations.
+
+After analysing each imputed dataset, the analyst obtains:
+
+- a parameter estimate from each imputation;
+- a corresponding standard error.
+
+The final step is to combine these results into a single inference. This
+process is commonly known as **pooling** or **MI analysis** and is
+described by Rubin (1987).
+
+The `mianalyze()` function in **kstools** package (no public release yet) implements Rubin's pooling
+rules and supports the Barnard-Rubin (1999) small-sample
+degrees-of-freedom adjustment, equivalent to the `EDF=` option in SAS
+`PROC MIANALYZE`. The exported alias `ks_mianalyze()` provides the same
+interface.
+
+
+```{r}
+library(kstools)
+```
+
+Complete function **R** source code is provided below:
+
+```{r}
+#| eval: false
+#| code-fold: true
+#' Analogue of SAS PROC MIANALYZE (Rubin pooling)
+#'
+#' Pools point estimates and standard errors across multiple imputations
+#' according to Rubin's rules.  Degrees of freedom follow the Barnard-Rubin
+#' (1999) small-sample adjustment when complete-data df are supplied via
+#' \code{edf} (equivalent to the SAS \code{EDF=} option).
+#'
+#' @param est Numeric vector of point estimates from each imputation.
+#' @param err Numeric vector of corresponding standard errors.
+#' @param alpha Significance level for confidence intervals. Default \code{0.05}.
+#' @param theta0 Null value for hypothesis test \eqn{H_0: \theta = \theta_0}.
+#' @param edf Complete-data degrees of freedom (positive numeric scalar or
+#'   \code{Inf}).
+#'   Equivalent to the SAS \code{EDF=} option in \code{PROC MIANALYZE}.
+#'   When finite, the Barnard-Rubin (1999) adjusted degrees of freedom
+#'   \eqn{v_m^*} are used instead of the Rubin (1987) large-sample
+#'   \eqn{v_m}.  Default \code{Inf} (no adjustment, Rubin large-sample df).
+#' @param v0 Deprecated alias for \code{edf}.  Kept for backward
+#'   compatibility; ignored when \code{edf} is also supplied.
+#'
+#' @return An object of class \code{ks_mianalyze} with components:
+#' \describe{
+#'   \item{Estimate}{Pooled estimate.}
+#'   \item{StdErr}{Pooled standard error.}
+#'   \item{m}{Number of imputations.}
+#'   \item{Vb}{Between-imputation variance.}
+#'   \item{Vw}{Within-imputation variance.}
+#'   \item{Vt}{Total variance.}
+#'   \item{df}{Degrees of freedom (adjusted when \code{edf} is finite).}
+#'   \item{r}{Relative increase in variance due to nonresponse.}
+#'   \item{lambda}{Fraction of missing information.}
+#'   \item{re}{Relative efficiency.}
+#'   \item{lcl, ucl}{Two-sided confidence limits for \code{Estimate}.}
+#'   \item{alpha}{Alpha used for CI.}
+#'   \item{theta0}{Null value used in hypothesis test.}
+#'   \item{edf}{Complete-data degrees of freedom used.}
+#'   \item{minim, maxim}{Min/max of input \code{est}.}
+#'   \item{t}{Test statistic for \eqn{H_0}.}
+#'   \item{pval}{Two-sided p-value.}
+#' }
+#'
+#' @details
+#' Let \eqn{Q_i} and \eqn{U_i} be estimate and variance from imputation \eqn{i}.
+#' The pooled estimate is \eqn{\bar{Q} = m^{-1}\sum_i Q_i};
+#' within variance \eqn{\bar{U} = m^{-1}\sum_i U_i};
+#' between variance \eqn{B = (m-1)^{-1}\sum_i (Q_i-\bar{Q})^2};
+#' total variance \eqn{T = \bar{U} + (1 + 1/m)B}.
+#'
+#' Rubin's (1987) large-sample degrees of freedom are
+#' \eqn{v_m = (m-1)(1 + \bar{U}/((1+m^{-1})B))^2}.  When the complete-data
+#' degrees of freedom \eqn{v_0} are small and the fraction of missing
+#' information is modest, \eqn{v_m} can greatly exceed \eqn{v_0}, which is
+#' inappropriate.  The Barnard-Rubin (1999) adjustment computes
+#' \eqn{v_m^* = (1/v_m + 1/\hat{v}_{obs})^{-1}} where
+#' \eqn{\hat{v}_{obs} = (1-\gamma) v_0 (v_0+1)/(v_0+3)} and
+#' \eqn{\gamma = (1+m^{-1})B/T}.
+#'
+#' @references
+#' Barnard, J. and Rubin, D. B. (1999). Small-sample degrees of freedom with
+#'   multiple imputation. \emph{Biometrika}, 86, 948--955.
+#'
+#' Rubin, D. B. (1987). \emph{Multiple Imputation for Nonresponse in Surveys}.
+#'   Wiley.
+#'
+#' SAS Institute Inc. (2013). \emph{SAS/STAT 12.3 User's Guide}. Chapter 58,
+#'   The MIANALYZE Procedure.
+#'
+#' @seealso
+#' \code{vignette("mianalyze", package = "kstools")} for worked examples and
+#' SAS comparisons.
+#'
+#' @examples
+#' est <- c(0.345, 0.303, 0.298, 0.378)
+#' err <- c(0.056, 0.101, 0.099, 0.034)
+#' out <- mianalyze(est, err)
+#' out
+#'
+#' ## Barnard-Rubin adjusted df (equivalent to SAS EDF=120)
+#' mianalyze(est, err, edf = 120)
+#' @name ks_mianalyze
+#' @importFrom cli cli_abort
+#' @importFrom stats pt qt
+#' @export
+ks_mianalyze <- function(est, err, alpha = 0.05, theta0 = 0, edf = Inf, v0) {
+  if (!is.numeric(est) || !is.numeric(err))
+    cli::cli_abort("{.arg est} and {.arg err} must be numeric vectors.")
+  if (length(est) != length(err))
+    cli::cli_abort("{.arg est} and {.arg err} must have the same length.")
+  if (length(est) < 1L)
+    cli::cli_abort("{.arg est} and {.arg err} must have at least one value.")
+  if (anyNA(est) || anyNA(err) || any(!is.finite(est)) || any(!is.finite(err)))
+    cli::cli_abort("{.arg est} and {.arg err} must contain only finite, non-missing values.")
+  if (any(err < 0))
+    cli::cli_abort("{.arg err} must be non-negative.")
+  if (length(alpha) != 1L || is.na(alpha) || alpha <= 0 || alpha >= 1)
+    cli::cli_abort("{.arg alpha} must be a single value in (0, 1).")
+  if (length(theta0) != 1L || is.na(theta0) || !is.finite(theta0))
+    cli::cli_abort("{.arg theta0} must be a single finite numeric value.")
+
+  # Resolve edf / v0 (backward compatibility)
+  if (!missing(v0)) {
+    if (!missing(edf) && !identical(edf, Inf))
+      cli::cli_abort("Specify either {.arg edf} or {.arg v0}, not both.")
+    edf <- v0
+  }
+  if (length(edf) != 1L || is.na(edf) || edf <= 0)
+    cli::cli_abort("{.arg edf} must be a single positive value or {.code Inf}.")
+
+  # number of imputations
+  m <- length(est)
+  # Q.bar - average of the estimator
+  Q_bar <- mean(est)
+  # W.bar - within-imputation variance
+  Vw <- mean(err^2)
+  # Between imputation variance
+  Vb <- if (m > 1L) sum((est - Q_bar)^2) / (m - 1) else 0
+  # Total variance
+  Vt <- Vw + Vb + Vb/m
+
+  # Rubin's (1987) degrees of freedom
+  if (Vb == 0 && Vw == 0) {
+    r <- 0
+    df <- Inf
+  } else {
+    # Relative increase in variance
+    r <- if (Vw == 0) Inf else (1 + 1 / m) * Vb / Vw
+    df <- if (Vb == 0) Inf else (m-1)*(1+(Vw/(Vb+Vb/m)))^2
+  }
+
+  # fraction fo missing information
+  lambda <- if (is.infinite(r)) {
+    1
+  } else if (is.infinite(df)) {
+    r / (r + 1)
+  } else {
+    (r + 2 / (df + 3)) / (r + 1)
+  }
+  # v.obs - for adjusted DF
+  gamma <- if (Vt == 0) 0 else (1 + 1 / m) * Vb / Vt
+
+  # Barnard-Rubin (1999) small-sample adjustment (SAS EDF= option)
+  if (is.finite(edf)) {
+    v_obs <- (1 - gamma) * edf * (edf + 1) / (edf + 3)
+    df <- if (is.infinite(df)) v_obs else 1 / (1 / df + 1 / v_obs)
+  }
+  # Pooled Std Error
+  err_pool <- sqrt(Vt)
+  crit <- stats::qt(1 - alpha / 2, df = df)
+  # Relative efficiency
+  re <- 1 / (1 + lambda / m)
+  # Range
+  minim <- min(est)
+  maxim <- max(est)
+
+  delta <- Q_bar - theta0
+  t_val <- if (err_pool == 0) {
+    if (delta == 0) NA_real_ else sign(delta) * Inf
+  } else {
+    delta / err_pool
+  }
+
+  p <- if (is.na(t_val)) NA_real_ else 2 * stats::pt(abs(t_val), df = df, lower.tail = FALSE)
+
+  res <- list(
+    Estimate = Q_bar,
+    StdErr = err_pool,
+    m = m,
+    Vb = Vb,
+    Vw = Vw,
+    Vt = Vt,
+    df = df,
+    r = r,
+    lambda = lambda,
+    re = re,
+    lcl = Q_bar - crit * err_pool,
+    ucl = Q_bar + crit * err_pool,
+    alpha = alpha,
+    theta0 = theta0,
+    edf = edf,
+    minim = minim,
+    maxim = maxim,
+    t = t_val,
+    pval = p
+  )
+
+  class(res) <- c("ks_mianalyze", "list")
+  res
+}
+
+
+#' @rdname ks_mianalyze
+#' @export
+mianalyze <- function(est, err, alpha = 0.05, theta0 = 0, edf = Inf, v0) {
+  if (!missing(v0) && !missing(edf) && !identical(edf, Inf))
+    cli::cli_abort("Specify either {.arg edf} or {.arg v0}, not both.")
+  if (!missing(v0) && missing(edf)) {
+    ks_mianalyze(est = est, err = err, alpha = alpha, theta0 = theta0, v0 = v0)
+  } else {
+    ks_mianalyze(est = est, err = err, alpha = alpha, theta0 = theta0, edf = edf)
+  }
+}
+
+
+#' @rdname ks_mianalyze
+#' @export
+summary.ks_mianalyze <- function(object, ...) {
+  variance_tbl <- data.frame(
+    Between = object$Vb,
+    Within  = object$Vw,
+    Total   = object$Vt,
+    DF      = object$df,
+    check.names = FALSE
+  )
+
+  diagnostics_tbl <- data.frame(
+    `Relative Increase in Variance` = object$r,
+    `Fraction Missing Information`  = object$lambda,
+    `Relative Efficiency`           = object$re,
+    check.names = FALSE
+  )
+
+  estimates_tbl <- data.frame(
+    Estimate = object$Estimate,
+    `Std Error` = object$StdErr,
+    LCL = object$lcl,
+    UCL = object$ucl,
+    DF = object$df,
+    check.names = FALSE
+  )
+
+  tests_tbl <- data.frame(
+    Minimum = object$minim,
+    Maximum = object$maxim,
+    Theta0  = object$theta0,
+    Statistic = object$t,
+    PValue = object$pval,
+    check.names = FALSE
+  )
+
+  structure(
+    list(
+      variance = variance_tbl,
+      diagnostics = diagnostics_tbl,
+      estimates = estimates_tbl,
+      tests = tests_tbl,
+      m = object$m,
+      alpha = object$alpha,
+      edf = object$edf
+    ),
+    class = "summary.ks_mianalyze"
+  )
+}
+
+
+#' @export
+print.ks_mianalyze <- function(x, ...) {
+  s <- summary(x)
+  adj <- if (is.finite(s$edf)) " (Barnard-Rubin adjusted)" else ""
+  
+  cat(sprintf("\n\n***Variance information (%d Imputations)***\n", s$m))
+  cat("Between\t\tWithin\t\tTotal\t\tDF", adj, "\n", sep = "")
+  cat("-------\t\t------\t\t-----\t\t--\n")
+  cat(sprintf("%.6f\t%.6f\t%.6f\t%.1f\n\n", 
+      s$variance$Between, s$variance$Within, s$variance$Total, s$variance$DF))
+
+  cat("Relative\tFraction\n")
+  cat("Increase\tMissing\t\tRelative\n")
+  cat("in Variance\tInformation\tEfficiency\n")
+  cat("-----------\t-----------\t----------\n")
+  cat(sprintf("%.6f\t%.6f\t%.6f\n", 
+      s$diagnostics$`Relative Increase in Variance`,
+      s$diagnostics$`Fraction Missing Information`,
+      s$diagnostics$`Relative Efficiency`))
+
+  cat(sprintf("\n***Parameter estimates (%d Imputations)***\n", s$m))
+  cat(sprintf("Estimate\tStd Error\t%.2f%% Confidence Limits\tDF\n", 100 * (1 - s$alpha)))
+  cat("--------\t---------\t------------------------\t--\n")
+  cat(sprintf("%.6f\t%.6f\t%.6f\t%.6f\t%.1f\n", 
+      s$estimates$Estimate, s$estimates$`Std Error`,
+      s$estimates$LCL, s$estimates$UCL, s$estimates$DF))
+
+  cat("\n\t\t\t\t\t\tt for H0\n")
+  cat("Minimum\t\tMaximum\t\tTheta0\t\tParameter=Theta0\tPr>|t|\n")
+  cat("-------\t\t-------\t\t------\t\t----------------\t------\n")
+  cat(sprintf("%.6f\t%.6f\t%.2f\t\t%.4f\t\t\t%.4f\n", 
+      s$tests$Minimum, s$tests$Maximum, s$tests$Theta0,
+      s$tests$Statistic, s$tests$PValue))
+
+  invisible(x)
+}
+
+
+#' @rdname ks_mianalyze
+#' @importFrom knitr knit_print kable
+#' @exportS3Method knitr::knit_print
+knit_print.ks_mianalyze <- function(x, ...) {
+  s <- summary(x)
+  
+  out <- c(
+    sprintf("## Variance Information (%d Imputations)\n", s$m),
+    knitr::kable(s$variance, digits = 6),
+    
+    "\n\n",
+    
+    "## Missing Data Diagnostics\n",
+    knitr::kable(s$diagnostics, digits = 6),
+    
+    "\n\n",
+    
+    sprintf("## Parameter Estimates (%d Imputations)\n", s$m),
+    knitr::kable(s$estimates, digits = 6),
+    
+    "\n\n",
+    
+    "## Hypothesis Test\n",
+    knitr::kable(s$tests, digits = 6)
+  )
+
+  knitr::asis_output(paste(out, collapse = "\n"))
+}
+```
+
+# Multiple Imputation Workflow
+
+The typical workflow is:
+
+1. Create $m$ imputed datasets.
+2. Perform the same analysis on each dataset.
+3. Extract parameter estimates and standard errors.
+4. Pool the results using Rubin's rules.
+
+Conceptually:
+
+```{mermaid}
+%%| fig-width: 8
+flowchart TD
+    A([Original Dataset])
+    B([Multiple Imputation])
+    D1[Imputed Dataset 1<br/>Q₁, U₁]
+    D2[Imputed Dataset 2<br/>Q₂, U₂]
+    D3[Imputed Dataset 3<br/>Q₃, U₃]
+    Ddots[...]
+    Dm[Imputed Dataset m<br/>Qₘ, Uₘ]
+    R{{Rubin's Rules<br/>Pool Estimates and Variances}}
+    F([Pooled Estimate<br/>SE, CI, p-value])
+    
+    A --> B
+    B --> D1
+    B --> D2
+    B --> D3
+    B --> Ddots
+    B --> Dm
+    D1 --> R
+    D2 --> R
+    D3 --> R
+    Ddots --> R
+    Dm --> R
+    R --> F
+    
+    classDef source fill:#1e40af,stroke:#93c5fd,stroke-width:2px,color:#f8fafc;
+    classDef process fill:#c2410c,stroke:#fdba74,stroke-width:2px,color:#f8fafc;
+    classDef imputed fill:#166534,stroke:#86efac,stroke-width:2px,color:#f8fafc;
+    classDef pooling fill:#6d28d9,stroke:#c4b5fd,stroke-width:2px,color:#f8fafc;
+    classDef result fill:#15803d,stroke:#86efac,stroke-width:3px,color:#f8fafc;
+
+    class A source;
+    class B process;
+    class D1,D2,D3,Dm imputed;
+    class R pooling;
+    class F result;
+    
+    linkStyle default stroke:#94a3b8,stroke-width:1.5px
+```
+
+# Rubin's Rules
+
+Suppose $Q_i$ is the estimate from imputation $i$ and $U_i$ is its
+variance. Let $m$ be the number of imputations.
+
+## Pooled Estimate
+
+$$\bar{Q} = \frac{1}{m} \sum_{i=1}^{m}Q_i$$
+
+## Within-Imputation Variance
+
+$$\bar{U} = \frac{1}{m} \sum_{i=1}^{m}U_i$$
+
+This quantity reflects uncertainty that would exist even if no data were
+missing.
+
+## Between-Imputation Variance
+
+$$B = \frac{1}{m-1}\sum_{i=1}^{m}(Q_i-\bar{Q})^2$$
+
+Large values indicate substantial uncertainty due to missing data.
+
+## Total Variance
+
+$$T = \bar{U} + \left(1+\frac{1}{m}\right) B$$
+
+The pooled standard error is $SE = \sqrt{T}$.
+
+# Relative Increase in Variance
+
+$$r = \frac{\left(1+\frac{1}{m}\right) B}{\bar{U}}$$
+
+Values near zero indicate little impact from missing data.
+
+# Fraction of Missing Information
+
+For finite Rubin degrees of freedom $v_m$,
+
+$$\hat\lambda = \frac{r + 2/(v_m + 3)}{r + 1}$$
+
+When $v_m$ is treated as infinite (large-sample case), this simplifies
+to $\hat\lambda = r/(r+1)$. The quantity is often interpreted as the
+proportion of uncertainty attributable to missingness.
+
+| $\lambda$ | Interpretation |
+|-----------|----------------|
+| $< 0.05$ | Negligible missing information |
+| $0.05$–$0.20$ | Mild impact |
+| $0.20$–$0.50$ | Moderate impact |
+| $> 0.50$ | Severe impact |
+
+# Relative Efficiency
+
+$$RE = \frac{1}{1 + \lambda/m}$$
+
+Values close to 1 indicate that additional imputations would provide
+little benefit.
+
+# Degrees of Freedom
+
+## Rubin (1987)
+
+$$v_m = (m-1)\left(1+\frac{\bar{U}}{\left(1+m^{-1}\right)B}\right)^2$$
+
+When $m$ is small and missing information is limited, $v_m$ can become
+very large.
+
+## Problem with Large-Sample Degrees of Freedom
+
+Suppose a model parameter is based on only 40 residual degrees of
+freedom. Rubin's formula may yield $v_m = 500$, which exceeds the
+information available in the complete-data analysis and can produce
+confidence intervals that are unrealistically narrow.
+
+# Barnard-Rubin Adjustment
+
+Barnard and Rubin (1999) proposed a small-sample correction. Let $v_0$
+be the complete-data degrees of freedom. Define
+
+$$\gamma = \frac{(1 + m^{-1}) B}{T}$$
+
+and
+
+$$\hat{v}_{obs} = (1-\gamma)\, v_0\, \frac{v_0+1}{v_0+3}$$
+
+The adjusted degrees of freedom are
+
+$$v_m^* = \left(\frac{1}{v_m} + \frac{1}{\hat{v}_{obs}}\right)^{-1}$$
+
+This is the method used by SAS `PROC MIANALYZE` when `EDF=` is specified,
+and by `mianalyze(edf = ...)`.
+
+
+# Basic Example
+
+```{r}
+est <- c(0.345, 0.303, 0.298, 0.378)
+err <- c(0.056, 0.101, 0.099, 0.034)
+out <- mianalyze(est, err)
+out
+```
+
+# Example: Manual Verification
+
+```{r}
+est <- c(0.345, 0.303, 0.298, 0.378)
+err <- c(0.056, 0.101, 0.099, 0.034)
+
+m <- length(est)
+Qbar <- mean(est)
+Vw <- mean(err^2)
+Vb <- var(est)
+Vt <- Vw + (1 + 1 / m) * Vb
+
+manual <- c(Estimate = Qbar, Vw = Vw, Vb = Vb, Vt = Vt, SE = sqrt(Vt))
+pooled <- c(
+  Estimate = out$Estimate, Vw = out$Vw, Vb = out$Vb,
+  Vt = out$Vt, SE = out$StdErr
+)
+rbind(manual = manual, mianalyze = pooled)
+```
+
+# Example: Treatment Difference
+
+```{r}
+est <- c(-2.8, -3.2, -2.5, -3.1, -2.9)
+err <- c(1.10, 1.15, 1.05, 1.18, 1.12)
+mianalyze(est, err)
+```
+
+Interpretation:
+
+- the pooled estimate is the average treatment difference;
+- the pooled standard error combines model and imputation uncertainty;
+- confidence intervals incorporate missing-data uncertainty.
+
+# Example: Odds Ratio Analysis
+
+Pool results on the log scale, then exponentiate.
+
+```{r}
+log_or <- c(0.18, 0.21, 0.15, 0.19, 0.23)
+se_log_or <- c(0.09, 0.10, 0.09, 0.08, 0.11)
+res <- mianalyze(log_or, se_log_or)
+res
+
+exp(c(OR = res$Estimate, LCL = res$lcl, UCL = res$ucl))
+```
+
+# Example: Hazard Ratio Analysis
+
+Cox models typically return log-hazard ratios.
+
+```{r}
+log_hr <- c(-0.22, -0.17, -0.31, -0.28, -0.24)
+se <- c(0.14, 0.13, 0.15, 0.12, 0.13)
+res <- mianalyze(log_hr, se)
+res
+
+exp(c(HR = res$Estimate, LCL = res$lcl, UCL = res$ucl))
+```
+
+# Example: Small-Sample Degrees of Freedom
+
+Assume the complete-data analysis would have $v_0 = 40$:
+
+```{r}
+est <- c(0.345, 0.303, 0.298, 0.378)
+err <- c(0.056, 0.101, 0.099, 0.034)
+
+br <- mianalyze(est, err, edf = 40)
+rubin <- mianalyze(est, err)
+
+data.frame(
+  method = c("Barnard-Rubin (edf=40)", "Rubin large-sample"),
+  df = c(br$df, rubin$df),
+  lcl = c(br$lcl, rubin$lcl),
+  ucl = c(br$ucl, rubin$ucl)
+)
+```
+
+The adjusted degrees of freedom are smaller, producing slightly wider
+confidence intervals.
+
+# Comparison with SAS PROC MIANALYZE
+
+`mianalyze()` is a univariate analogue of SAS `PROC MIANALYZE`. The
+formulas for $\bar{Q}$, $\bar{U}$, $B$, $T$, $r$, $\hat\lambda$, $RE$,
+$v_m$, and the Barnard-Rubin $v_m^*$ match those in the SAS/STAT User's
+Guide (Chapter *The MIANALYZE Procedure*).
+
+## Option mapping
+
+| SAS `PROC MIANALYZE` | `mianalyze()` |
+|----------------------|---------------|
+| Estimates + standard errors (e.g. `STDERR` / `PARMS`) | `est`, `err` |
+| `ALPHA=` | `alpha` (default `0.05`) |
+| `THETA0=` | `theta0` (default `0`) |
+| `EDF=` (Barnard-Rubin) | `edf` (default `Inf` = no adjustment) |
+| — | `v0` (deprecated alias for `edf`) |
+
+Note: SAS documents a default of `EDF=1` with *no* adjustment when
+`EDF=` is omitted. In **kstools**, omitting `edf` (or using
+`edf = Inf`) likewise uses Rubin's large-sample $v_m$ without
+Barnard-Rubin adjustment.
+
+## Scope
+
+Aligned with SAS univariate MI inference:
+
+- pooled estimate, total variance, $t$-based CI and test;
+- variance diagnostics $r$, $\hat\lambda$, $RE$;
+- Barnard-Rubin df via `edf`.
+
+Not implemented (multivariate SAS features):
+
+- Wald multivariate tests (`MULT` / `MULTIVARIATE`);
+- `TEST` linear hypotheses;
+- pooling from full covariance matrices alone (without per-parameter SEs).
+
+## SAS Example 58.1 (means and standard errors, `EDF=30`)
+
+The Fitness example in SAS/STAT 12.3 Example 58.1 combines univariate
+means and standard errors across $m = 5$ imputations with `EDF=30`
+(sample size $n = 31$). Reproducing Oxygen from the published input
+table:
+
+```{r}
+oxygen <- mianalyze(
+  est = c(47.0120, 47.2407, 47.4995, 47.1485, 47.0042),
+  err = c(0.95984, 0.93540, 1.00766, 0.95439, 0.96528),
+  edf = 30
+)
+oxygen
+```
+
+Comparison with SAS Output 58.1.2 / 58.1.3 (Oxygen). Small differences
+are expected because the User's Guide prints input means/SEs with
+limited precision.
+
+```{r}
+sas_oxygen <- data.frame(
+  quantity = c(
+    "Estimate", "StdErr", "Between", "Within", "Total",
+    "DF", "r", "lambda", "RE", "LCL", "UCL"
+  ),
+  sas = c(
+    47.180993, 0.990266, 0.041478, 0.930853, 0.980626,
+    26.298, 0.053471, 0.051977, 0.989712, 45.1466, 49.2154
+  ),
+  mianalyze = c(
+    oxygen$Estimate, oxygen$StdErr, oxygen$Vb, oxygen$Vw, oxygen$Vt,
+    oxygen$df, oxygen$r, oxygen$lambda, oxygen$re, oxygen$lcl, oxygen$ucl
+  )
+)
+sas_oxygen$abs_diff <- abs(sas_oxygen$mianalyze - sas_oxygen$sas)
+knitr::kable(sas_oxygen, digits = 6)
+```
+
+The same pattern holds for RunTime and RunPulse in that example, and for
+the Getting Started / Example 58.3 regression coefficients when moments
+are reconstructed from the published Between/Within variances (with and
+without `EDF=28`). Automated checks live in
+`tests/testthat/test-ks_mianalyze-sas.R`.
+
+## Relative efficiency (SAS Table 58.2)
+
+SAS tabulates $RE = 1/(1+\lambda/m)$. For illustration:
+
+```{r}
+re_grid <- expand.grid(
+  m = c(3, 5, 10, 20),
+  lambda = c(0.1, 0.2, 0.3, 0.5, 0.7)
+)
+re_grid$RE <- with(re_grid, 1 / (1 + lambda / m))
+knitr::kable(
+  xtabs(RE ~ m + lambda, data = re_grid),
+  digits = 4,
+  caption = "Relative efficiency (matches SAS Table 58.2)"
+)
+```
+
+## API correspondence
+
+SAS:
+
+```sas
+proc mianalyze data=outuni edf=30;
+  modeleffects Oxygen;
+  stderr SOxygen;
+run;
+```
+
+Equivalent R:
+
+```{r}
+#| eval: false
+mianalyze(est = oxygen_est, err = oxygen_se, edf = 30)
+```
+
+# Typical Clinical Trial Workflow
+
+A common workflow with the **mice** package:
+
+```{r}
+#| eval: false
+library(mice)
+
+imp <- mice(adsl, m = 20)
+
+fits <- with(
+  imp,
+  lm(CHG ~ TRT01A + BASE)
+)
+
+est <- sapply(
+  fits$analyses,
+  function(x) coef(summary(x))["TRT01AActive", "Estimate"]
+)
+
+err <- sapply(
+  fits$analyses,
+  function(x) coef(summary(x))["TRT01AActive", "Std. Error"]
+)
+
+mianalyze(est, err)
+```
+
+# Interpreting Output
+
+## Variance Components
+
+| Component | Meaning |
+|-----------|---------|
+| $V_w$ (`Vw`) | Within-imputation variance $\bar{U}$ |
+| $V_b$ (`Vb`) | Between-imputation variance $B$ |
+| $V_t$ (`Vt`) | Total variance $T$ |
+
+Large $V_b$ relative to $V_w$ indicates substantial missing-data
+uncertainty.
+
+## Missing Information
+
+| Metric | Meaning |
+|--------|---------|
+| $r$ | Relative increase in variance |
+| $\lambda$ | Fraction of missing information |
+| $RE$ | Relative efficiency |
+
+## Inference
+
+| Statistic | Meaning |
+|-----------|---------|
+| Estimate | Pooled estimate $\bar{Q}$ |
+| StdErr | Pooled standard error $\sqrt{T}$ |
+| lcl / ucl | Confidence interval |
+| $t$ | Test statistic for $H_0{:}\,\theta=\theta_0$ |
+| pval | Two-sided $p$-value |
+
+# Special Cases
+
+## Single Imputation
+
+```{r}
+mianalyze(est = 10, err = 2)
+```
+
+Here $B = 0$, $T = \bar{U}$, and results reduce to ordinary
+complete-data inference.
+
+## No Between-Imputation Variability
+
+```{r}
+mianalyze(est = rep(5, 5), err = rep(1, 5))
+```
+
+When all imputations produce the same estimate, $B = 0$ and no
+additional uncertainty is attributed to missing data.
+
+# Summary
+
+- **`mianalyze()` / `ks_mianalyze()`** pool MI point estimates and
+  standard errors with Rubin's rules: $\bar{Q}$,
+  $T = \bar{U}+(1+1/m)B$, $t$-based intervals and tests.
+- **Diagnostics** $r$, $\hat\lambda$, and $RE$ quantify the impact of
+  missingness and the efficiency of finite $m$.
+- **`edf`** applies the Barnard-Rubin (1999) small-sample df adjustment,
+  matching SAS `EDF=`.
+- **Agreement with SAS** univariate `PROC MIANALYZE` was checked against
+  SAS/STAT 12.3 formulas, Table 58.2, Example 58.1 (`EDF=30`), and
+  Example 58.3 (`EDF=28`).
+- **Pool on the analysis scale** (e.g. log-OR, log-HR), then transform
+  intervals if needed.
+- Prefer **`edf`** whenever complete-data residual df are modest so that
+  $v_m$ does not exceed the information in the original sample.
+
+# References
+
+Barnard, J. and Rubin, D.B. (1999). Small-sample degrees of freedom with
+multiple imputation. *Biometrika*, 86, 948–955.
+
+Rubin, D.B. (1987). *Multiple Imputation for Nonresponse in Surveys*.
+Wiley.
+
+SAS Institute Inc. (2013). *SAS/STAT 12.3 User's Guide*. Chapter 58, The
+MIANALYZE Procedure. Cary, NC: SAS Institute Inc.
+
+Van Buuren, S. (2018). *Flexible Imputation of Missing Data*. Second
+Edition. Chapman & Hall/CRC.

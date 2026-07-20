@@ -85,7 +85,7 @@ ul.task-list li input[type="checkbox"] {
     const options = {
       valueNames: ['listing-image','listing-date','listing-title','listing-author','listing-categories','listing-description',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
       
-      searchColumns: ["listing-title","listing-author","listing-date","listing-image","listing-description"],
+      searchColumns: [],
     };
 
     window['quarto-listings'] = window['quarto-listings'] || {};
@@ -243,6 +243,7 @@ window.Quarto = {
   <ul>
   <li><a href="#july" id="toc-july" class="nav-link" data-scroll-target="#july">July</a>
   <ul class="collapse">
+  <li><a href="#multiple-imputation-analysis-with-mianalyze" id="toc-multiple-imputation-analysis-with-mianalyze" class="nav-link" data-scroll-target="#multiple-imputation-analysis-with-mianalyze">Multiple Imputation Analysis with <code>mianalyze()</code></a></li>
   <li><a href="#how-long-are-you-ready-to-wait-for-your-clinical-tables" id="toc-how-long-are-you-ready-to-wait-for-your-clinical-tables" class="nav-link" data-scroll-target="#how-long-are-you-ready-to-wait-for-your-clinical-tables">How Long Are You Ready to Wait for Your Clinical Tables?</a></li>
   <li><a href="#getting-current-r-script-name-in-r-automatically" id="toc-getting-current-r-script-name-in-r-automatically" class="nav-link" data-scroll-target="#getting-current-r-script-name-in-r-automatically">Getting Current R-script name in R automatically</a></li>
   <li><a href="#non-standard-applications-of-ksformat-r-package-in-clinical-trials-and-other-tasks" id="toc-non-standard-applications-of-ksformat-r-package-in-clinical-trials-and-other-tasks" class="nav-link" data-scroll-target="#non-standard-applications-of-ksformat-r-package-in-clinical-trials-and-other-tasks">Non-standard Applications of <code>ksformat</code> R-Package in Clinical Trials and Other Tasks</a></li>
@@ -307,6 +308,9 @@ document.addEventListener("DOMContentLoaded", function() {
 <h3 class="anchored" data-anchor-id="section">2026</h3>
 <section id="july" class="level4">
 <h4 class="anchored" data-anchor-id="july">July</h4>
+<section id="multiple-imputation-analysis-with-mianalyze" class="level5">
+<h5 class="anchored" data-anchor-id="multiple-imputation-analysis-with-mianalyze"><a href="posts/2026-07-20-multiple-impuations-restoring-reality/">Multiple Imputation Analysis with <code>mianalyze()</code></a></h5>
+</section>
 <section id="how-long-are-you-ready-to-wait-for-your-clinical-tables" class="level5">
 <h5 class="anchored" data-anchor-id="how-long-are-you-ready-to-wait-for-your-clinical-tables"><a href="posts/2026-07-13-reporter-vs-ksTFL-performance/">How Long Are You Ready to Wait for Your Clinical Tables?</a></h5>
 </section>
@@ -328,148 +332,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 <div class="quarto-listing quarto-listing-container-grid" id="listing-listing">
 <div class="list grid quarto-listing-cols-2">
-<div class="g-col-1" data-index="0" data-categories="UiUyQ2tzVEZMJTJDY2xpbmljYWwlMjB0cmlhbCUyQ3ItcGFja2FnZSUyQ0NsaW5pY2FsJTIwUmVwb3J0aW5n" data-listing-date-sort="1783890000000" data-listing-file-modified-sort="1783936449582" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="10" data-listing-word-count-sort="1821">
-<a href="./posts/2026-07-13-reporter-vs-ksTFL-performance/index.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<p class="card-img-top">
-<img loading="lazy" src="./posts/2026-07-13-reporter-vs-ksTFL-performance/images/post-logo.png" class="thumbnail-image card-img" style="height: 150px;">
-</p>
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-How Long Are You Ready to Wait for Your Clinical Tables?
-</h5>
-<div class="listing-categories">
 
-<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">R</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('a3NURkw='); return false;">ksTFL</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('Y2xpbmljYWwlMjB0cmlhbA=='); return false;">clinical trial</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('ci1wYWNrYWdl'); return false;">r-package</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('Q2xpbmljYWwlMjBSZXBvcnRpbmc='); return false;">Clinical Reporting</div>
-
-</div>
-<div class="card-text listing-description delink">
-<p>Performance comparison of <code>Reporter</code> and <code>ksTFL</code> R-packages</p>
-</div>
-<div class="card-attribution card-text-small justify">
-<div class="listing-author">
-Igor Aleschenkov (KeyStat Solutions)
-</div>
-<div class="listing-date">
-Jul 13, 2026
-</div>
-</div>
-</div>
-</div></a>
-</div>
-<div class="g-col-1" data-index="1" data-categories="UiUyQ2tzZm9ybWF0JTJDY2xpbmljYWwlMjB0cmlhbCUyQ3ItcGFja2FnZSUyQ1NBUy1mb3JtYXQ=" data-listing-date-sort="1783544400000" data-listing-file-modified-sort="1783603176328" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="9" data-listing-word-count-sort="1680">
-<a href="./posts/2026-07-09-non-standard-applications-of-ksformat/index.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<p class="card-img-top">
-<img loading="lazy" src="./posts/2026-07-09-non-standard-applications-of-ksformat/images/post-logo.png" class="thumbnail-image card-img" style="height: 150px;">
-</p>
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-Non-standard Applications of <code>ksformat</code> R-Package in Clinical Trials and Other Tasks
-</h5>
-<div class="listing-categories">
-
-<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">R</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('a3Nmb3JtYXQ='); return false;">ksformat</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('Y2xpbmljYWwlMjB0cmlhbA=='); return false;">clinical trial</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('ci1wYWNrYWdl'); return false;">r-package</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('U0FTLWZvcm1hdA=='); return false;">SAS-format</div>
-
-</div>
-<div class="card-text listing-description delink">
-<p>This post covers some unusual and interesting application of the ksformat package in clinical trials</p>
-</div>
-<div class="card-attribution card-text-small justify">
-<div class="listing-author">
-Vladimir Larchenko (KeyStat Solutions)
-</div>
-<div class="listing-date">
-Jul 9, 2026
-</div>
-</div>
-</div>
-</div></a>
-</div>
-<div class="g-col-1" data-index="2" data-categories="UiUyQ1RpcHMlMkNTY3JpcHRzJTJDQ2xpbmljYWwlMjBQcm9ncmFtbWluZw==" data-listing-date-sort="1783544400000" data-listing-file-modified-sort="1783592304758" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="5" data-listing-word-count-sort="816">
-<a href="./posts/2026-07-09-getting-current-script-name-in-r/index.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<p class="card-img-top">
-<img loading="lazy" src="./posts/2026-07-09-getting-current-script-name-in-r/images/post-logo.png" class="thumbnail-image card-img" style="height: 150px;">
-</p>
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-Getting Current R-script name in R automatically
-</h5>
-<div class="listing-categories">
-
-<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">R</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('VGlwcw=='); return false;">Tips</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('U2NyaXB0cw=='); return false;">Scripts</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('Q2xpbmljYWwlMjBQcm9ncmFtbWluZw=='); return false;">Clinical Programming</div>
-
-</div>
-<div class="card-text listing-description delink">
-<p>How to obtain the currently sourced script name in R without hardcoding it</p>
-</div>
-<div class="card-attribution card-text-small justify">
-<div class="listing-author">
-Igor Aleschenkov (KeyStat Solutions)
-</div>
-<div class="listing-date">
-Jul 9, 2026
-</div>
-</div>
-</div>
-</div></a>
-</div>
-<div class="g-col-1" data-index="3" data-categories="UiUyQ2tzVEZMJTJDQ2xpbmljYWwlMjBQcm9ncmFtbWluZw==" data-listing-date-sort="1783285200000" data-listing-file-modified-sort="1783595934162" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="6" data-listing-word-count-sort="1174">
-<a href="./posts/2026-07-06-getting-started-ks-tfl/index.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<p class="card-img-top">
-<img loading="lazy" src="./posts/2026-07-06-getting-started-ks-tfl/images/post_logo.png" class="thumbnail-image card-img" style="height: 150px;">
-</p>
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-Getting Started with ksTFL: Creating Your First Clinical Table
-</h5>
-<div class="listing-categories">
-
-<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">R</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('a3NURkw='); return false;">ksTFL</div>
-
-<div class="listing-category" onclick="window.quartoListingCategory('Q2xpbmljYWwlMjBQcm9ncmFtbWluZw=='); return false;">Clinical Programming</div>
-
-</div>
-<div class="card-text listing-description delink">
-<p>A short intro to ksTFL R-Package to generate Clinical TFLs</p>
-</div>
-<div class="card-attribution card-text-small justify">
-<div class="listing-author">
-Igor Aleschenkov (KeyStat Solutions)
-</div>
-<div class="listing-date">
-Jul 6, 2026
-</div>
-</div>
-</div>
-</div></a>
-</div>
 </div>
 <div class="listing-no-matching d-none">No matching items</div>
 </div></main> <!-- /main -->
