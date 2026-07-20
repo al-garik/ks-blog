@@ -8,7 +8,7 @@ format:
     toc-depth: 5
 
 listing:
-  contents: posts
+  contents: "posts/*/index.qmd"
   sort: "date desc"
   type: grid
   grid-columns: 2

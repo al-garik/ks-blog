@@ -28,6 +28,468 @@
     "text": "All Posts\nBelow is a condensed list of all posts grouped by year and month.\n\n2026\n\nJuly\n\nMultiple Imputation Analysis with mianalyze()\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\nGetting Current R-script name in R automatically\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table"
   },
   {
+    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html",
+    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
+    "section": "",
+    "text": "ksformat is usually described as a SAS PROC FORMAT-like tool for ordinary value-to-label lookup. In practice, the package is useful in places where a clinical trial workflow needs more than a plain dictionary:\n\nprotocol-defined visit windows\nsubject- or arm-specific bucketing rules\ncomposite keys built from multiple columns\nreverse lookups for data cleaning and QC\nreport-ready numeric display for listings and summaries\n\nThis article shows a few non-standard uses that come up in clinical trials and adjacent data tasks."
+  },
+  {
+    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#value-blocks-for-discrete-lookup",
+    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#value-blocks-for-discrete-lookup",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
+    "section": "VALUE blocks for discrete lookup",
+    "text": "VALUE blocks for discrete lookup\n\nfparse(text = '\nVALUE sex (character)\n  \"M\" = \"Male\"\n  \"F\" = \"Female\"\n  .missing = \"Unknown\"\n  .other = \"Other\"\n;\n\nVALUE age_group (numeric)\n  [0, 18)    = \"Child\"\n  [18, 65)   = \"Adult\"\n  [65, HIGH] = \"Senior\"\n;\n')"
+  },
+  {
+    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#invalue-blocks-for-reverse-lookup",
+    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#invalue-blocks-for-reverse-lookup",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
+    "section": "INVALUE blocks for reverse lookup",
+    "text": "INVALUE blocks for reverse lookup\n\nfparse(text = '\nINVALUE sex_inv\n  \"Male\" = \"M\"\n  \"Female\" = \"F\"\n  .missing = \"U\"\n;\n')"
+  },
+  {
+    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#date-time-and-datetime-patterns",
+    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#date-time-and-datetime-patterns",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
+    "section": "Date, time, and datetime patterns",
+    "text": "Date, time, and datetime patterns\nThis is the direct fparse() equivalent of fnew_date(). For these blocks, pattern = ... is the right way to specify the display format.\n\nfparse(text = '\nVALUE enrldt (date)\n  pattern = \"DATE9.\"\n  .missing = \"Not Enrolled\"\n;\n\nVALUE visit_time (time)\n  pattern = \"TIME8.\"\n;\n\nVALUE stamp (datetime)\n  pattern = \"DATETIME20.\"\n;\n')"
+  },
+  {
+    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#numeric-display-patterns",
+    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#numeric-display-patterns",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
+    "section": "Numeric display patterns",
+    "text": "Numeric display patterns\nNumeric display formatting now has its own parser syntax. Put the pattern in the VALUE header and keep the block otherwise empty except for optional .missing / .other directives.\n\nfparse(text = '\nVALUE currency (numeric, pattern: \"$%,.2f\")\n  .missing = \"NO DATA\"\n;\n\nVALUE pct (numeric, pattern: \"%.1f%%\")\n;\n')\n\ntibble(\n  raw = c(1234.56, -7890.12, 0, NA),\n  currency = fputn(c(1234.56, -7890.12, 0, NA), \"currency\"),\n  pct = fputn(c(0, 12.3, -4.5, NA), \"pct\")\n)\n\n# A tibble: 4 × 3\n     raw currency   pct  \n   &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;\n1  1235. $1,234.56  0.0% \n2 -7890. -$7,890.12 12.3%\n3     0  $0.00      -4.5%\n4    NA  NO DATA    &lt;NA&gt;"
+  },
+  {
+    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#range-formats",
+    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#range-formats",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
+    "section": "Range formats",
+    "text": "Range formats\nRange formats are expressed with interval notation. The same syntax works for numeric, date_range, and datetime_range blocks.\n\nfparse(text = '\nVALUE study_period (date_range)\n  [2024-01-01, 2024-02-01) = \"Screening\"\n  [2024-02-01, 2024-06-01) = \"Treatment\"\n  [2024-06-01, HIGH]       = \"Follow-up\"\n;\n\nVALUE shift (datetime_range)\n  [2024-01-15 00:00, 2024-01-15 08:00) = \"Night\"\n  [2024-01-15 08:00, 2024-01-15 16:00) = \"Day\"\n  [2024-01-15 16:00, 2024-01-16 00:00) = \"Evening\"\n;\n')"
+  },
+  {
+    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#stratified-range-formats",
+    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#stratified-range-formats",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
+    "section": "Stratified range formats",
+    "text": "Stratified range formats\nstratified_range combines a stratum with an inner range. The parser accepts the friendly STRATUM|[low, high) form.\n\nfparse(text = '\nVALUE visit_window (stratified_range, range_subtype: numeric)\n  \"ARM_A\"|[0, 7)     = \"Baseline\"\n  \"ARM_A\"|[7, 28)    = \"Wk1-3\"\n  \"ARM_B\"|[0, 14)    = \"Baseline\"\n  .other              = \"Outside\"\n;\n')"
+  },
+  {
+    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#when-to-use-fnew-anyway",
+    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#when-to-use-fnew-anyway",
+    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
+    "section": "When to use fnew() anyway",
+    "text": "When to use fnew() anyway\nfnew() remains the most concise way to create a report-formatting object when you already know you want a display pattern. fparse() is useful when the rule needs to be stored as text, versioned in a spec, or generated from another tool.\n\nfnew(\"$%,.2f\", type = \"numeric\", name = \"currency_direct\")\nfputn(c(1234.56, -7890.12, 0), \"currency_direct\")\n\n[1] \"$1,234.56\"  \"-$7,890.12\" \"$0.00\""
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "",
+    "text": "Creating clinical trial tables, figures, and listings is one of the most time-consuming tasks in clinical statistical programming. The ksTFL R Package was designed to make this process faster, more reliable, and more enjoyable.\nIn this post, we’ll walk through the basics of ksTFL and create your first clinical table."
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#introduction",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#introduction",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "",
+    "text": "Creating clinical trial tables, figures, and listings is one of the most time-consuming tasks in clinical statistical programming. The ksTFL R Package was designed to make this process faster, more reliable, and more enjoyable.\nIn this post, we’ll walk through the basics of ksTFL and create your first clinical table."
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#why-kstfl",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#why-kstfl",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Why ksTFL?",
+    "text": "Why ksTFL?\nClinical trial deliverables require:\n\n✅ Professional formatting and alignment with regulatory standards\n✅ Reproducible, auditable code\n✅ Traceability of the data throughout the analysis pipeline\n✅ Submission-ready output without manual refinement\n\nWithout a specialized tool, generating submission-ready tables and figures from R can require significant time—sometimes more than the time spent on statistical calculations and modeling itself."
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#installation",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#installation",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Installation",
+    "text": "Installation\nInstall ksTFL from r-universe:"
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#your-first-table",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#your-first-table",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Your First Table",
+    "text": "Your First Table\nLet’s create a simple demographic summary table using sample data:\n\n# Use built-in mtcars dataset for simplicity\nspec &lt;- create_table(mtcars, cols = c(cyl, mpg, hp, wt)) |&gt;\n  add_title(\"Motor Trend Car Road Tests\", styleRef = \"i\") |&gt;\n  add_title(\"Performance Metrics by Cylinder Count\", styleRef = \"i\") |&gt;\n  add_footnote(\"Source: 1974 Motor Trend US magazine\")\n\n# Define columns with labels and styling\nspec &lt;- spec |&gt;\n  define_cols(c(mpg, hp, wt), \n              label = c(\"Miles/(US) gallon\", \"Horsepower\", \"Weight&lt;br&gt;(1000 lbs)\"),\n              valueStyleRef = \"ac\"  # align center\n              ) |&gt;\n  define_cols(cyl, \n                        label = \"N of Cylinders\",\n              dedupe = T) |&gt;\n    set_document(contentWidth = \"60%\")\n\n# Create report and render to DOCX\nreport &lt;- create_report(spec)\nwrite_doc(report, name = \"demo_table\", outDir = \"output\")\n\n\nWhat’s Happening?\n\ncreate_table(data, cols = ...) - Initialize the table with selected columns\nadd_title(), add_footnote() - Add documentation and annotations\ndefine_cols() - Configure column properties (labels, styling, visibility, deduplication, etc.)\ncreate_report() - Assemble the table specification\nwrite_doc() - Render to a professional DOCX document\n\nWith just a few lines of code, ksTFL generates a well-formatted MS Word DOCX document:"
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#key-features",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#key-features",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Key Features",
+    "text": "Key Features\n\nDeclarative Styling\nApply styles without modifying source data:\n\n# Add conditional styling - highlight high horsepower\nspec &lt;- spec |&gt;\n  compute_cols(hp &gt;=180, \n               c_style(hp, styleRef = \"fc_red\"))  # font color red\n\nThe ksTFL package includes many pre-defined atomic styles, but custom styles can also be created using the add_style() function.\n\n\nSpanning Headers\nCreate multi-column group headers:\n\nspec &lt;- spec |&gt;\n  add_span_header(cols = c(mpg, hp, wt), \n                  label = \"Performance Metrics\")\n\n\n\n\n\n\n\n\nFlexible Column Selection\nUse tidyselect helpers for column selection:\n\nspec |&gt;\n  define_cols(starts_with(\"m\"), \n              valueStyleRef = \"ar\")  # right align\n\n\n\nBuilt-in Style Atoms\nCombine predefined styles for quick formatting:\n\n# Combine multiple style attributes\nspec &lt;- add_title(spec, \"Summary\", \n                  styleRef = f_combine(\"i\", \"b\", \"fc_navy\"))"
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#complete-example-demographics-table",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#complete-example-demographics-table",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Complete Example: Demographics Table",
+    "text": "Complete Example: Demographics Table\nLet’s build a submission-ready demographics table.\nSince this article focuses on ksTFL’s rendering capabilities, the statistical calculations and data preparation are handled upstream. ksTFL does not calculate statistics by itself; rather, it transforms pre-calculated summary tables into publication-ready documents. In production code, statisticians prepare the summary data in a planar format, and ksTFL handles the table layout and formatting.\nBelow, we use a simple function that generates a data frame with calculated statistics for Age, Sex, and Race:\n\n# Simple function that generates the summary table\n# that a statistical programmer typically creates from ADSL data\ngenerate_demography_summary &lt;- function(seed = 1007L) {\n    set.seed(seed)\n    \n    rnd_stat &lt;- function(N) {\n        c(\n            sprintf(\"%.1f (%.1f)\", rnorm(1L, 48, 2), rnorm(1L, 11, 1)),\n            sprintf(\"%.1f\", rnorm(1L, 49, 2)),\n            sprintf(\"%d, %d\", sample(20:30, 1L), sample(65:75, 1L)),\n            sprintf(\"%d (%.1f%%)\", 22L, 100 * 22L / N),\n            sprintf(\"%d (%.1f%%)\", 20L, 100 * 20L / N),\n            sprintf(\"%d (%.1f%%)\", 28L, 100 * 28L / N),\n            sprintf(\"%d (%.1f%%)\", 9L, 100 * 9L / N),\n            sprintf(\"%d (%.1f%%)\", 5L, 100 * 5L / N)\n        )\n    }\n    \n    data.frame(\n        PARAM = c(rep(\"Age (years)\",3), rep(\"Sex\",2), rep(\"Race\",3)),\n        STATISTIC = c(\"Mean (SD)\", \"Median\", \"Min, Max\", \n                                    \"Female\", \"Male\", \n                                    \"White\", \"Asian\", \"Other\"),\n        PLACEBO = rnd_stat(placebo_n),\n        DRUGA = rnd_stat(drug_a_n),\n        TOTAL = rnd_stat(total_n),\n        stringsAsFactors = FALSE\n    )\n}\n\nWith the inputs provided above, the generated data frame looks like this:\n\nplacebo_n &lt;- 42L\ndrug_a_n &lt;- 44L\ntotal_n &lt;- placebo_n + drug_a_n\n\ntable_data &lt;- generate_demography_summary(seed = 1007L)\n\ntable_data\n\n        PARAM STATISTIC     PLACEBO      DRUGA       TOTAL\n1 Age (years) Mean (SD) 49.0 (11.3) 48.6 (9.8) 51.6 (12.1)\n2 Age (years)    Median        51.6       47.9        50.2\n3 Age (years)  Min, Max      26, 68     20, 75      26, 69\n4         Sex    Female  22 (52.4%) 22 (50.0%)  22 (25.6%)\n5         Sex      Male  20 (47.6%) 20 (45.5%)  20 (23.3%)\n6        Race     White  28 (66.7%) 28 (63.6%)  28 (32.6%)\n7        Race     Asian   9 (21.4%)  9 (20.5%)   9 (10.5%)\n8        Race     Other   5 (11.9%)  5 (11.4%)    5 (5.8%)\n\n\nNow let’s use ksTFL to transform this planar data frame into a submission-ready document:\n\n# Initialize ksTFL table specification\ntable_spec &lt;- create_table(table_data) |&gt;\n    # PARAM is set to invisible because we use it as a category header.\n    # This keeps the table compact and maintains a professional appearance.\n    define_cols(PARAM, label = \"Parameter\", isVisible = FALSE) |&gt;\n    # STATISTIC remains visible on every row because it distinguishes\n    # different statistics within each parameter block.\n    define_cols(STATISTIC, \n                    label = \"Parameter&lt;br&gt;Statistic\", \n                    valueStyleRef = \"indent_1\", labelStyleRef = 'al') |&gt;\n    # Treatment columns follow the same display rules, so we define them together.\n    # Although ksTFL calculates column widths automatically,\n    # we manually set them here to ensure consistent treatment column widths\n    # across the output for visual clarity and professional presentation.\n    define_cols(c(PLACEBO, DRUGA, TOTAL),\n                            label = c(paste0(\"Placebo&lt;br&gt;(N=\", placebo_n,')'), \n                                                paste0(\"Drug A&lt;br&gt;(N=\", drug_a_n,')'), \n                                                paste0(\"Total&lt;br&gt;(N=\", total_n,')')),\n                            valueStyleRef = \"ac\",\n                            colWidth = c(\"18%\", \"18%\", \"18%\")\n    ) |&gt;\n    compute_cols(\n    # The input data lacks units for categorical statistics;\n    # we add them dynamically here.\n        PARAM %in% c('Sex', 'Race'),\n        c_glue(PARAM, 'after', text=', n (%)')\n    ) |&gt;\n    # Use PARAM values as heading rows for better structure\n    compute_cols(\n        firstOf(PARAM),\n        c_addrow('above', value_from = PARAM, styleRef = f_combine('al', 'b'))\n    ) |&gt;\n    # Define titles, subtitles, and document headers/footers\n    add_title(\"Table 14.1 Demographic Summary\") |&gt;\n    add_subtitle(\"(Safety Population)\", styleRef = 'ac') |&gt;\n    add_footnote(\"Note: Values are presented as summary statistics prepared before the ksTFL stage.\") |&gt;\n    add_header(\"Example Study KSTFL-107\", \"DEMOGRAPHY\", \"Page {PAGE} of {NUMPAGES}\") |&gt;\n    add_footer(\"Basic summary table example\", \"\", format(Sys.Date(), \"%Y-%m-%d\")) |&gt;\n    # Demographic tables benefit from a moderate content width:\n    # narrow enough to keep treatment columns readable, but wide enough\n    # to avoid sparse layouts with few rows.\n    set_document(\n        contentWidth = \"50%\",\n        # ksTFL provides flexible control over footnote placement:\n        # \"doc_footer\" (in the Word footer below footer rows),\n        # \"repeated\" (under the table on every page), or\n        # \"last_page\" (under the table on the last page only)\n        footnotePlace = \"doc_footer\" \n    )\n\n# Create report and render to DOCX\nreport &lt;- create_report(table_spec)\n\nwrite_doc(report, name = \"table_14_1\", outDir = \"output\")\n\nWith just a few lines of declarative code, the planar data frame transforms into a production-ready document:\n\n\n\n\n\nThe key advantage of this approach is that the input data remains in a simple, planar format that is easy to validate and audit, without any embedded reporting artifacts or formatting logic."
+  },
+  {
+    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#next-steps",
+    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#next-steps",
+    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
+    "section": "Next Steps",
+    "text": "Next Steps\nNow that you understand the basics of ksTFL, you can:\n- Explore the ksTFL Documentation for advanced features\n- Check out the GitHub Repository for more real examples and scripts\n- A LinkedIn Post here gives some additional context and background on the ksTFL package.\n\nAleschenkov I, Larchenko V (2026). ksTFL: Framework for Clinical Tables, Figures, and Listings. R package version 0.11.9, https://crow16384.github.io/ksTFL/ https://crow16384.r-universe.dev/ksTFL.\nThis post was originally published on the KeyStat Solutions Technical Blog. Visit R-Bloggers to discover more R content."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#pooled-estimate",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#pooled-estimate",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Pooled Estimate",
+    "text": "Pooled Estimate\n\\[\\bar{Q} = \\frac{1}{m} \\sum_{i=1}^{m}Q_i\\]"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#within-imputation-variance",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#within-imputation-variance",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Within-Imputation Variance",
+    "text": "Within-Imputation Variance\n\\[\\bar{U} = \\frac{1}{m} \\sum_{i=1}^{m}U_i\\]\nThis quantity reflects uncertainty that would exist even if no data were missing."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#between-imputation-variance",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#between-imputation-variance",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Between-Imputation Variance",
+    "text": "Between-Imputation Variance\n\\[B = \\frac{1}{m-1}\\sum_{i=1}^{m}(Q_i-\\bar{Q})^2\\]\nLarge values indicate substantial uncertainty due to missing data."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#total-variance",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#total-variance",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Total Variance",
+    "text": "Total Variance\n\\[T = \\bar{U} + \\left(1+\\frac{1}{m}\\right) B\\]\nThe pooled standard error is \\(SE = \\sqrt{T}\\)."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#rubin-1987",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#rubin-1987",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Rubin (1987)",
+    "text": "Rubin (1987)\n\\[v_m = (m-1)\\left(1+\\frac{\\bar{U}}{\\left(1+m^{-1}\\right)B}\\right)^2\\]\nWhen \\(m\\) is small and missing information is limited, \\(v_m\\) can become very large."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#problem-with-large-sample-degrees-of-freedom",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#problem-with-large-sample-degrees-of-freedom",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Problem with Large-Sample Degrees of Freedom",
+    "text": "Problem with Large-Sample Degrees of Freedom\nSuppose a model parameter is based on only 40 residual degrees of freedom. Rubin’s formula may yield \\(v_m = 500\\), which exceeds the information available in the complete-data analysis and can produce confidence intervals that are unrealistically narrow."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-4-imputations",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-4-imputations",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Variance Information (4 Imputations)",
+    "text": "Variance Information (4 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.001426\n0.006074\n0.007856\n58.2727"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Missing Data Diagnostics",
+    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.293488\n0.252131\n0.940705"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-4-imputations",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-4-imputations",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Parameter Estimates (4 Imputations)",
+    "text": "Parameter Estimates (4 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n0.331\n0.088634\n0.153597\n0.508403\n58.2727"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Hypothesis Test",
+    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n0.298\n0.378\n0\n3.734455\n0.00043"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Variance Information (5 Imputations)",
+    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.075\n1.25636\n1.34636\n895.1532"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-1",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-1",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Missing Data Diagnostics",
+    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.071636\n0.068925\n0.986402"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Parameter Estimates (5 Imputations)",
+    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n-2.9\n1.160328\n-5.177279\n-0.622721\n895.1532"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-1",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-1",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Hypothesis Test",
+    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n-3.2\n-2.5\n0\n-2.499294\n0.012622"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-1",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-1",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Variance Information (5 Imputations)",
+    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.00092\n0.00894\n0.010044\n331.0818"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-2",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-2",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Missing Data Diagnostics",
+    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.12349\n0.115245\n0.97747"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-1",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-1",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Parameter Estimates (5 Imputations)",
+    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n0.192\n0.10022\n-0.005148\n0.389148\n331.0818"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-2",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-2",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Hypothesis Test",
+    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n0.15\n0.23\n0\n1.91579\n0.056253"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-2",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-2",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Variance Information (5 Imputations)",
+    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.00293\n0.01806\n0.021576\n150.6275"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-3",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-3",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Missing Data Diagnostics",
+    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.194684\n0.173856\n0.966397"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-2",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-2",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Parameter Estimates (5 Imputations)",
+    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n-0.244\n0.146888\n-0.534226\n0.046226\n150.6275"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-3",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-3",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Hypothesis Test",
+    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n-0.31\n-0.17\n0\n-1.661133\n0.098767"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#option-mapping",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#option-mapping",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Option mapping",
+    "text": "Option mapping\n\n\n\nSAS PROC MIANALYZE\nmianalyze()\n\n\n\n\nEstimates + standard errors (e.g. STDERR / PARMS)\nest, err\n\n\nALPHA=\nalpha (default 0.05)\n\n\nTHETA0=\ntheta0 (default 0)\n\n\nEDF= (Barnard-Rubin)\nedf (default Inf = no adjustment)\n\n\n—\nv0 (deprecated alias for edf)\n\n\n\nNote: SAS documents a default of EDF=1 with no adjustment when EDF= is omitted. In kstools, omitting edf (or using edf = Inf) likewise uses Rubin’s large-sample \\(v_m\\) without Barnard-Rubin adjustment."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#scope",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#scope",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Scope",
+    "text": "Scope\nAligned with SAS univariate MI inference:\n\npooled estimate, total variance, \\(t\\)-based CI and test;\nvariance diagnostics \\(r\\), \\(\\hat\\lambda\\), \\(RE\\);\nBarnard-Rubin df via edf.\n\nNot implemented (multivariate SAS features):\n\nWald multivariate tests (MULT / MULTIVARIATE);\nTEST linear hypotheses;\npooling from full covariance matrices alone (without per-parameter SEs)."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#sas-example-58.1-means-and-standard-errors-edf30",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#sas-example-58.1-means-and-standard-errors-edf30",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "SAS Example 58.1 (means and standard errors, EDF=30)",
+    "text": "SAS Example 58.1 (means and standard errors, EDF=30)\nThe Fitness example in SAS/STAT 12.3 Example 58.1 combines univariate means and standard errors across \\(m = 5\\) imputations with EDF=30 (sample size \\(n = 31\\)). Reproducing Oxygen from the published input table:\n\noxygen &lt;- mianalyze(\n  est = c(47.0120, 47.2407, 47.4995, 47.1485, 47.0042),\n  err = c(0.95984, 0.93540, 1.00766, 0.95439, 0.96528),\n  edf = 30\n)\noxygen\n\n\nVariance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.04147\n0.930854\n0.980619\n26.29868\n\n\n\n\n\nMissing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.053461\n0.051968\n0.989713\n\n\n\n\n\nParameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n47.18098\n0.990262\n45.14659\n49.21537\n26.29868\n\n\n\n\n\nHypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n47.0042\n47.4995\n0\n47.64495\n0\n\n\n\n\n\n\nComparison with SAS Output 58.1.2 / 58.1.3 (Oxygen). Small differences are expected because the User’s Guide prints input means/SEs with limited precision.\n\nsas_oxygen &lt;- data.frame(\n  quantity = c(\n    \"Estimate\", \"StdErr\", \"Between\", \"Within\", \"Total\",\n    \"DF\", \"r\", \"lambda\", \"RE\", \"LCL\", \"UCL\"\n  ),\n  sas = c(\n    47.180993, 0.990266, 0.041478, 0.930853, 0.980626,\n    26.298, 0.053471, 0.051977, 0.989712, 45.1466, 49.2154\n  ),\n  mianalyze = c(\n    oxygen$Estimate, oxygen$StdErr, oxygen$Vb, oxygen$Vw, oxygen$Vt,\n    oxygen$df, oxygen$r, oxygen$lambda, oxygen$re, oxygen$lcl, oxygen$ucl\n  )\n)\nsas_oxygen$abs_diff &lt;- abs(sas_oxygen$mianalyze - sas_oxygen$sas)\nknitr::kable(sas_oxygen, digits = 6)\n\n\n\n\nquantity\nsas\nmianalyze\nabs_diff\n\n\n\n\nEstimate\n47.180993\n47.180980\n0.000013\n\n\nStdErr\n0.990266\n0.990262\n0.000004\n\n\nBetween\n0.041478\n0.041470\n0.000008\n\n\nWithin\n0.930853\n0.930854\n0.000001\n\n\nTotal\n0.980626\n0.980619\n0.000007\n\n\nDF\n26.298000\n26.298679\n0.000679\n\n\nr\n0.053471\n0.053461\n0.000010\n\n\nlambda\n0.051977\n0.051968\n0.000009\n\n\nRE\n0.989712\n0.989713\n0.000001\n\n\nLCL\n45.146600\n45.146592\n0.000008\n\n\nUCL\n49.215400\n49.215368\n0.000032\n\n\n\n\n\nThe same pattern holds for RunTime and RunPulse in that example, and for the Getting Started / Example 58.3 regression coefficients when moments are reconstructed from the published Between/Within variances (with and without EDF=28). Automated checks live in tests/testthat/test-ks_mianalyze-sas.R."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-3",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-3",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Variance Information (5 Imputations)",
+    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.04147\n0.930854\n0.980619\n26.29868"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-4",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-4",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Missing Data Diagnostics",
+    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.053461\n0.051968\n0.989713"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-3",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-3",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Parameter Estimates (5 Imputations)",
+    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n47.18098\n0.990262\n45.14659\n49.21537\n26.29868"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-4",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-4",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Hypothesis Test",
+    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n47.0042\n47.4995\n0\n47.64495\n0"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#relative-efficiency-sas-table-58.2",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#relative-efficiency-sas-table-58.2",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Relative efficiency (SAS Table 58.2)",
+    "text": "Relative efficiency (SAS Table 58.2)\nSAS tabulates \\(RE = 1/(1+\\lambda/m)\\). For illustration:\n\nre_grid &lt;- expand.grid(\n  m = c(3, 5, 10, 20),\n  lambda = c(0.1, 0.2, 0.3, 0.5, 0.7)\n)\nre_grid$RE &lt;- with(re_grid, 1 / (1 + lambda / m))\nknitr::kable(\n  xtabs(RE ~ m + lambda, data = re_grid),\n  digits = 4,\n  caption = \"Relative efficiency (matches SAS Table 58.2)\"\n)\n\n\nRelative efficiency (matches SAS Table 58.2)\n\n\n\n0.1\n0.2\n0.3\n0.5\n0.7\n\n\n\n\n3\n0.9677\n0.9375\n0.9091\n0.8571\n0.8108\n\n\n5\n0.9804\n0.9615\n0.9434\n0.9091\n0.8772\n\n\n10\n0.9901\n0.9804\n0.9709\n0.9524\n0.9346\n\n\n20\n0.9950\n0.9901\n0.9852\n0.9756\n0.9662"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#api-correspondence",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#api-correspondence",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "API correspondence",
+    "text": "API correspondence\nSAS:\nproc mianalyze data=outuni edf=30;\n  modeleffects Oxygen;\n  stderr SOxygen;\nrun;\nEquivalent R:\n\nmianalyze(est = oxygen_est, err = oxygen_se, edf = 30)"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-components",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-components",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Variance Components",
+    "text": "Variance Components\n\n\n\nComponent\nMeaning\n\n\n\n\n\\(V_w\\) (Vw)\nWithin-imputation variance \\(\\bar{U}\\)\n\n\n\\(V_b\\) (Vb)\nBetween-imputation variance \\(B\\)\n\n\n\\(V_t\\) (Vt)\nTotal variance \\(T\\)\n\n\n\nLarge \\(V_b\\) relative to \\(V_w\\) indicates substantial missing-data uncertainty."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-information",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-information",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Missing Information",
+    "text": "Missing Information\n\n\n\nMetric\nMeaning\n\n\n\n\n\\(r\\)\nRelative increase in variance\n\n\n\\(\\lambda\\)\nFraction of missing information\n\n\n\\(RE\\)\nRelative efficiency"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#inference",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#inference",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Inference",
+    "text": "Inference\n\n\n\nStatistic\nMeaning\n\n\n\n\nEstimate\nPooled estimate \\(\\bar{Q}\\)\n\n\nStdErr\nPooled standard error \\(\\sqrt{T}\\)\n\n\nlcl / ucl\nConfidence interval\n\n\n\\(t\\)\nTest statistic for \\(H_0{:}\\,\\theta=\\theta_0\\)\n\n\npval\nTwo-sided \\(p\\)-value"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#single-imputation",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#single-imputation",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Single Imputation",
+    "text": "Single Imputation\n\nmianalyze(est = 10, err = 2)\n\n\nVariance Information (1 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0\n4\n4\nInf\n\n\n\n\n\nMissing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0\n0\n1\n\n\n\n\n\nParameter Estimates (1 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n10\n2\n6.080072\n13.91993\nInf\n\n\n\n\n\nHypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n10\n10\n0\n5\n1e-06\n\n\n\n\n\n\nHere \\(B = 0\\), \\(T = \\bar{U}\\), and results reduce to ordinary complete-data inference."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-1-imputations",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-1-imputations",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Variance Information (1 Imputations)",
+    "text": "Variance Information (1 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0\n4\n4\nInf"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-5",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-5",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Missing Data Diagnostics",
+    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0\n0\n1"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-1-imputations",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-1-imputations",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Parameter Estimates (1 Imputations)",
+    "text": "Parameter Estimates (1 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n10\n2\n6.080072\n13.91993\nInf"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-5",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-5",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Hypothesis Test",
+    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n10\n10\n0\n5\n1e-06"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#no-between-imputation-variability",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#no-between-imputation-variability",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "No Between-Imputation Variability",
+    "text": "No Between-Imputation Variability\n\nmianalyze(est = rep(5, 5), err = rep(1, 5))\n\n\nVariance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0\n1\n1\nInf\n\n\n\n\n\nMissing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0\n0\n1\n\n\n\n\n\nParameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n5\n1\n3.040036\n6.959964\nInf\n\n\n\n\n\nHypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n5\n5\n0\n5\n1e-06\n\n\n\n\n\n\nWhen all imputations produce the same estimate, \\(B = 0\\) and no additional uncertainty is attributed to missing data."
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-4",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-4",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Variance Information (5 Imputations)",
+    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0\n1\n1\nInf"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-6",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-6",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Missing Data Diagnostics",
+    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0\n0\n1"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-4",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-4",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Parameter Estimates (5 Imputations)",
+    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n5\n1\n3.040036\n6.959964\nInf"
+  },
+  {
+    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-6",
+    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-6",
+    "title": "Multiple Imputation Analysis with mianalyze()",
+    "section": "Hypothesis Test",
+    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n5\n5\n0\n5\n1e-06"
+  },
+  {
+    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html",
+    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html",
+    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
+    "section": "",
+    "text": "When you’re creating a few tables for a publication or an exploratory analysis, report generation time usually isn’t something you think about. If a table takes a couple of seconds to produce, you simply move on to the next task.\nClinical trial reporting is different.\nA typical CSR may contain hundreds of Tables, Figures and Listings (TFLs). Interim analyses, reruns after database updates, quality control cycles, programming reviews, and production runs — and suddenly those “few extra seconds” become hours of waiting.\nPerformance is no longer just a nice-to-have feature — it directly affects programmer productivity.\nTo see how much difference the reporting engine itself can make, I compared one of the most widely used clinical reporting packages in R, Reporter, with the newly released ksTFL package."
+  },
+  {
+    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#benchmark-setup",
+    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#benchmark-setup",
+    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
+    "section": "Benchmark setup",
+    "text": "Benchmark setup\nThe goal was to compare the document generation engines rather than data preparation or statistical computation.\nA realistic laboratory listing dataset was generated with dummy data containing: 10 investigative sites, 20 subjects per site, Subject demographics (Age and Sex), Laboratory category (Chemistry and Hematology), Laboratory parameter, Assessment date, Visit, Laboratory result, Unit, and Low / Normal / High indicator\n   SITE         USUBJID AGE SEX     LBCAT     LBTEST      LBDTC     VISIT LBORRES LBORRESU LBNRIND\n1   001 ABC-101-001-001  31   M Chemistry        ALT 2024-02-20 Screening   124.0      U/L  NORMAL\n2   001 ABC-101-001-001  31   M Chemistry        AST 2024-02-20 Screening    66.0      U/L  NORMAL\n3   001 ABC-101-001-001  31   M Chemistry        ALP 2024-02-20 Screening   111.9      U/L  NORMAL\n4   001 ABC-101-001-001  31   M Chemistry  Bilirubin 2024-02-20 Screening   130.5   umol/L  NORMAL\n5   001 ABC-101-001-001  31   M Chemistry    Albumin 2024-02-20 Screening    89.2      g/L  NORMAL\n6   001 ABC-101-001-001  31   M Chemistry Creatinine 2024-02-20 Screening   124.0   umol/L  NORMAL\n7   001 ABC-101-001-001  31   M Chemistry       Urea 2024-02-20 Screening   140.0   mmol/L     LOW\n8   001 ABC-101-001-001  31   M Chemistry    Glucose 2024-02-20 Screening   113.6   mmol/L  NORMAL\n9   001 ABC-101-001-001  31   M Chemistry        ALT 2024-06-03  Baseline   101.8      U/L  NORMAL\n10  001 ABC-101-001-001  31   M Chemistry        AST 2024-06-03  Baseline   115.6      U/L  NORMAL\nThe following functions were created to run with the bench package.\n\nReporter\n\nlibrary(reporter)\n\nreporter_bench &lt;- function(nrows) {\n\ntbl &lt;- create_table(lab |&gt; head(nrows)) |&gt;\n    page_by(SITE,   label=\"Site: \") |&gt;\n    define('SITE', visible = F) |&gt;\n    define('USUBJID', dedupe = T)\n\nrpt &lt;-\n    create_report(\n        \"Reporter_LabListing.rtf\",  output_type=\"RTF\",\n        font=\"Courier\", font_size=8\n    ) |&gt;\n    page_header(\n        left=\"ABC-101\",\n        center=\"Laboratory Listing\",\n        right=\"CSR\"\n    ) |&gt;\n    titles(\"Listing 14.3.1\",\"Laboratory Results Listings by Site\"   ) |&gt;\n    add_content(tbl) |&gt;\n    footnotes(\n        \"LOW = Below reference range\",\n        \"HIGH = Above reference range\"\n    ) |&gt;\n    page_footer(\n        left=format(Sys.Date()),\n        center=\"Confidential\",\n        right=\"Page [pg] of [tpg]\"\n    )\n\n    write_report(rpt)\n    \n}\n\n\n\nksTFL\n\nlibrary(ksTFL)\n\nksTFL_bench &lt;- function(nrows) {\n\ndata &lt;- lab |&gt; head(nrows)\n\nlisting &lt;- create_table(data) |&gt;\n    add_header( c(\"ABC-101\",\"Laboratory Listing\",\"CSR\")) |&gt;\n  add_footer(c(format(Sys.Date()), \"Confidential\", \"Page {PAGE} of {NUMPAGES}\")) |&gt;\n    add_title(c(\"Listing 14.3.1\",   \"Laboratory Results Listings by Site\")) |&gt;\n    add_subtitle(\"Site: #ByGroup1\") |&gt;\n    add_footnote(c(\"LOW = Below reference range\", \"HIGH = Above reference range\")) |&gt;\n    define_cols(SITE, isVisible = F, isGrouping = T) |&gt;\n    define_cols(USUBJID, dedupe = T)\n\nrep &lt;- create_report(listing)\nwrite_doc(rep, 'ksTFL_LabListing')\n\n}\n\nBoth packages generated essentially the same report:\n\nLaboratory data listing\nPaginated by Site Number\nStandard clinical titles\nDynamic subtitle with Site Number\nPage headers and footers\nFootnotes\nDefault formatting\n\nHere are the side-by-side view of the first page of the created documents:\n\n\n\n\n\nThe benchmark was repeated using datasets containing 1000, 3000, 10000, and 20000 listing records. Each benchmark was executed twice, and the median execution time was reported.\n\nlibrary(bench)\n\nsizes &lt;- c(1000, 3000, 10000, 20000)\n\nresults &lt;-\n    bind_rows(\n        lapply(sizes, function(n) {\n            \n            cat(\"Benchmarking\", n, \"rows...\\n\")\n            \n            x &lt;-\n                bench::mark(\n                    Reporter = reporter_bench(n),\n                    ksTFL    = ksTFL_bench(n),\n                    iterations = 2,\n                    check = FALSE,\n                    memory = TRUE,\n                    time_unit = \"s\"\n                )\n            \n            x$nrows &lt;- n\n            \n            x\n        })\n    )\n\nHere are the results:"
+  },
+  {
+    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#what-stands-out",
+    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#what-stands-out",
+    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
+    "section": "What stands out?",
+    "text": "What stands out?\nThe difference is immediately noticeable.\nEven for a relatively small listing of 1,000 rows, ksTFL completed report generation in just over 100 milliseconds, while Reporter required almost 3 seconds.\nAs the listing size increased, the performance gap widened considerably.\nFor 20,000 rows, Reporter required more than one and a half minutes to generate the report, whereas ksTFL completed the same task in just over one second.\nMore interestingly, the advantage isn’t constant—it increases dramatically with report size. Rather than maintaining a fixed performance lead, ksTFL’s advantage actually grows as datasets become larger, as illustrated below:\n\n\n\n\n\n\n\n\n\nThe chart reveals a consistent upward trend: at 1,000 rows, ksTFL is 28× faster; this advantage grows to 41× at 3,000 rows, 50× at 10,000 rows, and 73× at 20,000 rows. This non-linear relationship is the hallmark of a reporting engine that scales with computational efficiency."
+  },
+  {
+    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#memory-usage-tells-an-even-bigger-story",
+    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#memory-usage-tells-an-even-bigger-story",
+    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
+    "section": "Memory usage tells an even bigger story",
+    "text": "Memory usage tells an even bigger story\nExecution time is only part of the picture.\nThe amount of memory allocated during report generation increases rapidly for Reporter as the listing becomes larger. For the largest benchmark Reporter allocated nearly 50 GB of memory while ksTFL required only 38 MB.\nThis dramatic disparity grows more severe as dataset size increases:\n\n\n\n\n\n\n\n\n\nAs shown in the chart, Reporter’s memory consumption grows exponentially with dataset size—scaling from 125 MB at 1,000 rows to over 50 GB at 20,000 rows. In contrast, ksTFL’s memory footprint remains consistently modest across all tested sizes, growing from less than 1 MB to just 38 MB.\nLower memory consumption isn’t just an interesting benchmark statistic. It means:\n\nreduced risk of exhausting available memory,\nbetter performance on virtual machines and shared servers,\nand the ability to generate multiple reports in parallel without competing for system resources."
+  },
+  {
+    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#why-does-this-matter",
+    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#why-does-this-matter",
+    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
+    "section": "Why does this matter?",
+    "text": "Why does this matter?\nIn real-world clinical reporting, the document generation step is only one part of the overall workflow. Data preparation, derivations and statistical analyses often account for a large proportion of the total runtime.\nHowever, once the analysis datasets are ready, the reporting engine becomes the final stage and sometimes repeated over and over again.\nDuring study development, programmers regenerate reports after every change, QC programmers independently recreate the same outputs, and complete production runs are repeated for interim analyses, database updates and final deliverables.\nA study containing a few hundred outputs may therefore generate thousands of report files over its lifetime.\nEven if each individual report saves only a few seconds, those savings accumulate into hours of reduced waiting time for programmers and much faster production cycles."
+  },
+  {
+    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#final-thoughts",
+    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#final-thoughts",
+    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
+    "section": "Final thoughts",
+    "text": "Final thoughts\nPerformance isn’t the only criterion when selecting a reporting framework. Functionality, output quality, flexibility and ease of use are equally important.\nNevertheless, report generation speed becomes increasingly valuable as studies become larger and reporting workflows become more automated.\nOne particularly interesting observation from this benchmark is that the performance advantage of ksTFL grows as report size increases. Rather than maintaining a constant lead, ksTFL becomes progressively faster relative to Reporter while simultaneously requiring dramatically less memory.\nAlthough this benchmark focuses on a laboratory listing, the results indicate that the underlying document generation engine scales efficiently and remains responsive even for substantially larger reports.\nIf your reporting workflow involves generating hundreds of outputs throughout the lifetime of a clinical trial, those gains can translate into noticeably shorter development cycles, faster production runs, and a smoother experience for the programming team.\n\nBenchmark environment: Both packages were executed on the same machine using the same input data and comparable report layouts. Each benchmark was run twice, with the median execution time reported. The benchmark was designed to measure the performance of the reporting engine itself, not the time required for data preparation or statistical analyses. The measurements were done using reporter version 1.4.7, and ksTFL version 0.11.9.\n\nAleschenkov I, Larchenko V (2026). _ksTFL: Framework for Clinical Tables,\n  Figures, and Listings_. R package version 0.11.9,\n  &lt;https://crow16384.github.io/ksTFL/,https://crow16384.r-universe.dev/ksTFL&gt;\nThis post was originally published on the KeyStat Solutions R Technical Blog. Visit R-Bloggers to discover more R content."
+  },
+  {
     "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/index.html#pooled-estimate",
     "href": "posts/2026-07-20-multiple-impuations-restoring-reality/index.html#pooled-estimate",
     "title": "Multiple Imputation Analysis with mianalyze()",
@@ -343,472 +805,10 @@
     "text": "When generating clinical reports, it’s often useful to know which analysis script produced the output. The script name can be included in report headers, footers, log files, or metadata to improve traceability and simplify debugging.\nMany reporting frameworks require manually specifying the program name:\nprogram &lt;- \"t_14_01_01.R\"\nThe obvious downside is that this information must be updated whenever the script is renamed, which is easy to forget.\nA better solution is to determine the script name automatically.\nThe function below detects the currently executing script in the two most common execution modes:\n\nwhen the script is executed via source();\nwhen the script is executed with Rscript (or R --file).\n\n\n# Returns the name of the currently executing R script.\n#\n# The function works in two situations:\n#   1. When the script is executed via source()\n#   2. When the script is executed from the command line with Rscript\n#\n# If neither method can determine the script name (e.g. interactive console),\n# an empty string is returned.\ncurrent_script_name &lt;- function()\n{\n  #---------------------------------------------------------------------------\n  # Returns the current call stack together with corresponding environments.\n  # Each stack element contains:\n  #   - fn_name : name of the called function\n  #   - env     : execution environment of that call\n  #---------------------------------------------------------------------------\n  .get_stack &lt;- function() {\n    stack &lt;- sys.calls()\n    envs  &lt;- sys.frames()\n\n    # Remove the current function itself and reverse the order so the most\n    # recent calls are inspected first.\n    stack &lt;- rev(stack[-length(stack)])\n    envs  &lt;- rev(envs[-length(envs)])\n\n    if (length(stack) == 0L)\n      return(NULL)\n\n    Map(\n      function(call, env)\n        list(\n          fn_name = rlang::call_name(call),\n          env = env\n        ),\n      stack,\n      envs\n    )\n  }\n\n  #---------------------------------------------------------------------------\n  # Searches the call stack for the closest source() call.\n  #\n  # When source() executes a script, its execution environment contains\n  # the filename used for sourcing.\n  #---------------------------------------------------------------------------\n  .closest_source_frame &lt;- function() {\n    Find(\n      function(f)\n        !is.null(f$fn_name) &&\n        f$fn_name == \"source\",\n      .get_stack()\n    )\n  }\n\n  #---------------------------------------------------------------------------\n  # Returns the filename of the sourced script.\n  # Returns NULL if the script was not started via source().\n  #---------------------------------------------------------------------------\n  .current_source_filename &lt;- function() {\n    frame &lt;- .closest_source_frame()\n\n    if (is.null(frame))\n      NULL\n    else\n      frame$env$filename\n  }\n\n  #---------------------------------------------------------------------------\n  # Returns the script filename when executed with:\n  #\n  #   Rscript myscript.R\n  #\n  # or\n  #\n  #   R --file=myscript.R\n  #\n  # by inspecting command line arguments.\n  #---------------------------------------------------------------------------\n  .current_cli_filename &lt;- function() {\n\n    args &lt;- rev(commandArgs(FALSE))\n\n    file_index &lt;- grep(\"^(--file=|-f$)\", args)[1L]\n\n    if (is.na(file_index)) {\n\n      NULL\n\n    } else if (args[file_index] == \"-f\") {\n\n      args[file_index - 1L]\n\n    } else {\n\n      sub(\"^--file=\", \"\", args[file_index])\n\n    }\n  }\n\n  #---------------------------------------------------------------------------\n  # Try to determine the filename from source() first.\n  #---------------------------------------------------------------------------\n  src &lt;- .current_source_filename()\n\n  if (!is.null(src))\n    return(basename(src))\n\n  #---------------------------------------------------------------------------\n  # Otherwise try command line execution.\n  #---------------------------------------------------------------------------\n  cli &lt;- .current_cli_filename()\n\n  if (!is.null(cli))\n    return(basename(cli))\n\n  # Could not determine the script name.\n  \"\"\n}\n\nInternally, it first inspects the call stack looking for a source() frame, where R stores the filename. If no such frame exists, it falls back to examining the command-line arguments supplied to the R process.\nThis makes the function suitable for both interactive development and automated production workflows.\nUsing it is straightforward:\ncurrent_script_name()\n# [1] \"t_14_01_01.R\"\nFor example:\n\nsource(file.path(getwd(), 'output', 'the_test_script.R'))\n\nThe current script is:  the_test_script.R\n\n\nIn a clinical reporting environment, the returned filename can be used in several places:\n\ndocument headers and footers;\nreport metadata;\naudit logs;\nQC comparison reports;\nexecution logs generated by batch processes.\n\nBecause the program name is obtained automatically, there is no risk of documentation becoming inconsistent after a script is renamed. It is one less manual step to remember, making reporting workflows slightly more robust and easier to maintain.\nAlthough the implementation is compact, it provides a convenient building block for reproducible clinical reporting, where every generated output should clearly identify the program that created it.\n\nThis post was originally published on the KeyStat Solutions R Technical Blog. Visit R-Bloggers to discover more R content."
   },
   {
-    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html",
-    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html",
-    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
-    "section": "",
-    "text": "Creating clinical trial tables, figures, and listings is one of the most time-consuming tasks in clinical statistical programming. The ksTFL R Package was designed to make this process faster, more reliable, and more enjoyable.\nIn this post, we’ll walk through the basics of ksTFL and create your first clinical table."
-  },
-  {
-    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#introduction",
-    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#introduction",
-    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
-    "section": "",
-    "text": "Creating clinical trial tables, figures, and listings is one of the most time-consuming tasks in clinical statistical programming. The ksTFL R Package was designed to make this process faster, more reliable, and more enjoyable.\nIn this post, we’ll walk through the basics of ksTFL and create your first clinical table."
-  },
-  {
-    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#why-kstfl",
-    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#why-kstfl",
-    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
-    "section": "Why ksTFL?",
-    "text": "Why ksTFL?\nClinical trial deliverables require:\n\n✅ Professional formatting and alignment with regulatory standards\n✅ Reproducible, auditable code\n✅ Traceability of the data throughout the analysis pipeline\n✅ Submission-ready output without manual refinement\n\nWithout a specialized tool, generating submission-ready tables and figures from R can require significant time—sometimes more than the time spent on statistical calculations and modeling itself."
-  },
-  {
-    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#installation",
-    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#installation",
-    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
-    "section": "Installation",
-    "text": "Installation\nInstall ksTFL from r-universe:"
-  },
-  {
-    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#your-first-table",
-    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#your-first-table",
-    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
-    "section": "Your First Table",
-    "text": "Your First Table\nLet’s create a simple demographic summary table using sample data:\n\n# Use built-in mtcars dataset for simplicity\nspec &lt;- create_table(mtcars, cols = c(cyl, mpg, hp, wt)) |&gt;\n  add_title(\"Motor Trend Car Road Tests\", styleRef = \"i\") |&gt;\n  add_title(\"Performance Metrics by Cylinder Count\", styleRef = \"i\") |&gt;\n  add_footnote(\"Source: 1974 Motor Trend US magazine\")\n\n# Define columns with labels and styling\nspec &lt;- spec |&gt;\n  define_cols(c(mpg, hp, wt), \n              label = c(\"Miles/(US) gallon\", \"Horsepower\", \"Weight&lt;br&gt;(1000 lbs)\"),\n              valueStyleRef = \"ac\"  # align center\n              ) |&gt;\n  define_cols(cyl, \n                        label = \"N of Cylinders\",\n              dedupe = T) |&gt;\n    set_document(contentWidth = \"60%\")\n\n# Create report and render to DOCX\nreport &lt;- create_report(spec)\nwrite_doc(report, name = \"demo_table\", outDir = \"output\")\n\n\nWhat’s Happening?\n\ncreate_table(data, cols = ...) - Initialize the table with selected columns\nadd_title(), add_footnote() - Add documentation and annotations\ndefine_cols() - Configure column properties (labels, styling, visibility, deduplication, etc.)\ncreate_report() - Assemble the table specification\nwrite_doc() - Render to a professional DOCX document\n\nWith just a few lines of code, ksTFL generates a well-formatted MS Word DOCX document:"
-  },
-  {
-    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#key-features",
-    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#key-features",
-    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
-    "section": "Key Features",
-    "text": "Key Features\n\nDeclarative Styling\nApply styles without modifying source data:\n\n# Add conditional styling - highlight high horsepower\nspec &lt;- spec |&gt;\n  compute_cols(hp &gt;=180, \n               c_style(hp, styleRef = \"fc_red\"))  # font color red\n\nThe ksTFL package includes many pre-defined atomic styles, but custom styles can also be created using the add_style() function.\n\n\nSpanning Headers\nCreate multi-column group headers:\n\nspec &lt;- spec |&gt;\n  add_span_header(cols = c(mpg, hp, wt), \n                  label = \"Performance Metrics\")\n\n\n\n\n\n\n\n\nFlexible Column Selection\nUse tidyselect helpers for column selection:\n\nspec |&gt;\n  define_cols(starts_with(\"m\"), \n              valueStyleRef = \"ar\")  # right align\n\n\n\nBuilt-in Style Atoms\nCombine predefined styles for quick formatting:\n\n# Combine multiple style attributes\nspec &lt;- add_title(spec, \"Summary\", \n                  styleRef = f_combine(\"i\", \"b\", \"fc_navy\"))"
-  },
-  {
-    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#complete-example-demographics-table",
-    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#complete-example-demographics-table",
-    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
-    "section": "Complete Example: Demographics Table",
-    "text": "Complete Example: Demographics Table\nLet’s build a submission-ready demographics table.\nSince this article focuses on ksTFL’s rendering capabilities, the statistical calculations and data preparation are handled upstream. ksTFL does not calculate statistics by itself; rather, it transforms pre-calculated summary tables into publication-ready documents. In production code, statisticians prepare the summary data in a planar format, and ksTFL handles the table layout and formatting.\nBelow, we use a simple function that generates a data frame with calculated statistics for Age, Sex, and Race:\n\n# Simple function that generates the summary table\n# that a statistical programmer typically creates from ADSL data\ngenerate_demography_summary &lt;- function(seed = 1007L) {\n    set.seed(seed)\n    \n    rnd_stat &lt;- function(N) {\n        c(\n            sprintf(\"%.1f (%.1f)\", rnorm(1L, 48, 2), rnorm(1L, 11, 1)),\n            sprintf(\"%.1f\", rnorm(1L, 49, 2)),\n            sprintf(\"%d, %d\", sample(20:30, 1L), sample(65:75, 1L)),\n            sprintf(\"%d (%.1f%%)\", 22L, 100 * 22L / N),\n            sprintf(\"%d (%.1f%%)\", 20L, 100 * 20L / N),\n            sprintf(\"%d (%.1f%%)\", 28L, 100 * 28L / N),\n            sprintf(\"%d (%.1f%%)\", 9L, 100 * 9L / N),\n            sprintf(\"%d (%.1f%%)\", 5L, 100 * 5L / N)\n        )\n    }\n    \n    data.frame(\n        PARAM = c(rep(\"Age (years)\",3), rep(\"Sex\",2), rep(\"Race\",3)),\n        STATISTIC = c(\"Mean (SD)\", \"Median\", \"Min, Max\", \n                                    \"Female\", \"Male\", \n                                    \"White\", \"Asian\", \"Other\"),\n        PLACEBO = rnd_stat(placebo_n),\n        DRUGA = rnd_stat(drug_a_n),\n        TOTAL = rnd_stat(total_n),\n        stringsAsFactors = FALSE\n    )\n}\n\nWith the inputs provided above, the generated data frame looks like this:\n\nplacebo_n &lt;- 42L\ndrug_a_n &lt;- 44L\ntotal_n &lt;- placebo_n + drug_a_n\n\ntable_data &lt;- generate_demography_summary(seed = 1007L)\n\ntable_data\n\n        PARAM STATISTIC     PLACEBO      DRUGA       TOTAL\n1 Age (years) Mean (SD) 49.0 (11.3) 48.6 (9.8) 51.6 (12.1)\n2 Age (years)    Median        51.6       47.9        50.2\n3 Age (years)  Min, Max      26, 68     20, 75      26, 69\n4         Sex    Female  22 (52.4%) 22 (50.0%)  22 (25.6%)\n5         Sex      Male  20 (47.6%) 20 (45.5%)  20 (23.3%)\n6        Race     White  28 (66.7%) 28 (63.6%)  28 (32.6%)\n7        Race     Asian   9 (21.4%)  9 (20.5%)   9 (10.5%)\n8        Race     Other   5 (11.9%)  5 (11.4%)    5 (5.8%)\n\n\nNow let’s use ksTFL to transform this planar data frame into a submission-ready document:\n\n# Initialize ksTFL table specification\ntable_spec &lt;- create_table(table_data) |&gt;\n    # PARAM is set to invisible because we use it as a category header.\n    # This keeps the table compact and maintains a professional appearance.\n    define_cols(PARAM, label = \"Parameter\", isVisible = FALSE) |&gt;\n    # STATISTIC remains visible on every row because it distinguishes\n    # different statistics within each parameter block.\n    define_cols(STATISTIC, \n                    label = \"Parameter&lt;br&gt;Statistic\", \n                    valueStyleRef = \"indent_1\", labelStyleRef = 'al') |&gt;\n    # Treatment columns follow the same display rules, so we define them together.\n    # Although ksTFL calculates column widths automatically,\n    # we manually set them here to ensure consistent treatment column widths\n    # across the output for visual clarity and professional presentation.\n    define_cols(c(PLACEBO, DRUGA, TOTAL),\n                            label = c(paste0(\"Placebo&lt;br&gt;(N=\", placebo_n,')'), \n                                                paste0(\"Drug A&lt;br&gt;(N=\", drug_a_n,')'), \n                                                paste0(\"Total&lt;br&gt;(N=\", total_n,')')),\n                            valueStyleRef = \"ac\",\n                            colWidth = c(\"18%\", \"18%\", \"18%\")\n    ) |&gt;\n    compute_cols(\n    # The input data lacks units for categorical statistics;\n    # we add them dynamically here.\n        PARAM %in% c('Sex', 'Race'),\n        c_glue(PARAM, 'after', text=', n (%)')\n    ) |&gt;\n    # Use PARAM values as heading rows for better structure\n    compute_cols(\n        firstOf(PARAM),\n        c_addrow('above', value_from = PARAM, styleRef = f_combine('al', 'b'))\n    ) |&gt;\n    # Define titles, subtitles, and document headers/footers\n    add_title(\"Table 14.1 Demographic Summary\") |&gt;\n    add_subtitle(\"(Safety Population)\", styleRef = 'ac') |&gt;\n    add_footnote(\"Note: Values are presented as summary statistics prepared before the ksTFL stage.\") |&gt;\n    add_header(\"Example Study KSTFL-107\", \"DEMOGRAPHY\", \"Page {PAGE} of {NUMPAGES}\") |&gt;\n    add_footer(\"Basic summary table example\", \"\", format(Sys.Date(), \"%Y-%m-%d\")) |&gt;\n    # Demographic tables benefit from a moderate content width:\n    # narrow enough to keep treatment columns readable, but wide enough\n    # to avoid sparse layouts with few rows.\n    set_document(\n        contentWidth = \"50%\",\n        # ksTFL provides flexible control over footnote placement:\n        # \"doc_footer\" (in the Word footer below footer rows),\n        # \"repeated\" (under the table on every page), or\n        # \"last_page\" (under the table on the last page only)\n        footnotePlace = \"doc_footer\" \n    )\n\n# Create report and render to DOCX\nreport &lt;- create_report(table_spec)\n\nwrite_doc(report, name = \"table_14_1\", outDir = \"output\")\n\nWith just a few lines of declarative code, the planar data frame transforms into a production-ready document:\n\n\n\n\n\nThe key advantage of this approach is that the input data remains in a simple, planar format that is easy to validate and audit, without any embedded reporting artifacts or formatting logic."
-  },
-  {
-    "objectID": "posts/2026-07-06-getting-started-ks-tfl/index.html#next-steps",
-    "href": "posts/2026-07-06-getting-started-ks-tfl/index.html#next-steps",
-    "title": "Getting Started with ksTFL: Creating Your First Clinical Table",
-    "section": "Next Steps",
-    "text": "Next Steps\nNow that you understand the basics of ksTFL, you can:\n- Explore the ksTFL Documentation for advanced features\n- Check out the GitHub Repository for more real examples and scripts\n- A LinkedIn Post here gives some additional context and background on the ksTFL package.\n\nAleschenkov I, Larchenko V (2026). ksTFL: Framework for Clinical Tables, Figures, and Listings. R package version 0.11.9, https://crow16384.github.io/ksTFL/ https://crow16384.r-universe.dev/ksTFL.\nThis post was originally published on the KeyStat Solutions Technical Blog. Visit R-Bloggers to discover more R content."
-  },
-  {
-    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html",
-    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html",
-    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
-    "section": "",
-    "text": "When you’re creating a few tables for a publication or an exploratory analysis, report generation time usually isn’t something you think about. If a table takes a couple of seconds to produce, you simply move on to the next task.\nClinical trial reporting is different.\nA typical CSR may contain hundreds of Tables, Figures and Listings (TFLs). Interim analyses, reruns after database updates, quality control cycles, programming reviews, and production runs — and suddenly those “few extra seconds” become hours of waiting.\nPerformance is no longer just a nice-to-have feature — it directly affects programmer productivity.\nTo see how much difference the reporting engine itself can make, I compared one of the most widely used clinical reporting packages in R, Reporter, with the newly released ksTFL package."
-  },
-  {
-    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#benchmark-setup",
-    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#benchmark-setup",
-    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
-    "section": "Benchmark setup",
-    "text": "Benchmark setup\nThe goal was to compare the document generation engines rather than data preparation or statistical computation.\nA realistic laboratory listing dataset was generated with dummy data containing: 10 investigative sites, 20 subjects per site, Subject demographics (Age and Sex), Laboratory category (Chemistry and Hematology), Laboratory parameter, Assessment date, Visit, Laboratory result, Unit, and Low / Normal / High indicator\n   SITE         USUBJID AGE SEX     LBCAT     LBTEST      LBDTC     VISIT LBORRES LBORRESU LBNRIND\n1   001 ABC-101-001-001  31   M Chemistry        ALT 2024-02-20 Screening   124.0      U/L  NORMAL\n2   001 ABC-101-001-001  31   M Chemistry        AST 2024-02-20 Screening    66.0      U/L  NORMAL\n3   001 ABC-101-001-001  31   M Chemistry        ALP 2024-02-20 Screening   111.9      U/L  NORMAL\n4   001 ABC-101-001-001  31   M Chemistry  Bilirubin 2024-02-20 Screening   130.5   umol/L  NORMAL\n5   001 ABC-101-001-001  31   M Chemistry    Albumin 2024-02-20 Screening    89.2      g/L  NORMAL\n6   001 ABC-101-001-001  31   M Chemistry Creatinine 2024-02-20 Screening   124.0   umol/L  NORMAL\n7   001 ABC-101-001-001  31   M Chemistry       Urea 2024-02-20 Screening   140.0   mmol/L     LOW\n8   001 ABC-101-001-001  31   M Chemistry    Glucose 2024-02-20 Screening   113.6   mmol/L  NORMAL\n9   001 ABC-101-001-001  31   M Chemistry        ALT 2024-06-03  Baseline   101.8      U/L  NORMAL\n10  001 ABC-101-001-001  31   M Chemistry        AST 2024-06-03  Baseline   115.6      U/L  NORMAL\nThe following functions were created to run with the bench package.\n\nReporter\n\nlibrary(reporter)\n\nreporter_bench &lt;- function(nrows) {\n\ntbl &lt;- create_table(lab |&gt; head(nrows)) |&gt;\n    page_by(SITE,   label=\"Site: \") |&gt;\n    define('SITE', visible = F) |&gt;\n    define('USUBJID', dedupe = T)\n\nrpt &lt;-\n    create_report(\n        \"Reporter_LabListing.rtf\",  output_type=\"RTF\",\n        font=\"Courier\", font_size=8\n    ) |&gt;\n    page_header(\n        left=\"ABC-101\",\n        center=\"Laboratory Listing\",\n        right=\"CSR\"\n    ) |&gt;\n    titles(\"Listing 14.3.1\",\"Laboratory Results Listings by Site\"   ) |&gt;\n    add_content(tbl) |&gt;\n    footnotes(\n        \"LOW = Below reference range\",\n        \"HIGH = Above reference range\"\n    ) |&gt;\n    page_footer(\n        left=format(Sys.Date()),\n        center=\"Confidential\",\n        right=\"Page [pg] of [tpg]\"\n    )\n\n    write_report(rpt)\n    \n}\n\n\n\nksTFL\n\nlibrary(ksTFL)\n\nksTFL_bench &lt;- function(nrows) {\n\ndata &lt;- lab |&gt; head(nrows)\n\nlisting &lt;- create_table(data) |&gt;\n    add_header( c(\"ABC-101\",\"Laboratory Listing\",\"CSR\")) |&gt;\n  add_footer(c(format(Sys.Date()), \"Confidential\", \"Page {PAGE} of {NUMPAGES}\")) |&gt;\n    add_title(c(\"Listing 14.3.1\",   \"Laboratory Results Listings by Site\")) |&gt;\n    add_subtitle(\"Site: #ByGroup1\") |&gt;\n    add_footnote(c(\"LOW = Below reference range\", \"HIGH = Above reference range\")) |&gt;\n    define_cols(SITE, isVisible = F, isGrouping = T) |&gt;\n    define_cols(USUBJID, dedupe = T)\n\nrep &lt;- create_report(listing)\nwrite_doc(rep, 'ksTFL_LabListing')\n\n}\n\nBoth packages generated essentially the same report:\n\nLaboratory data listing\nPaginated by Site Number\nStandard clinical titles\nDynamic subtitle with Site Number\nPage headers and footers\nFootnotes\nDefault formatting\n\nHere are the side-by-side view of the first page of the created documents:\n\n\n\n\n\nThe benchmark was repeated using datasets containing 1000, 3000, 10000, and 20000 listing records. Each benchmark was executed twice, and the median execution time was reported.\n\nlibrary(bench)\n\nsizes &lt;- c(1000, 3000, 10000, 20000)\n\nresults &lt;-\n    bind_rows(\n        lapply(sizes, function(n) {\n            \n            cat(\"Benchmarking\", n, \"rows...\\n\")\n            \n            x &lt;-\n                bench::mark(\n                    Reporter = reporter_bench(n),\n                    ksTFL    = ksTFL_bench(n),\n                    iterations = 2,\n                    check = FALSE,\n                    memory = TRUE,\n                    time_unit = \"s\"\n                )\n            \n            x$nrows &lt;- n\n            \n            x\n        })\n    )\n\nHere are the results:"
-  },
-  {
-    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#what-stands-out",
-    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#what-stands-out",
-    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
-    "section": "What stands out?",
-    "text": "What stands out?\nThe difference is immediately noticeable.\nEven for a relatively small listing of 1,000 rows, ksTFL completed report generation in just over 100 milliseconds, while Reporter required almost 3 seconds.\nAs the listing size increased, the performance gap widened considerably.\nFor 20,000 rows, Reporter required more than one and a half minutes to generate the report, whereas ksTFL completed the same task in just over one second.\nMore interestingly, the advantage isn’t constant—it increases dramatically with report size. Rather than maintaining a fixed performance lead, ksTFL’s advantage actually grows as datasets become larger, as illustrated below:\n\n\n\n\n\n\n\n\n\nThe chart reveals a consistent upward trend: at 1,000 rows, ksTFL is 28× faster; this advantage grows to 41× at 3,000 rows, 50× at 10,000 rows, and 73× at 20,000 rows. This non-linear relationship is the hallmark of a reporting engine that scales with computational efficiency."
-  },
-  {
-    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#memory-usage-tells-an-even-bigger-story",
-    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#memory-usage-tells-an-even-bigger-story",
-    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
-    "section": "Memory usage tells an even bigger story",
-    "text": "Memory usage tells an even bigger story\nExecution time is only part of the picture.\nThe amount of memory allocated during report generation increases rapidly for Reporter as the listing becomes larger. For the largest benchmark Reporter allocated nearly 50 GB of memory while ksTFL required only 38 MB.\nThis dramatic disparity grows more severe as dataset size increases:\n\n\n\n\n\n\n\n\n\nAs shown in the chart, Reporter’s memory consumption grows exponentially with dataset size—scaling from 125 MB at 1,000 rows to over 50 GB at 20,000 rows. In contrast, ksTFL’s memory footprint remains consistently modest across all tested sizes, growing from less than 1 MB to just 38 MB.\nLower memory consumption isn’t just an interesting benchmark statistic. It means:\n\nreduced risk of exhausting available memory,\nbetter performance on virtual machines and shared servers,\nand the ability to generate multiple reports in parallel without competing for system resources."
-  },
-  {
-    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#why-does-this-matter",
-    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#why-does-this-matter",
-    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
-    "section": "Why does this matter?",
-    "text": "Why does this matter?\nIn real-world clinical reporting, the document generation step is only one part of the overall workflow. Data preparation, derivations and statistical analyses often account for a large proportion of the total runtime.\nHowever, once the analysis datasets are ready, the reporting engine becomes the final stage and sometimes repeated over and over again.\nDuring study development, programmers regenerate reports after every change, QC programmers independently recreate the same outputs, and complete production runs are repeated for interim analyses, database updates and final deliverables.\nA study containing a few hundred outputs may therefore generate thousands of report files over its lifetime.\nEven if each individual report saves only a few seconds, those savings accumulate into hours of reduced waiting time for programmers and much faster production cycles."
-  },
-  {
-    "objectID": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#final-thoughts",
-    "href": "posts/2026-07-13-reporter-vs-ksTFL-performance/index.html#final-thoughts",
-    "title": "How Long Are You Ready to Wait for Your Clinical Tables?",
-    "section": "Final thoughts",
-    "text": "Final thoughts\nPerformance isn’t the only criterion when selecting a reporting framework. Functionality, output quality, flexibility and ease of use are equally important.\nNevertheless, report generation speed becomes increasingly valuable as studies become larger and reporting workflows become more automated.\nOne particularly interesting observation from this benchmark is that the performance advantage of ksTFL grows as report size increases. Rather than maintaining a constant lead, ksTFL becomes progressively faster relative to Reporter while simultaneously requiring dramatically less memory.\nAlthough this benchmark focuses on a laboratory listing, the results indicate that the underlying document generation engine scales efficiently and remains responsive even for substantially larger reports.\nIf your reporting workflow involves generating hundreds of outputs throughout the lifetime of a clinical trial, those gains can translate into noticeably shorter development cycles, faster production runs, and a smoother experience for the programming team.\n\nBenchmark environment: Both packages were executed on the same machine using the same input data and comparable report layouts. Each benchmark was run twice, with the median execution time reported. The benchmark was designed to measure the performance of the reporting engine itself, not the time required for data preparation or statistical analyses. The measurements were done using reporter version 1.4.7, and ksTFL version 0.11.9.\n\nAleschenkov I, Larchenko V (2026). _ksTFL: Framework for Clinical Tables,\n  Figures, and Listings_. R package version 0.11.9,\n  &lt;https://crow16384.github.io/ksTFL/,https://crow16384.r-universe.dev/ksTFL&gt;\nThis post was originally published on the KeyStat Solutions R Technical Blog. Visit R-Bloggers to discover more R content."
-  },
-  {
-    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html",
-    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html",
-    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
-    "section": "",
-    "text": "ksformat is usually described as a SAS PROC FORMAT-like tool for ordinary value-to-label lookup. In practice, the package is useful in places where a clinical trial workflow needs more than a plain dictionary:\n\nprotocol-defined visit windows\nsubject- or arm-specific bucketing rules\ncomposite keys built from multiple columns\nreverse lookups for data cleaning and QC\nreport-ready numeric display for listings and summaries\n\nThis article shows a few non-standard uses that come up in clinical trials and adjacent data tasks."
-  },
-  {
-    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#value-blocks-for-discrete-lookup",
-    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#value-blocks-for-discrete-lookup",
-    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
-    "section": "VALUE blocks for discrete lookup",
-    "text": "VALUE blocks for discrete lookup\n\nfparse(text = '\nVALUE sex (character)\n  \"M\" = \"Male\"\n  \"F\" = \"Female\"\n  .missing = \"Unknown\"\n  .other = \"Other\"\n;\n\nVALUE age_group (numeric)\n  [0, 18)    = \"Child\"\n  [18, 65)   = \"Adult\"\n  [65, HIGH] = \"Senior\"\n;\n')"
-  },
-  {
-    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#invalue-blocks-for-reverse-lookup",
-    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#invalue-blocks-for-reverse-lookup",
-    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
-    "section": "INVALUE blocks for reverse lookup",
-    "text": "INVALUE blocks for reverse lookup\n\nfparse(text = '\nINVALUE sex_inv\n  \"Male\" = \"M\"\n  \"Female\" = \"F\"\n  .missing = \"U\"\n;\n')"
-  },
-  {
-    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#date-time-and-datetime-patterns",
-    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#date-time-and-datetime-patterns",
-    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
-    "section": "Date, time, and datetime patterns",
-    "text": "Date, time, and datetime patterns\nThis is the direct fparse() equivalent of fnew_date(). For these blocks, pattern = ... is the right way to specify the display format.\n\nfparse(text = '\nVALUE enrldt (date)\n  pattern = \"DATE9.\"\n  .missing = \"Not Enrolled\"\n;\n\nVALUE visit_time (time)\n  pattern = \"TIME8.\"\n;\n\nVALUE stamp (datetime)\n  pattern = \"DATETIME20.\"\n;\n')"
-  },
-  {
-    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#numeric-display-patterns",
-    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#numeric-display-patterns",
-    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
-    "section": "Numeric display patterns",
-    "text": "Numeric display patterns\nNumeric display formatting now has its own parser syntax. Put the pattern in the VALUE header and keep the block otherwise empty except for optional .missing / .other directives.\n\nfparse(text = '\nVALUE currency (numeric, pattern: \"$%,.2f\")\n  .missing = \"NO DATA\"\n;\n\nVALUE pct (numeric, pattern: \"%.1f%%\")\n;\n')\n\ntibble(\n  raw = c(1234.56, -7890.12, 0, NA),\n  currency = fputn(c(1234.56, -7890.12, 0, NA), \"currency\"),\n  pct = fputn(c(0, 12.3, -4.5, NA), \"pct\")\n)\n\n# A tibble: 4 × 3\n     raw currency   pct  \n   &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;\n1  1235. $1,234.56  0.0% \n2 -7890. -$7,890.12 12.3%\n3     0  $0.00      -4.5%\n4    NA  NO DATA    &lt;NA&gt;"
-  },
-  {
-    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#range-formats",
-    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#range-formats",
-    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
-    "section": "Range formats",
-    "text": "Range formats\nRange formats are expressed with interval notation. The same syntax works for numeric, date_range, and datetime_range blocks.\n\nfparse(text = '\nVALUE study_period (date_range)\n  [2024-01-01, 2024-02-01) = \"Screening\"\n  [2024-02-01, 2024-06-01) = \"Treatment\"\n  [2024-06-01, HIGH]       = \"Follow-up\"\n;\n\nVALUE shift (datetime_range)\n  [2024-01-15 00:00, 2024-01-15 08:00) = \"Night\"\n  [2024-01-15 08:00, 2024-01-15 16:00) = \"Day\"\n  [2024-01-15 16:00, 2024-01-16 00:00) = \"Evening\"\n;\n')"
-  },
-  {
-    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#stratified-range-formats",
-    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#stratified-range-formats",
-    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
-    "section": "Stratified range formats",
-    "text": "Stratified range formats\nstratified_range combines a stratum with an inner range. The parser accepts the friendly STRATUM|[low, high) form.\n\nfparse(text = '\nVALUE visit_window (stratified_range, range_subtype: numeric)\n  \"ARM_A\"|[0, 7)     = \"Baseline\"\n  \"ARM_A\"|[7, 28)    = \"Wk1-3\"\n  \"ARM_B\"|[0, 14)    = \"Baseline\"\n  .other              = \"Outside\"\n;\n')"
-  },
-  {
-    "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#when-to-use-fnew-anyway",
-    "href": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html#when-to-use-fnew-anyway",
-    "title": "Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks",
-    "section": "When to use fnew() anyway",
-    "text": "When to use fnew() anyway\nfnew() remains the most concise way to create a report-formatting object when you already know you want a display pattern. fparse() is useful when the rule needs to be stored as text, versioned in a spec, or generated from another tool.\n\nfnew(\"$%,.2f\", type = \"numeric\", name = \"currency_direct\")\nfputn(c(1234.56, -7890.12, 0), \"currency_direct\")\n\n[1] \"$1,234.56\"  \"-$7,890.12\" \"$0.00\""
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#pooled-estimate",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#pooled-estimate",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Pooled Estimate",
-    "text": "Pooled Estimate\n\\[\\bar{Q} = \\frac{1}{m} \\sum_{i=1}^{m}Q_i\\]"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#within-imputation-variance",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#within-imputation-variance",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Within-Imputation Variance",
-    "text": "Within-Imputation Variance\n\\[\\bar{U} = \\frac{1}{m} \\sum_{i=1}^{m}U_i\\]\nThis quantity reflects uncertainty that would exist even if no data were missing."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#between-imputation-variance",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#between-imputation-variance",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Between-Imputation Variance",
-    "text": "Between-Imputation Variance\n\\[B = \\frac{1}{m-1}\\sum_{i=1}^{m}(Q_i-\\bar{Q})^2\\]\nLarge values indicate substantial uncertainty due to missing data."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#total-variance",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#total-variance",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Total Variance",
-    "text": "Total Variance\n\\[T = \\bar{U} + \\left(1+\\frac{1}{m}\\right) B\\]\nThe pooled standard error is \\(SE = \\sqrt{T}\\)."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#rubin-1987",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#rubin-1987",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Rubin (1987)",
-    "text": "Rubin (1987)\n\\[v_m = (m-1)\\left(1+\\frac{\\bar{U}}{\\left(1+m^{-1}\\right)B}\\right)^2\\]\nWhen \\(m\\) is small and missing information is limited, \\(v_m\\) can become very large."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#problem-with-large-sample-degrees-of-freedom",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#problem-with-large-sample-degrees-of-freedom",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Problem with Large-Sample Degrees of Freedom",
-    "text": "Problem with Large-Sample Degrees of Freedom\nSuppose a model parameter is based on only 40 residual degrees of freedom. Rubin’s formula may yield \\(v_m = 500\\), which exceeds the information available in the complete-data analysis and can produce confidence intervals that are unrealistically narrow."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-4-imputations",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-4-imputations",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Variance Information (4 Imputations)",
-    "text": "Variance Information (4 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.001426\n0.006074\n0.007856\n58.2727"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Missing Data Diagnostics",
-    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.293488\n0.252131\n0.940705"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-4-imputations",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-4-imputations",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Parameter Estimates (4 Imputations)",
-    "text": "Parameter Estimates (4 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n0.331\n0.088634\n0.153597\n0.508403\n58.2727"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Hypothesis Test",
-    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n0.298\n0.378\n0\n3.734455\n0.00043"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Variance Information (5 Imputations)",
-    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.075\n1.25636\n1.34636\n895.1532"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-1",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-1",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Missing Data Diagnostics",
-    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.071636\n0.068925\n0.986402"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Parameter Estimates (5 Imputations)",
-    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n-2.9\n1.160328\n-5.177279\n-0.622721\n895.1532"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-1",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-1",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Hypothesis Test",
-    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n-3.2\n-2.5\n0\n-2.499294\n0.012622"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-1",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-1",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Variance Information (5 Imputations)",
-    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.00092\n0.00894\n0.010044\n331.0818"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-2",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-2",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Missing Data Diagnostics",
-    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.12349\n0.115245\n0.97747"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-1",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-1",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Parameter Estimates (5 Imputations)",
-    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n0.192\n0.10022\n-0.005148\n0.389148\n331.0818"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-2",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-2",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Hypothesis Test",
-    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n0.15\n0.23\n0\n1.91579\n0.056253"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-2",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-2",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Variance Information (5 Imputations)",
-    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.00293\n0.01806\n0.021576\n150.6275"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-3",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-3",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Missing Data Diagnostics",
-    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.194684\n0.173856\n0.966397"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-2",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-2",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Parameter Estimates (5 Imputations)",
-    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n-0.244\n0.146888\n-0.534226\n0.046226\n150.6275"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-3",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-3",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Hypothesis Test",
-    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n-0.31\n-0.17\n0\n-1.661133\n0.098767"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#option-mapping",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#option-mapping",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Option mapping",
-    "text": "Option mapping\n\n\n\nSAS PROC MIANALYZE\nmianalyze()\n\n\n\n\nEstimates + standard errors (e.g. STDERR / PARMS)\nest, err\n\n\nALPHA=\nalpha (default 0.05)\n\n\nTHETA0=\ntheta0 (default 0)\n\n\nEDF= (Barnard-Rubin)\nedf (default Inf = no adjustment)\n\n\n—\nv0 (deprecated alias for edf)\n\n\n\nNote: SAS documents a default of EDF=1 with no adjustment when EDF= is omitted. In kstools, omitting edf (or using edf = Inf) likewise uses Rubin’s large-sample \\(v_m\\) without Barnard-Rubin adjustment."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#scope",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#scope",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Scope",
-    "text": "Scope\nAligned with SAS univariate MI inference:\n\npooled estimate, total variance, \\(t\\)-based CI and test;\nvariance diagnostics \\(r\\), \\(\\hat\\lambda\\), \\(RE\\);\nBarnard-Rubin df via edf.\n\nNot implemented (multivariate SAS features):\n\nWald multivariate tests (MULT / MULTIVARIATE);\nTEST linear hypotheses;\npooling from full covariance matrices alone (without per-parameter SEs)."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#sas-example-58.1-means-and-standard-errors-edf30",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#sas-example-58.1-means-and-standard-errors-edf30",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "SAS Example 58.1 (means and standard errors, EDF=30)",
-    "text": "SAS Example 58.1 (means and standard errors, EDF=30)\nThe Fitness example in SAS/STAT 12.3 Example 58.1 combines univariate means and standard errors across \\(m = 5\\) imputations with EDF=30 (sample size \\(n = 31\\)). Reproducing Oxygen from the published input table:\n\noxygen &lt;- mianalyze(\n  est = c(47.0120, 47.2407, 47.4995, 47.1485, 47.0042),\n  err = c(0.95984, 0.93540, 1.00766, 0.95439, 0.96528),\n  edf = 30\n)\noxygen\n\n\nVariance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.04147\n0.930854\n0.980619\n26.29868\n\n\n\n\n\nMissing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.053461\n0.051968\n0.989713\n\n\n\n\n\nParameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n47.18098\n0.990262\n45.14659\n49.21537\n26.29868\n\n\n\n\n\nHypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n47.0042\n47.4995\n0\n47.64495\n0\n\n\n\n\n\n\nComparison with SAS Output 58.1.2 / 58.1.3 (Oxygen). Small differences are expected because the User’s Guide prints input means/SEs with limited precision.\n\nsas_oxygen &lt;- data.frame(\n  quantity = c(\n    \"Estimate\", \"StdErr\", \"Between\", \"Within\", \"Total\",\n    \"DF\", \"r\", \"lambda\", \"RE\", \"LCL\", \"UCL\"\n  ),\n  sas = c(\n    47.180993, 0.990266, 0.041478, 0.930853, 0.980626,\n    26.298, 0.053471, 0.051977, 0.989712, 45.1466, 49.2154\n  ),\n  mianalyze = c(\n    oxygen$Estimate, oxygen$StdErr, oxygen$Vb, oxygen$Vw, oxygen$Vt,\n    oxygen$df, oxygen$r, oxygen$lambda, oxygen$re, oxygen$lcl, oxygen$ucl\n  )\n)\nsas_oxygen$abs_diff &lt;- abs(sas_oxygen$mianalyze - sas_oxygen$sas)\nknitr::kable(sas_oxygen, digits = 6)\n\n\n\n\nquantity\nsas\nmianalyze\nabs_diff\n\n\n\n\nEstimate\n47.180993\n47.180980\n0.000013\n\n\nStdErr\n0.990266\n0.990262\n0.000004\n\n\nBetween\n0.041478\n0.041470\n0.000008\n\n\nWithin\n0.930853\n0.930854\n0.000001\n\n\nTotal\n0.980626\n0.980619\n0.000007\n\n\nDF\n26.298000\n26.298679\n0.000679\n\n\nr\n0.053471\n0.053461\n0.000010\n\n\nlambda\n0.051977\n0.051968\n0.000009\n\n\nRE\n0.989712\n0.989713\n0.000001\n\n\nLCL\n45.146600\n45.146592\n0.000008\n\n\nUCL\n49.215400\n49.215368\n0.000032\n\n\n\n\n\nThe same pattern holds for RunTime and RunPulse in that example, and for the Getting Started / Example 58.3 regression coefficients when moments are reconstructed from the published Between/Within variances (with and without EDF=28). Automated checks live in tests/testthat/test-ks_mianalyze-sas.R."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-3",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-3",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Variance Information (5 Imputations)",
-    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0.04147\n0.930854\n0.980619\n26.29868"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-4",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-4",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Missing Data Diagnostics",
-    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0.053461\n0.051968\n0.989713"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-3",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-3",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Parameter Estimates (5 Imputations)",
-    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n47.18098\n0.990262\n45.14659\n49.21537\n26.29868"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-4",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-4",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Hypothesis Test",
-    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n47.0042\n47.4995\n0\n47.64495\n0"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#relative-efficiency-sas-table-58.2",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#relative-efficiency-sas-table-58.2",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Relative efficiency (SAS Table 58.2)",
-    "text": "Relative efficiency (SAS Table 58.2)\nSAS tabulates \\(RE = 1/(1+\\lambda/m)\\). For illustration:\n\nre_grid &lt;- expand.grid(\n  m = c(3, 5, 10, 20),\n  lambda = c(0.1, 0.2, 0.3, 0.5, 0.7)\n)\nre_grid$RE &lt;- with(re_grid, 1 / (1 + lambda / m))\nknitr::kable(\n  xtabs(RE ~ m + lambda, data = re_grid),\n  digits = 4,\n  caption = \"Relative efficiency (matches SAS Table 58.2)\"\n)\n\n\nRelative efficiency (matches SAS Table 58.2)\n\n\n\n0.1\n0.2\n0.3\n0.5\n0.7\n\n\n\n\n3\n0.9677\n0.9375\n0.9091\n0.8571\n0.8108\n\n\n5\n0.9804\n0.9615\n0.9434\n0.9091\n0.8772\n\n\n10\n0.9901\n0.9804\n0.9709\n0.9524\n0.9346\n\n\n20\n0.9950\n0.9901\n0.9852\n0.9756\n0.9662"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#api-correspondence",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#api-correspondence",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "API correspondence",
-    "text": "API correspondence\nSAS:\nproc mianalyze data=outuni edf=30;\n  modeleffects Oxygen;\n  stderr SOxygen;\nrun;\nEquivalent R:\n\nmianalyze(est = oxygen_est, err = oxygen_se, edf = 30)"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-components",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-components",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Variance Components",
-    "text": "Variance Components\n\n\n\nComponent\nMeaning\n\n\n\n\n\\(V_w\\) (Vw)\nWithin-imputation variance \\(\\bar{U}\\)\n\n\n\\(V_b\\) (Vb)\nBetween-imputation variance \\(B\\)\n\n\n\\(V_t\\) (Vt)\nTotal variance \\(T\\)\n\n\n\nLarge \\(V_b\\) relative to \\(V_w\\) indicates substantial missing-data uncertainty."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-information",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-information",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Missing Information",
-    "text": "Missing Information\n\n\n\nMetric\nMeaning\n\n\n\n\n\\(r\\)\nRelative increase in variance\n\n\n\\(\\lambda\\)\nFraction of missing information\n\n\n\\(RE\\)\nRelative efficiency"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#inference",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#inference",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Inference",
-    "text": "Inference\n\n\n\nStatistic\nMeaning\n\n\n\n\nEstimate\nPooled estimate \\(\\bar{Q}\\)\n\n\nStdErr\nPooled standard error \\(\\sqrt{T}\\)\n\n\nlcl / ucl\nConfidence interval\n\n\n\\(t\\)\nTest statistic for \\(H_0{:}\\,\\theta=\\theta_0\\)\n\n\npval\nTwo-sided \\(p\\)-value"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#single-imputation",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#single-imputation",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Single Imputation",
-    "text": "Single Imputation\n\nmianalyze(est = 10, err = 2)\n\n\nVariance Information (1 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0\n4\n4\nInf\n\n\n\n\n\nMissing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0\n0\n1\n\n\n\n\n\nParameter Estimates (1 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n10\n2\n6.080072\n13.91993\nInf\n\n\n\n\n\nHypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n10\n10\n0\n5\n1e-06\n\n\n\n\n\n\nHere \\(B = 0\\), \\(T = \\bar{U}\\), and results reduce to ordinary complete-data inference."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-1-imputations",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-1-imputations",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Variance Information (1 Imputations)",
-    "text": "Variance Information (1 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0\n4\n4\nInf"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-5",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-5",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Missing Data Diagnostics",
-    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0\n0\n1"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-1-imputations",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-1-imputations",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Parameter Estimates (1 Imputations)",
-    "text": "Parameter Estimates (1 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n10\n2\n6.080072\n13.91993\nInf"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-5",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-5",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Hypothesis Test",
-    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n10\n10\n0\n5\n1e-06"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#no-between-imputation-variability",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#no-between-imputation-variability",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "No Between-Imputation Variability",
-    "text": "No Between-Imputation Variability\n\nmianalyze(est = rep(5, 5), err = rep(1, 5))\n\n\nVariance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0\n1\n1\nInf\n\n\n\n\n\nMissing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0\n0\n1\n\n\n\n\n\nParameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n5\n1\n3.040036\n6.959964\nInf\n\n\n\n\n\nHypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n5\n5\n0\n5\n1e-06\n\n\n\n\n\n\nWhen all imputations produce the same estimate, \\(B = 0\\) and no additional uncertainty is attributed to missing data."
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-4",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#variance-information-5-imputations-4",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Variance Information (5 Imputations)",
-    "text": "Variance Information (5 Imputations)\n\n\n\nBetween\nWithin\nTotal\nDF\n\n\n\n\n0\n1\n1\nInf"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-6",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#missing-data-diagnostics-6",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Missing Data Diagnostics",
-    "text": "Missing Data Diagnostics\n\n\n\n\n\n\n\n\nRelative Increase in Variance\nFraction Missing Information\nRelative Efficiency\n\n\n\n\n0\n0\n1"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-4",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#parameter-estimates-5-imputations-4",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Parameter Estimates (5 Imputations)",
-    "text": "Parameter Estimates (5 Imputations)\n\n\n\nEstimate\nStd Error\nLCL\nUCL\nDF\n\n\n\n\n5\n1\n3.040036\n6.959964\nInf"
-  },
-  {
-    "objectID": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-6",
-    "href": "posts/2026-07-20-multiple-impuations-restoring-reality/mianalyze.html#hypothesis-test-6",
-    "title": "Multiple Imputation Analysis with mianalyze()",
-    "section": "Hypothesis Test",
-    "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n5\n5\n0\n5\n1e-06"
-  },
-  {
     "objectID": "r-bloggers.html",
     "href": "r-bloggers.html",
     "title": "Technical Blog",
     "section": "",
-    "text": "This page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nMultiple Imputation Analysis with mianalyze()\n\n\n\nR\n\nMeta\n\nClinical Trials\n\nData analysis\n\nMultiple Imputation\n\nRubin\n\n\n\nRubin’s Rules and Barnard-Rubin Degrees of Freedom\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 20, 2026\n\n\n\n\n\n\n\n\n\n\n\nMultiple Imputation Analysis with mianalyze()\n\n\n\n\n\n\nVladimir Larchenko\n\n\nJul 18, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\n\nR\n\nksTFL\n\nclinical trial\n\nr-package\n\nClinical Reporting\n\n\n\nPerformance comparison of Reporter and ksTFL R-packages\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 13, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
+    "text": "This page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nMultiple Imputation Analysis with mianalyze()\n\n\n\nR\n\nMeta\n\nClinical Trials\n\nData analysis\n\nMultiple Imputation\n\nRubin\n\n\n\nRubin’s Rules and Barnard-Rubin Degrees of Freedom\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 20, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\n\nR\n\nksTFL\n\nclinical trial\n\nr-package\n\nClinical Reporting\n\n\n\nPerformance comparison of Reporter and ksTFL R-packages\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 13, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
   }
 ]
