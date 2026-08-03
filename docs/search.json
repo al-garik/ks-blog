@@ -25,7 +25,7 @@
     "href": "index.html#all-posts",
     "title": "KeyStat Solutions Technical Blog",
     "section": "All Posts",
-    "text": "All Posts\nBelow is a condensed list of all posts grouped by year and month.\n\n2026\n\nJuly\n\nMultiple Imputation Analysis with mianalyze()\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\nGetting Current R-script name in R automatically\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table"
+    "text": "All Posts\nBelow is a condensed list of all posts grouped by year and month.\n\n2026\n\nAugust\n\nPowerful Data Validation Engine\n\n\n\nJuly\n\nMultiple Imputation Analysis with mianalyze()\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\nGetting Current R-script name in R automatically\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table"
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html",
@@ -809,6 +809,125 @@
     "href": "r-bloggers.html",
     "title": "Technical Blog",
     "section": "",
-    "text": "This page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nMultiple Imputation Analysis with mianalyze()\n\n\n\nR\n\nMeta\n\nClinical Trials\n\nData analysis\n\nMultiple Imputation\n\nRubin\n\n\n\nRubin’s Rules and Barnard-Rubin Degrees of Freedom\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 20, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\n\nR\n\nksTFL\n\nclinical trial\n\nr-package\n\nClinical Reporting\n\n\n\nPerformance comparison of Reporter and ksTFL R-packages\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 13, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
+    "text": "This page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPowerful Data Validation Engine\n\n\n\nR\n\nQC\n\nClinical Trials\n\nData analysis\n\nData Management\n\n\n\nExplore a validation framework centered around single simple function\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nAug 3, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nMultiple Imputation Analysis with mianalyze()\n\n\n\nR\n\nMeta\n\nClinical Trials\n\nData analysis\n\nMultiple Imputation\n\nRubin\n\n\n\nRubin’s Rules and Barnard-Rubin Degrees of Freedom\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 20, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\n\nR\n\nksTFL\n\nclinical trial\n\nr-package\n\nClinical Reporting\n\n\n\nPerformance comparison of Reporter and ksTFL R-packages\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 13, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html",
+    "title": "Powerful Data Validation Engine",
+    "section": "",
+    "text": "library(tidyr)\nlibrary(dplyr, warn.conflicts = FALSE)\nlibrary(tibble)\nlibrary(purrr)\nlibrary(glue)\nlibrary(ggplot2)"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#key-features",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#key-features",
+    "title": "Powerful Data Validation Engine",
+    "section": "Key Features",
+    "text": "Key Features\n\nDeclarative rules: Define validation logic in a clean, reusable structure\nTwo evaluation modes: “first” (stops at first failure) vs. “all” (checks all rules)\nRich diagnostics: Detailed error messages per row\nIntegration-friendly: Returns enhanced data frame with results"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#rule-structure",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#rule-structure",
+    "title": "Powerful Data Validation Engine",
+    "section": "Rule Structure",
+    "text": "Rule Structure\nEach rule is a list containing two required elements:\n\nrule &lt;- list(\n  expr = ~ CONDITION_HERE,     # One-sided formula with logical expression\n  msg = \"Error message\"        # Message for failing rows\n)\n\nImportant: The expression should evaluate to TRUE for failing rows. While this may seem counter-intuitive at first, it follows the convention of defining “failure conditions” rather than “passing conditions.”"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#data-structure",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#data-structure",
+    "title": "Powerful Data Validation Engine",
+    "section": "Data Structure",
+    "text": "Data Structure\nYour data frame can contain any mix of variable types. Rules will be applied row-wise."
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#result-structure",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#result-structure",
+    "title": "Powerful Data Validation Engine",
+    "section": "Result Structure",
+    "text": "Result Structure\nThe return value is your original data frame with an additional column called check_msgs, a list-column where each element contains:\n\n\"OK\" for rows that pass all validation rules\nIn \"first\" mode: The first failing message (or \"OK\")\nIn \"all\" mode: A character vector of all violated messages (or \"OK\")"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#complete-example",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#complete-example",
+    "title": "Powerful Data Validation Engine",
+    "section": "Complete Example",
+    "text": "Complete Example\n\nExample data:\n\n# Sample data with intentional errors\nadsl &lt;- tibble(\n  USUBJID = sprintf(\"01-%03d\", 1:6),\n  AGE = c(34, 52, -1, -3, 29, 70),\n  SEX = c(\"M\", \"F\", \"M\", NA, \"F\", \"X\"),\n  WEIGHT = c(70, 80, 75, 500, 65, 68)\n)\n\n\n\nValidation rules\nBest practice: Group related rules together and use descriptive names. While not mandatory, named rules improve code maintainability and make debugging easier:\n\n# Define validation rules\nrules &lt;- list(\n  # Rule 1: Age must be non-negative\n  age_non_negative = list(\n    expr = ~ AGE &lt; 0,\n    msg = \"AGE must be non-negative\"\n  ),\n  \n  # Rule 2: SEX cannot be missing\n  sex_not_missing = list(\n    expr = ~ is.na(SEX),\n    msg = \"SEX is missing\"\n  ),\n  \n  # Rule 3: SEX must be M or F (ignoring missing)\n  sex_valid = list(\n    expr = ~ !is.na(SEX) & !(SEX %in% c(\"M\", \"F\")),\n    msg = \"SEX must be M/F\"\n  ),\n  \n  # Rule 4: WEIGHT within reasonable range\n  weight_range = list(\n    expr = ~ WEIGHT &gt; 300,\n    msg = \"WEIGHT out of range\"\n  )\n)\n\nLet’s extend our rules with some advanced expressions. We can use regular expressions easily:\n\nrules &lt;- append(rules, list(\n  # --- Study Subject Identifier ---\n  usubjid_format = list(\n    expr = ~ !grepl(\"^\\\\d{2}-\\\\d{3}$\", USUBJID),\n    msg = \"USUBJID must match format: XX-XXX-XXX\"\n  )\n))\n\nks_check_rules(adsl, rules, mode = \"all\") |&gt; \n  ks_collapse_check_msgs(col = check_msgs)\n#&gt; # A tibble: 6 × 5\n#&gt;   USUBJID   AGE SEX   WEIGHT check_msgs                                         \n#&gt;   &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;  &lt;dbl&gt; &lt;chr&gt;                                              \n#&gt; 1 01-001     34 M         70 OK                                                 \n#&gt; 2 01-002     52 F         80 OK                                                 \n#&gt; 3 01-003     -1 M         75 AGE must be non-negative                           \n#&gt; 4 01-004     -3 &lt;NA&gt;     500 AGE must be non-negative; SEX is missing; WEIGHT o…\n#&gt; 5 01-005     29 F         65 OK                                                 \n#&gt; 6 01-006     70 X         68 SEX must be M/F\n\nApply rules in first-failing mode:\n\nresult_first &lt;- ks_check_rules(adsl, rules, mode = \"first\") |&gt; \n  ks_collapse_check_msgs(col = check_msgs)\n\nresult_first[, c(\"USUBJID\", \"check_msgs\")]\n#&gt; # A tibble: 6 × 2\n#&gt;   USUBJID check_msgs              \n#&gt;   &lt;chr&gt;   &lt;chr&gt;                   \n#&gt; 1 01-001  OK                      \n#&gt; 2 01-002  OK                      \n#&gt; 3 01-003  AGE must be non-negative\n#&gt; 4 01-004  AGE must be non-negative\n#&gt; 5 01-005  OK                      \n#&gt; 6 01-006  SEX must be M/F\n\nApply rules collecting all failures:\n\nresult_all &lt;- ks_check_rules(adsl, rules, mode = \"all\") |&gt; \n  ks_collapse_check_msgs(col = check_msgs)\n\nresult_all[, c(\"USUBJID\", \"check_msgs\")]\n#&gt; # A tibble: 6 × 2\n#&gt;   USUBJID check_msgs                                                   \n#&gt;   &lt;chr&gt;   &lt;chr&gt;                                                        \n#&gt; 1 01-001  OK                                                           \n#&gt; 2 01-002  OK                                                           \n#&gt; 3 01-003  AGE must be non-negative                                     \n#&gt; 4 01-004  AGE must be non-negative; SEX is missing; WEIGHT out of range\n#&gt; 5 01-005  OK                                                           \n#&gt; 6 01-006  SEX must be M/F"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#when-to-use-which",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#when-to-use-which",
+    "title": "Powerful Data Validation Engine",
+    "section": "When to Use Which?",
+    "text": "When to Use Which?\n\n# Typical use cases\n\n# Quick validation - stop at first issue found\nquick_check &lt;- ks_check_rules(adsl, rules, mode = \"first\")\n\nquick_check\n#&gt; # A tibble: 6 × 5\n#&gt;   USUBJID   AGE SEX   WEIGHT check_msgs\n#&gt;   &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;  &lt;dbl&gt; &lt;list&gt;    \n#&gt; 1 01-001     34 M         70 &lt;chr [1]&gt; \n#&gt; 2 01-002     52 F         80 &lt;chr [1]&gt; \n#&gt; 3 01-003     -1 M         75 &lt;chr [1]&gt; \n#&gt; 4 01-004     -3 &lt;NA&gt;     500 &lt;chr [1]&gt; \n#&gt; 5 01-005     29 F         65 &lt;chr [1]&gt; \n#&gt; 6 01-006     70 X         68 &lt;chr [1]&gt;\n\n# Comprehensive validation - get all issues for full validation\nfull_audit &lt;- ks_check_rules(adsl, rules, mode = \"all\")\n\nfull_audit\n#&gt; # A tibble: 6 × 5\n#&gt;   USUBJID   AGE SEX   WEIGHT check_msgs\n#&gt;   &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;  &lt;dbl&gt; &lt;list&gt;    \n#&gt; 1 01-001     34 M         70 &lt;chr [1]&gt; \n#&gt; 2 01-002     52 F         80 &lt;chr [1]&gt; \n#&gt; 3 01-003     -1 M         75 &lt;chr [1]&gt; \n#&gt; 4 01-004     -3 &lt;NA&gt;     500 &lt;chr [3]&gt; \n#&gt; 5 01-005     29 F         65 &lt;chr [1]&gt; \n#&gt; 6 01-006     70 X         68 &lt;chr [1]&gt;\n\n# Quality assurance check - ensure no errors exist\nstrict_validation &lt;- function(data, rules) {\n\n  result &lt;- ks_check_rules(data, rules, mode = \"all\")\n\n  valid &lt;- purrr::map_lgl(result$check_msgs, ~ \"OK\" %in% .x)\n\n  if (!all(valid)) {\n\n    msgs &lt;- unique(unlist(result$check_msgs[!valid]))\n\n    stop(\n      paste0(\n        \"Validation failed:\\n\",\n        paste0(\" - \", msgs, collapse = \"\\n\")\n      ),\n      call. = FALSE\n    )\n  }\n\n  invisible(result)\n}\n\n# Demonstrate the strict validation error handling\ntryCatch(\n  strict_validation(adsl, rules),\n  error = function(e) {\n    cat(\"Error caught as expected:\\n\")\n    cat(conditionMessage(e), \"\\n\")\n  }\n)\n#&gt; Error caught as expected:\n#&gt; Validation failed:\n#&gt;  - AGE must be non-negative\n#&gt;  - SEX is missing\n#&gt;  - WEIGHT out of range\n#&gt;  - SEX must be M/F"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#performance-tips",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#performance-tips",
+    "title": "Powerful Data Validation Engine",
+    "section": "Performance Tips",
+    "text": "Performance Tips\n\nOrder matters in “first” mode: Place faster-to-evaluate rules first for performance gain\nGroup related columns: Organize rules by data columns for better organization\nUse vectorized operations: Write expressions using vectorized functions"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#categorizing-violations",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#categorizing-violations",
+    "title": "Powerful Data Validation Engine",
+    "section": "Categorizing Violations",
+    "text": "Categorizing Violations\nYou can post-process results to categorize violations:\n\nclassify_violations &lt;- function(df) {\n  df %&gt;%\n    mutate(\n      violation_type = map_chr(\n        check_msgs,\n        ~ if (\"OK\" %in% .x) \"clean\" else \"dirty\"\n      ),\n      num_violations = map_int(\n        check_msgs,\n        ~ if (\"OK\" %in% .x) 0L else n_distinct(.x)\n      )\n    )\n}\n\nvalidation_result &lt;- ks_check_rules(adsl, rules, mode = \"all\")\n\nclassified_data &lt;- classify_violations(validation_result)\n\nclassified_data\n#&gt; # A tibble: 6 × 7\n#&gt;   USUBJID   AGE SEX   WEIGHT check_msgs violation_type num_violations\n#&gt;   &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;  &lt;dbl&gt; &lt;list&gt;     &lt;chr&gt;                   &lt;int&gt;\n#&gt; 1 01-001     34 M         70 &lt;chr [1]&gt;  clean                       0\n#&gt; 2 01-002     52 F         80 &lt;chr [1]&gt;  clean                       0\n#&gt; 3 01-003     -1 M         75 &lt;chr [1]&gt;  dirty                       1\n#&gt; 4 01-004     -3 &lt;NA&gt;     500 &lt;chr [3]&gt;  dirty                       3\n#&gt; 5 01-005     29 F         65 &lt;chr [1]&gt;  clean                       0\n#&gt; 6 01-006     70 X         68 &lt;chr [1]&gt;  dirty                       1"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#generating-summary-reports",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#generating-summary-reports",
+    "title": "Powerful Data Validation Engine",
+    "section": "Generating Summary Reports",
+    "text": "Generating Summary Reports\n\ngenerate_report &lt;- function(df, rules = NULL) {\n\n  violations_summary &lt;- df %&gt;%\n    filter(!map_lgl(check_msgs, ~ \"OK\" %in% .x)) %&gt;%\n    unnest_longer(check_msgs) %&gt;%\n    count(check_msgs, name = \"count\") %&gt;%\n    rename(message = check_msgs)\n\n  n_valid &lt;- sum(map_lgl(df$check_msgs, ~ \"OK\" %in% .x))\n  n_invalid &lt;- nrow(df) - n_valid\n\n  cat(\"# Data Validation Report\\n\\n\")\n\n  cat(\"## Summary Statistics\\n\\n\")\n  cat(\"- Total rows checked:\", nrow(df), \"\\n\")\n  cat(\"- Violating rows:\", n_invalid, \"\\n\")\n  cat(\"- Valid rows:\", n_valid, \"\\n\\n\")\n\n  cat(\"## Violation Breakdown\\n\\n\")\n\n  print(violations_summary)\n}\n\n\ngenerate_report(validation_result, rules)\n#&gt; # Data Validation Report\n#&gt; \n#&gt; ## Summary Statistics\n#&gt; \n#&gt; - Total rows checked: 6 \n#&gt; - Violating rows: 3 \n#&gt; - Valid rows: 3 \n#&gt; \n#&gt; ## Violation Breakdown\n#&gt; \n#&gt; # A tibble: 4 × 2\n#&gt;   message                  count\n#&gt;   &lt;chr&gt;                    &lt;int&gt;\n#&gt; 1 AGE must be non-negative     2\n#&gt; 2 SEX is missing               1\n#&gt; 3 SEX must be M/F              1\n#&gt; 4 WEIGHT out of range          1"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#visualizing-validation-results",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#visualizing-validation-results",
+    "title": "Powerful Data Validation Engine",
+    "section": "Visualizing Validation Results",
+    "text": "Visualizing Validation Results\nThere are several possibilities to visualize a validation:\n\n# For a single-row heatmap-like display, add a constant y value.\nvisualize_results1 &lt;- function(df) {\n\n  df &lt;- df %&gt;%\n    mutate(\n      status = factor(\n        ifelse(\n          map_lgl(check_msgs, ~ \"OK\" %in% .x),\n          \"Valid\",\n          \"Invalid\"\n        ),\n        levels = c(\"Valid\", \"Invalid\")\n      ),\n      y = \"Subjects\"\n    )\n\n  ggplot(df, aes(x = USUBJID, y = y, fill = status)) +\n    geom_tile(height = 0.6, color = \"white\") +\n    scale_fill_manual(\n      values = c(\n        Valid = \"#2ecc71\",\n        Invalid = \"#e74c3c\"\n      )\n    ) +\n    labs(x = \"Subject\", y = NULL, fill = \"Status\") +\n    theme_minimal() +\n    theme(\n      axis.text.x = element_text(angle = 45, hjust = 1)\n    )\n}\n\n# Alternative: Bar chart (usually more informative)\nvisualize_results2 &lt;- function(df) {\n\n  df %&gt;%\n    mutate(\n      status = ifelse(\n        purrr::map_lgl(check_msgs, ~ \"OK\" %in% .x),\n        \"Valid\",\n        \"Invalid\"\n      )\n    ) %&gt;%\n    ggplot(aes(status, fill = status)) +\n    geom_bar() +\n    scale_fill_manual(\n      values = c(\n        Valid = \"#2ecc71\",\n        Invalid = \"#e74c3c\"\n      )\n    ) +\n    labs(\n      x = NULL,\n      y = \"Number of records\",\n      fill = \"Status\"\n    ) +\n    theme_minimal()\n}\n\n# Alternative: Show number of violations per subject\n# If subjects can have multiple violations, this is often the most useful diagnostic plot:\n\nvisualize_results3 &lt;- function(df) {\n\n  df %&gt;%\n    mutate(\n      n_violations = map_int(\n        check_msgs,\n        ~ if (\"OK\" %in% .x) 0L else length(.x)\n      )\n    ) %&gt;%\n    ggplot(aes(reorder(USUBJID, n_violations), n_violations)) +\n    geom_col() +\n    coord_flip() +\n    labs(\n      x = \"Subject\",\n      y = \"Number of violations\"\n    ) +\n    theme_minimal()\n}\n\n# Example visualization\nvisualize_results1(validation_result)\n\n\n\n\n\n\n\nvisualize_results2(validation_result)\n\n\n\n\n\n\n\nvisualize_results3(validation_result)\n\n\n\n\n\n\n\n\nFor a data validation engine, the last plot tends to be the most actionable because it immediately highlights the worst offending records."
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#range-checks",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#range-checks",
+    "title": "Powerful Data Validation Engine",
+    "section": "Range Checks",
+    "text": "Range Checks\n\nrules_range &lt;- list(\n  age_range = list(\n    expr = ~ AGE &lt; 18 | AGE &gt; 120,\n    msg = \"Age must be between 18 and 120\"\n  ),\n  weight_range = list(\n    expr = ~ WEIGHT &lt; 30 | WEIGHT &gt; 250,\n    msg = \"Weight must be between 30 and 250 kg\"\n  )\n)"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#presence-checks",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#presence-checks",
+    "title": "Powerful Data Validation Engine",
+    "section": "Presence Checks",
+    "text": "Presence Checks\n\nrules_presence &lt;- list(\n  id_not_missing = list(\n    expr = ~ is.na(USUBJID),\n    msg = \"Subject ID cannot be missing\"\n  ),\n  date_complete = list(\n    expr = ~ is.na(ENR_DATE) | ENR_DATE == \"\",\n    msg = \"Enrollment date must be specified\"\n  )\n)"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#format-validation",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#format-validation",
+    "title": "Powerful Data Validation Engine",
+    "section": "Format Validation",
+    "text": "Format Validation\n\nrules_format &lt;- list(\n  date_format = list(\n    expr = ~ !grepl(\"^\\\\d{4}-\\\\d{2}-\\\\d{2}$\", ENR_DATE),\n    msg = \"Date must be in YYYY-MM-DD format\"\n  ),\n  email_format = list(\n    expr = ~ !grepl(\"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,6}$\", EMAIL),\n    msg = \"Invalid email format\"\n  )\n)"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#conditional-checks",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#conditional-checks",
+    "title": "Powerful Data Validation Engine",
+    "section": "Conditional Checks",
+    "text": "Conditional Checks\n\nrules_conditional &lt;- list(\n  # If treatment is \"Placebo\", then dose must be zero\n  placebo_zero_dose = list(\n    expr = ~ TRTP == \"Placebo\" & DOSE != 0,\n    msg = \"Placebo must have zero dose\"\n  ),\n  \n  # If value is missing, flag specific column\n  aval_not_missing = list(\n    expr = ~ is.na(AVAL),\n    msg = \"AVAL cannot be missing\"\n  )\n)"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#reference-data-checks",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#reference-data-checks",
+    "title": "Powerful Data Validation Engine",
+    "section": "Reference Data Checks",
+    "text": "Reference Data Checks\n\n# Predefined reference values\nreference_values &lt;- tibble(\n  code = c(\"M\", \"F\", \"U\"),\n  description = c(\"Male\", \"Female\", \"Unknown\")\n)\n\nrules_reference &lt;- list(\n  sex_known_values = list(\n    expr = ~ !is.na(SEX) & !(SEX %in% reference_values$code),\n    msg = glue(\"Invalid SEX code. Must be one of: {paste(reference_values$code, collapse = \", \")}\")\n  )\n)"
+  },
+  {
+    "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html#key-benefits",
+    "href": "posts/2026-08-03-powerful-data-validation-engine/index.html#key-benefits",
+    "title": "Powerful Data Validation Engine",
+    "section": "Key Benefits",
+    "text": "Key Benefits\nModular Architecture\n\nRules are decoupled from business logic\nEasy to extend and maintain\nSupports dynamic rule configuration\nEarly-exit “first” mode for critical validation\n\nSeamless tidyverse Integration\n\nSupports custom rule definitions\nIntegrates naturally with data processing pipelines\nWorks with standard tidyverse verbs (mutate(), filter(), etc.)\n\nFuture Roadmap\n\nEnhanced rule documentation with metadata standards\nImproved error message templates\nAdvanced validation patterns for cross-dataset checks\nPerformance optimizations for large datasets"
   }
 ]
