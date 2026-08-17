@@ -25,7 +25,7 @@
     "href": "index.html#all-posts",
     "title": "KeyStat Solutions Technical Blog",
     "section": "All Posts",
-    "text": "All Posts\nBelow is a condensed list of all posts grouped by year and month.\n\n2026\n\nAugust\n\nPowerful Data Validation Engine\n\n\n\nJuly\n\nMultiple Imputation Analysis with mianalyze()\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\nGetting Current R-script name in R automatically\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table"
+    "text": "All Posts\nBelow is a condensed list of all posts grouped by year and month.\n\n2026\n\nAugust\n\nDecorator Pattern in R for Clinical Statistics\n\n\nPowerful Data Validation Engine\n\n\n\nJuly\n\nMultiple Imputation Analysis with mianalyze()\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\nGetting Current R-script name in R automatically\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table"
   },
   {
     "objectID": "posts/2026-07-09-non-standard-applications-of-ksformat/index.html",
@@ -809,7 +809,7 @@
     "href": "r-bloggers.html",
     "title": "Technical Blog",
     "section": "",
-    "text": "This page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPowerful Data Validation Engine\n\n\n\nR\n\nQC\n\nClinical Trials\n\nData analysis\n\nData Management\n\n\n\nExplore a validation framework centered around single simple function\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nAug 3, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nMultiple Imputation Analysis with mianalyze()\n\n\n\nR\n\nMeta\n\nClinical Trials\n\nData analysis\n\nMultiple Imputation\n\nRubin\n\n\n\nRubin’s Rules and Barnard-Rubin Degrees of Freedom\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 20, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\n\nR\n\nksTFL\n\nclinical trial\n\nr-package\n\nClinical Reporting\n\n\n\nPerformance comparison of Reporter and ksTFL R-packages\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 13, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
+    "text": "This page generates an RSS feed of R-related posts only for R-Bloggers syndication.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nDecorator Pattern in R for Clinical Statistics\n\n\n\nR\n\nQC\n\nClinical Trials\n\nData analysis\n\nData Management\n\nDynamic Programming (DP)\n\n\n\n\n\n\n\nVladimir Larchenko\n\n\nAug 17, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nPowerful Data Validation Engine\n\n\n\nR\n\nQC\n\nClinical Trials\n\nData analysis\n\nData Management\n\n\n\nExplore a validation framework centered around single simple function\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nAug 3, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nMultiple Imputation Analysis with mianalyze()\n\n\n\nR\n\nMeta\n\nClinical Trials\n\nData analysis\n\nMultiple Imputation\n\nRubin\n\n\n\nRubin’s Rules and Barnard-Rubin Degrees of Freedom\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 20, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\n\nR\n\nksTFL\n\nclinical trial\n\nr-package\n\nClinical Reporting\n\n\n\nPerformance comparison of Reporter and ksTFL R-packages\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 13, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Current R-script name in R automatically\n\n\n\nR\n\nTips\n\nScripts\n\nClinical Programming\n\n\n\nHow to obtain the currently sourced script name in R without hardcoding it\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\n\nR\n\nksformat\n\nclinical trial\n\nr-package\n\nSAS-format\n\n\n\nThis post covers some unusual and interesting application of the ksformat package in clinical trials\n\n\n\nVladimir Larchenko (KeyStat Solutions)\n\n\nJul 9, 2026\n\n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table\n\n\n\nR\n\nksTFL\n\nClinical Programming\n\n\n\nA short intro to ksTFL R-Package to generate Clinical TFLs\n\n\n\nIgor Aleschenkov (KeyStat Solutions)\n\n\nJul 6, 2026\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "posts/2026-08-03-powerful-data-validation-engine/index.html",
@@ -929,5 +929,75 @@
     "title": "Powerful Data Validation Engine",
     "section": "Key Benefits",
     "text": "Key Benefits\nModular Architecture\n\nRules are decoupled from business logic\nEasy to extend and maintain\nSupports dynamic rule configuration\nEarly-exit “first” mode for critical validation\n\nSeamless tidyverse Integration\n\nSupports custom rule definitions\nIntegrates naturally with data processing pipelines\nWorks with standard tidyverse verbs (mutate(), filter(), etc.)\n\nFuture Roadmap\n\nEnhanced rule documentation with metadata standards\nImproved error message templates\nAdvanced validation patterns for cross-dataset checks\nPerformance optimizations for large datasets"
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html",
+    "href": "posts/2026-08-17-decorators/index.html",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "",
+    "text": "Decorator architecture"
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#logging",
+    "href": "posts/2026-08-17-decorators/index.html#logging",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Logging",
+    "text": "Logging\n\nwith_logging &lt;- function(fun, label = \"analysis\") {\n  function(...) {\n    message(sprintf(\"[%s] started\", label))\n    result &lt;- fun(...)\n    message(sprintf(\"[%s] finished\", label))\n    result\n  }\n}"
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#timing",
+    "href": "posts/2026-08-17-decorators/index.html#timing",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Timing",
+    "text": "Timing\n\nwith_timing &lt;- function(fun) {\n  function(...) {\n    t0 &lt;- proc.time()[[\"elapsed\"]]\n    result &lt;- fun(...)\n    elapsed &lt;- proc.time()[[\"elapsed\"]] - t0\n    message(sprintf(\"Elapsed: %.3f s\", elapsed))\n    result\n  }\n}"
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#validation",
+    "href": "posts/2026-08-17-decorators/index.html#validation",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Validation",
+    "text": "Validation\n\nwith_validation &lt;- function(fun, required = character()) {\n  function(data, ...) {\n    stopifnot(is.data.frame(data), nrow(data) &gt; 0)\n    missing &lt;- setdiff(required, names(data))\n    if (length(missing) &gt; 0) {\n      stop(\n        \"Missing required columns: \",\n        paste(missing, collapse = \", \"),\n        call. = FALSE\n      )\n    }\n    fun(data, ...)\n  }\n}"
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#warning-capture",
+    "href": "posts/2026-08-17-decorators/index.html#warning-capture",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Warning capture",
+    "text": "Warning capture\nStatistical procedures often emit warnings. Capture and muffle them so callers can decide how to report:\n\nwith_warning_capture &lt;- function(fun) {\n  function(...) {\n    warnings &lt;- character()\n    result &lt;- withCallingHandlers(\n      fun(...),\n      warning = function(w) {\n        warnings &lt;&lt;- c(warnings, conditionMessage(w))\n        invokeRestart(\"muffleWarning\")\n      }\n    )\n    list(result = result, warnings = warnings)\n  }\n}\n\nInterface note. Decorators that only forward (with_logging, with_timing, with_validation) preserve the analysis return type. with_warning_capture and with_audit change the return shape to a list — place them outermost when you need that metadata."
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#audit-trail",
+    "href": "posts/2026-08-17-decorators/index.html#audit-trail",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Audit trail",
+    "text": "Audit trail\n\nwith_audit &lt;- function(fun, analysis_id = \"analysis\") {\n  function(data, ...) {\n    t0 &lt;- Sys.time()\n    result &lt;- fun(data, ...)\n    meta &lt;- list(\n      analysis_id = analysis_id,\n      user = Sys.info()[[\"user\"]],\n      started = t0,\n      finished = Sys.time(),\n      n_rows = nrow(data),\n      data_digest = digest(data),\n      r_version = R.version.string,\n      git_sha = Sys.getenv(\"GIT_SHA\", unset = NA_character_)\n    )\n    list(result = result, audit = meta)\n  }\n}"
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#caching",
+    "href": "posts/2026-08-17-decorators/index.html#caching",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Caching",
+    "text": "Caching\n\nwith_cache &lt;- function(fun, cache_dir = tempdir(), prefix = \"decor\") {\n  if (!dir.exists(cache_dir)) {\n    dir.create(cache_dir, recursive = TRUE)\n  }\n  function(data, ...) {\n    key &lt;- digest(list(data = data, dots = list(...)))\n    path &lt;- file.path(cache_dir, paste0(prefix, \"-\", key, \".rds\"))\n    if (file.exists(path)) {\n      message(\"Cache hit: \", basename(path))\n      return(readRDS(path))\n    }\n    message(\"Cache miss — running analysis\")\n    result &lt;- fun(data, ...)\n    saveRDS(result, path)\n    result\n  }\n}"
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#composition",
+    "href": "posts/2026-08-17-decorators/index.html#composition",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Composition",
+    "text": "Composition\nPipe order = wrap order. Below, validation is outermost; timing sits closest to the scientific core:\n\ndemo_adsl &lt;- tibble(\n  USUBJID = sprintf(\"P%03d\", 1:12),\n  AGE = c(45, 52, 38, 61, 49, 55, 41, 58, 47, 53, 36, 62),\n  TRT01P = rep(c(\"Placebo\", \"Drug A\"), each = 6)\n)\n\nanalysis_demo &lt;- mean_sd_by_trt |&gt;\n  with_validation(required = c(\"AGE\", \"TRT01P\")) |&gt;\n  with_logging(label = \"mean_sd_by_trt\") |&gt;\n  with_timing()\n\nanalysis_demo(demo_adsl)\n\n[mean_sd_by_trt] started\n\n\n[mean_sd_by_trt] finished\n\n\nElapsed: 0.006 s\n\n\n# A tibble: 2 × 4\n  TRT01P      n mean_age sd_age\n  &lt;chr&gt;   &lt;int&gt;    &lt;dbl&gt;  &lt;dbl&gt;\n1 Drug A      6     49.5   10.0\n2 Placebo     6     50      8  \n\n\nNothing inside mean_sd_by_trt() changed."
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#independent-qc",
+    "href": "posts/2026-08-17-decorators/index.html#independent-qc",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Independent QC",
+    "text": "Independent QC\nA QC decorator does not embed SAS or a second R engine inside the scientific function. It orchestrates two result producers and compares:\nPrimary analysis(data)\n  → Independent QC analysis(data)   # separate script / batch / team\n  → Compare key columns / digits\n  → Write QC report\n  → Return primary result (+ QC status)\nSketch (both sides in R for illustration):\n\nwith_qc_compare &lt;- function(fun, qc_fun, tol = 1e-8) {\n  function(data, ...) {\n    primary &lt;- fun(data, ...)\n    qc &lt;- qc_fun(data, ...)\n    # Align on common columns for a simple numeric check\n    common &lt;- intersect(names(primary), names(qc))\n    num_cols &lt;- common[map_lgl(primary[common], is.numeric)]\n    deltas &lt;- map_dbl(num_cols, function(col) {\n      max(abs(primary[[col]] - qc[[col]]), na.rm = TRUE)\n    })\n    status &lt;- all(deltas &lt;= tol, na.rm = TRUE)\n    list(\n      result = primary,\n      qc_ok = status,\n      max_abs_delta = if (length(deltas)) max(deltas) else NA_real_\n    )\n  }\n}\n\n# \"Independent\" QC: same science, slightly different implementation\nmean_sd_by_trt_qc &lt;- function(data) {\n  data |&gt;\n    summarise(\n      n = sum(!is.na(AGE)),\n      mean_age = mean(AGE, na.rm = TRUE),\n      sd_age = sd(AGE, na.rm = TRUE),\n      .by = TRT01P\n    ) |&gt;\n    arrange(match(TRT01P, unique(data$TRT01P)))\n}\n\nqc_pipeline &lt;- mean_sd_by_trt |&gt;\n  with_validation(required = c(\"AGE\", \"TRT01P\")) |&gt;\n  with_qc_compare(qc_fun = mean_sd_by_trt_qc)\n\nqc_out &lt;- qc_pipeline(demo_adsl)\nqc_out$qc_ok\n\n[1] FALSE\n\nqc_out$max_abs_delta\n\n[1] 2.014989\n\nqc_out$result\n\n# A tibble: 2 × 4\n  TRT01P      n mean_age sd_age\n  &lt;chr&gt;   &lt;int&gt;    &lt;dbl&gt;  &lt;dbl&gt;\n1 Drug A      6     49.5   10.0\n2 Placebo     6     50      8  \n\n\nA production decorator would call an external QC artefact (SAS listing, locked CSV, validated package) instead of mean_sd_by_trt_qc."
+  },
+  {
+    "objectID": "posts/2026-08-17-decorators/index.html#export",
+    "href": "posts/2026-08-17-decorators/index.html#export",
+    "title": "Decorator Pattern in R for Clinical Statistics",
+    "section": "Export",
+    "text": "Export\nExport belongs at the boundary, not inside the model:\n\nwith_csv_export &lt;- function(fun, path) {\n  function(...) {\n    result &lt;- fun(...)\n    to_write &lt;- if (is.data.frame(result)) {\n      result\n    } else if (is.list(result) && is.data.frame(result$result)) {\n      result$result\n    } else {\n      stop(\"Export decorator expects a data frame result\", call. = FALSE)\n    }\n    utils::write.csv(to_write, path, row.names = FALSE)\n    message(\"Wrote \", path)\n    result\n  }\n}\n\nPrefer a dedicated renderer such as ksTFL for submission DOCX rather than growing ad hoc write_rtf / write_pdf branches inside every analysis."
   }
 ]

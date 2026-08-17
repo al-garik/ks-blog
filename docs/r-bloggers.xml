@@ -10,7 +10,2143 @@
 <atom:link href="https://al-garik.github.io/ks-blog/r-bloggers.xml" rel="self" type="application/rss+xml"/>
 <description>Articles about R programming, and clinical data analysis and reporting</description>
 <generator>quarto-1.10.18</generator>
-<lastBuildDate>Sun, 02 Aug 2026 21:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 16 Aug 2026 21:00:00 GMT</lastBuildDate>
+<item>
+  <title>Decorator Pattern in R for Clinical Statistics</title>
+  <dc:creator>Vladimir Larchenko</dc:creator>
+  <link>https://al-garik.github.io/ks-blog/posts/2026-08-17-decorators/</link>
+  <description><![CDATA[ 
+
+
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/post-logo.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Decorator architecture"><img src="https://al-garik.github.io/ks-blog/posts/2026-08-17-decorators/images/post-logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img" alt="Decorator architecture"></a></p>
+</figure>
+</div>
+<figcaption>Decorator architecture</figcaption>
+</figure>
+</div>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>The <strong>Decorator</strong> pattern (Gamma et al., 1994) is one of the most practical Gang of Four (GoF) patterns for statistical programming.</p>
+<p>The idea is simple:</p>
+<blockquote class="blockquote">
+<p>Attach additional behaviour to an existing object or function <strong>without modifying its implementation</strong>.</p>
+</blockquote>
+<p>In clinical studies that separation matters because scientific algorithms change slowly while infrastructure requirements keep growing. A thin demography or Cox fit eventually needs logging, validation, timing, audit trails, caching, QC comparison, and export — none of which belong inside the statistical core.</p>
+<p>Instead of rewriting every analysis, those responsibilities become <strong>decorators</strong>: higher-order functions that wrap an analysis and return a new function with the same call shape.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(dplyr, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">warn.conflicts =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyr)</span>
+<span id="cb1-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(purrr)</span>
+<span id="cb1-4"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(survival)</span>
+<span id="cb1-5"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(digest)</span></code></pre></div></div>
+</div>
+</section>
+<section id="motivation" class="level1">
+<h1>Motivation</h1>
+<p>Start with a tidy demography summary — scientific logic only:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">mean_sd_by_trt <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data) {</span>
+<span id="cb2-2">  data <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-3">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(TRT01P) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-4">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summarise</span>(</span>
+<span id="cb2-5">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.na</span>(AGE)),</span>
+<span id="cb2-6">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean_age =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>(AGE, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb2-7">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd_age =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sd</span>(AGE, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb2-8">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.groups =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"drop"</span></span>
+<span id="cb2-9">    )</span>
+<span id="cb2-10">}</span></code></pre></div></div>
+</div>
+<p>Months later the project also wants:</p>
+<pre class="text"><code>Validate input
+  → Log execution
+  → Measure elapsed time
+  → Capture warnings
+  → Write an audit trail
+  → Cache results
+  → Compare against an independent QC run
+  → Export display artefacts</code></pre>
+<p>If all of that is pasted into <code>mean_sd_by_trt()</code>, the function is dominated by infrastructure. The Decorator pattern keeps the science thin and stacks operational concerns outside.</p>
+</section>
+<section id="structure" class="level1">
+<h1>Structure</h1>
+<p>Decorators wrap <strong>outward</strong>. Composition order in a pipe is the order wrappers are applied; the <strong>outermost</strong> decorator runs first on each call.</p>
+<div class="cell" data-fig-width="6.5" data-fig-asp="0.18" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="decorator-stack">
+<div>
+<pre class="mermaid mermaid-js" data-label="decorator-stack">%%{init: {"theme": "neutral", "flowchart": {"rankSpacing": 36, "nodeSpacing": 16, "padding": 4}}}%%
+flowchart LR
+  callNode[CallAnalysis] --&gt; val[Validation]
+  val --&gt; logNode[Logging]
+  logNode --&gt; timing[Timing]
+  timing --&gt; core[MeanSdByTrt]
+  core --&gt; resultNode[Result]
+</pre>
+</div>
+</div>
+</div>
+</div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Nearby idea</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Inheritance explosion</td>
+<td><code>AnalysisWithLoggingAndTimingAnd…</code> subclasses</td>
+</tr>
+<tr class="even">
+<td>Middleware pipeline</td>
+<td>Ordered request/response stages (often evolves <em>from</em> decorators)</td>
+</tr>
+<tr class="odd">
+<td>Adapter</td>
+<td>Normalises <em>data</em> interfaces; Decorator extends <em>behaviour</em></td>
+</tr>
+<tr class="even">
+<td>Strategy</td>
+<td>Swappable scientific method; Decorator adds orthogonal concerns</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functional-decorators-in-r" class="level1">
+<h1>Functional Decorators in R</h1>
+<p>Functions are first-class in R, so a decorator is naturally a function that takes a function and returns a function.</p>
+<section id="logging" class="level2">
+<h2 class="anchored" data-anchor-id="logging">Logging</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1">with_logging <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(fun, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"analysis"</span>) {</span>
+<span id="cb4-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(...) {</span>
+<span id="cb4-3">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">message</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"[%s] started"</span>, label))</span>
+<span id="cb4-4">    result <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fun</span>(...)</span>
+<span id="cb4-5">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">message</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"[%s] finished"</span>, label))</span>
+<span id="cb4-6">    result</span>
+<span id="cb4-7">  }</span>
+<span id="cb4-8">}</span></code></pre></div></div>
+</div>
+</section>
+<section id="timing" class="level2">
+<h2 class="anchored" data-anchor-id="timing">Timing</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1">with_timing <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(fun) {</span>
+<span id="cb5-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(...) {</span>
+<span id="cb5-3">    t0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">proc.time</span>()[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"elapsed"</span>]]</span>
+<span id="cb5-4">    result <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fun</span>(...)</span>
+<span id="cb5-5">    elapsed <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">proc.time</span>()[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"elapsed"</span>]] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> t0</span>
+<span id="cb5-6">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">message</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Elapsed: %.3f s"</span>, elapsed))</span>
+<span id="cb5-7">    result</span>
+<span id="cb5-8">  }</span>
+<span id="cb5-9">}</span></code></pre></div></div>
+</div>
+</section>
+<section id="validation" class="level2">
+<h2 class="anchored" data-anchor-id="validation">Validation</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1">with_validation <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(fun, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">required =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">character</span>()) {</span>
+<span id="cb6-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data, ...) {</span>
+<span id="cb6-3">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stopifnot</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.data.frame</span>(data), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(data) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span>
+<span id="cb6-4">    missing <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">setdiff</span>(required, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(data))</span>
+<span id="cb6-5">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(missing) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>) {</span>
+<span id="cb6-6">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(</span>
+<span id="cb6-7">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Missing required columns: "</span>,</span>
+<span id="cb6-8">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste</span>(missing, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">collapse =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">", "</span>),</span>
+<span id="cb6-9">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">call. =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb6-10">      )</span>
+<span id="cb6-11">    }</span>
+<span id="cb6-12">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fun</span>(data, ...)</span>
+<span id="cb6-13">  }</span>
+<span id="cb6-14">}</span></code></pre></div></div>
+</div>
+</section>
+<section id="warning-capture" class="level2">
+<h2 class="anchored" data-anchor-id="warning-capture">Warning capture</h2>
+<p>Statistical procedures often emit warnings. Capture and muffle them so callers can decide how to report:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1">with_warning_capture <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(fun) {</span>
+<span id="cb7-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(...) {</span>
+<span id="cb7-3">    warnings <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">character</span>()</span>
+<span id="cb7-4">    result <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">withCallingHandlers</span>(</span>
+<span id="cb7-5">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fun</span>(...),</span>
+<span id="cb7-6">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">warning =</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(w) {</span>
+<span id="cb7-7">        warnings <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(warnings, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">conditionMessage</span>(w))</span>
+<span id="cb7-8">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">invokeRestart</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"muffleWarning"</span>)</span>
+<span id="cb7-9">      }</span>
+<span id="cb7-10">    )</span>
+<span id="cb7-11">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">result =</span> result, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">warnings =</span> warnings)</span>
+<span id="cb7-12">  }</span>
+<span id="cb7-13">}</span></code></pre></div></div>
+</div>
+<p><strong>Interface note.</strong> Decorators that only forward (<code>with_logging</code>, <code>with_timing</code>, <code>with_validation</code>) preserve the analysis return type. <code>with_warning_capture</code> and <code>with_audit</code> change the return shape to a list — place them <strong>outermost</strong> when you need that metadata.</p>
+</section>
+<section id="audit-trail" class="level2">
+<h2 class="anchored" data-anchor-id="audit-trail">Audit trail</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1">with_audit <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(fun, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">analysis_id =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"analysis"</span>) {</span>
+<span id="cb8-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data, ...) {</span>
+<span id="cb8-3">    t0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.time</span>()</span>
+<span id="cb8-4">    result <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fun</span>(data, ...)</span>
+<span id="cb8-5">    meta <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb8-6">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">analysis_id =</span> analysis_id,</span>
+<span id="cb8-7">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">user =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.info</span>()[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"user"</span>]],</span>
+<span id="cb8-8">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">started =</span> t0,</span>
+<span id="cb8-9">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">finished =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.time</span>(),</span>
+<span id="cb8-10">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n_rows =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(data),</span>
+<span id="cb8-11">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data_digest =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">digest</span>(data),</span>
+<span id="cb8-12">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">r_version =</span> R.version.string,</span>
+<span id="cb8-13">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">git_sha =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.getenv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"GIT_SHA"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">unset =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_character_</span>)</span>
+<span id="cb8-14">    )</span>
+<span id="cb8-15">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">result =</span> result, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">audit =</span> meta)</span>
+<span id="cb8-16">  }</span>
+<span id="cb8-17">}</span></code></pre></div></div>
+</div>
+</section>
+<section id="caching" class="level2">
+<h2 class="anchored" data-anchor-id="caching">Caching</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1">with_cache <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(fun, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cache_dir =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tempdir</span>(), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prefix =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"decor"</span>) {</span>
+<span id="cb9-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dir.exists</span>(cache_dir)) {</span>
+<span id="cb9-3">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dir.create</span>(cache_dir, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">recursive =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb9-4">  }</span>
+<span id="cb9-5">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data, ...) {</span>
+<span id="cb9-6">    key <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">digest</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> data, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dots =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(...)))</span>
+<span id="cb9-7">    path <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">file.path</span>(cache_dir, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste0</span>(prefix, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"-"</span>, key, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">".rds"</span>))</span>
+<span id="cb9-8">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">file.exists</span>(path)) {</span>
+<span id="cb9-9">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">message</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Cache hit: "</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">basename</span>(path))</span>
+<span id="cb9-10">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">readRDS</span>(path))</span>
+<span id="cb9-11">    }</span>
+<span id="cb9-12">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">message</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Cache miss — running analysis"</span>)</span>
+<span id="cb9-13">    result <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fun</span>(data, ...)</span>
+<span id="cb9-14">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">saveRDS</span>(result, path)</span>
+<span id="cb9-15">    result</span>
+<span id="cb9-16">  }</span>
+<span id="cb9-17">}</span></code></pre></div></div>
+</div>
+</section>
+<section id="composition" class="level2">
+<h2 class="anchored" data-anchor-id="composition">Composition</h2>
+<p>Pipe order = wrap order. Below, validation is outermost; timing sits closest to the scientific core:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1">demo_adsl <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb10-2">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">USUBJID =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"P%03d"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>),</span>
+<span id="cb10-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">AGE =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">45</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">52</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">38</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">61</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">49</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">55</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">41</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">58</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">47</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">53</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">36</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">62</span>),</span>
+<span id="cb10-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">TRT01P =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Placebo"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Drug A"</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">each =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb10-5">)</span>
+<span id="cb10-6"></span>
+<span id="cb10-7">analysis_demo <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> mean_sd_by_trt <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb10-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_validation</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">required =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AGE"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TRT01P"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb10-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_logging</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mean_sd_by_trt"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb10-10">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_timing</span>()</span>
+<span id="cb10-11"></span>
+<span id="cb10-12"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">analysis_demo</span>(demo_adsl)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[mean_sd_by_trt] started</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[mean_sd_by_trt] finished</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Elapsed: 0.006 s</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+  TRT01P      n mean_age sd_age
+  &lt;chr&gt;   &lt;int&gt;    &lt;dbl&gt;  &lt;dbl&gt;
+1 Drug A      6     49.5   10.0
+2 Placebo     6     50      8  </code></pre>
+</div>
+</div>
+<p>Nothing inside <code>mean_sd_by_trt()</code> changed.</p>
+</section>
+</section>
+<section id="example-a-demography-with-a-production-stack" class="level1">
+<h1>Example A: demography with a production stack</h1>
+<p>Build a stack that validates, logs, times, audits, and captures warnings:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1">demog_pipeline <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> mean_sd_by_trt <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb15-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_validation</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">required =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AGE"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TRT01P"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb15-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_logging</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"demog"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb15-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_timing</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb15-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_audit</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">analysis_id =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"T14.1.1_AGE"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb15-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_warning_capture</span>()</span>
+<span id="cb15-7"></span>
+<span id="cb15-8">demog_out <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">demog_pipeline</span>(demo_adsl)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[demog] started</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[demog] finished</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Elapsed: 0.007 s</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1">demog_out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>result<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>result</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+  TRT01P      n mean_age sd_age
+  &lt;chr&gt;   &lt;int&gt;    &lt;dbl&gt;  &lt;dbl&gt;
+1 Drug A      6     49.5   10.0
+2 Placebo     6     50      8  </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1">demog_out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>result<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>audit[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"analysis_id"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n_rows"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data_digest"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"r_version"</span>)]</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$analysis_id
+[1] "T14.1.1_AGE"
+
+$n_rows
+[1] 12
+
+$data_digest
+[1] "383d0381481e749027197b84c3086256"
+
+$r_version
+[1] "R version 4.6.1 (2026-06-24)"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1">demog_out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>warnings</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>character(0)</code></pre>
+</div>
+</div>
+<p>Because <code>with_audit</code> returns <code>list(result, audit)</code> and <code>with_warning_capture</code> wraps that, the scientific tibble lives at <code>$result$result</code>. That nesting is the price of stacking metadata decorators — or unwrap once at the reporting boundary.</p>
+<p>Validation fails early without touching the core:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tryCatch</span>(</span>
+<span id="cb25-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">demog_pipeline</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(demo_adsl, USUBJID, TRT01P)),</span>
+<span id="cb25-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">error =</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(e) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">conditionMessage</span>(e)</span>
+<span id="cb25-4">)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[demog] started</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Missing required columns: AGE"</code></pre>
+</div>
+</div>
+</section>
+<section id="example-b-tidy-laboratory-summaries" class="level1">
+<h1>Example B: tidy laboratory summaries</h1>
+<p>Wide lab snapshots become long analysis rows with <code>tidyr</code>. The science stays a pure summarise; validation and timing are reusable:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1">demo_labs_wide <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb28-2">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">USUBJID =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"P%03d"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>),</span>
+<span id="cb28-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">TRT01P =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Placebo"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Drug A"</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">each =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>),</span>
+<span id="cb28-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">AVISIT =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Baseline"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Week 4"</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">times =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>),</span>
+<span id="cb28-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ALT =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">41</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">22</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">55</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">31</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">48</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">19</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">62</span>),</span>
+<span id="cb28-6">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">AST =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">24</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">38</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">21</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">49</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">27</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">44</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">18</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">57</span>),</span>
+<span id="cb28-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">CREAT =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.9</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.1</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.8</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.3</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.2</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.7</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.4</span>)</span>
+<span id="cb28-8">)</span>
+<span id="cb28-9"></span>
+<span id="cb28-10">lab_means_by_trt_visit <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data) {</span>
+<span id="cb28-11">  data <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb28-12">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_longer</span>(</span>
+<span id="cb28-13">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cols =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(ALT, AST, CREAT),</span>
+<span id="cb28-14">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_to =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PARAMCD"</span>,</span>
+<span id="cb28-15">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_to =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AVAL"</span></span>
+<span id="cb28-16">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb28-17">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(TRT01P, AVISIT, PARAMCD) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb28-18">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summarise</span>(</span>
+<span id="cb28-19">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.na</span>(AVAL)),</span>
+<span id="cb28-20">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean_aval =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>(AVAL, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb28-21">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd_aval =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sd</span>(AVAL, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb28-22">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.groups =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"drop"</span></span>
+<span id="cb28-23">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb28-24">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arrange</span>(PARAMCD, AVISIT, TRT01P)</span>
+<span id="cb28-25">}</span>
+<span id="cb28-26"></span>
+<span id="cb28-27">lab_pipeline <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> lab_means_by_trt_visit <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb28-28">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_validation</span>(</span>
+<span id="cb28-29">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">required =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TRT01P"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AVISIT"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALT"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AST"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"CREAT"</span>)</span>
+<span id="cb28-30">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb28-31">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_timing</span>()</span>
+<span id="cb28-32"></span>
+<span id="cb28-33"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lab_pipeline</span>(demo_labs_wide)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Elapsed: 0.005 s</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 6
+   TRT01P  AVISIT   PARAMCD     n mean_aval sd_aval
+   &lt;chr&gt;   &lt;chr&gt;    &lt;chr&gt;   &lt;int&gt;     &lt;dbl&gt;   &lt;dbl&gt;
+ 1 Drug A  Baseline ALT         2     25     8.49  
+ 2 Placebo Baseline ALT         2     25     4.24  
+ 3 Drug A  Week 4   ALT         2     55     9.90  
+ 4 Placebo Week 4   ALT         2     48     9.90  
+ 5 Drug A  Baseline AST         2     22.5   6.36  
+ 6 Placebo Baseline AST         2     22.5   2.12  
+ 7 Drug A  Week 4   AST         2     50.5   9.19  
+ 8 Placebo Week 4   AST         2     43.5   7.78  
+ 9 Drug A  Baseline CREAT       2      0.85  0.212 
+10 Placebo Baseline CREAT       2      0.85  0.0707
+11 Drug A  Week 4   CREAT       2      1.3   0.141 
+12 Placebo Week 4   CREAT       2      1.2   0.141 </code></pre>
+</div>
+</div>
+<p>The same <code>with_validation</code> / <code>with_timing</code> helpers apply to demography and labs — the Decorator win is <strong>reuse across analyses</strong>, not a new OO hierarchy per table.</p>
+</section>
+<section id="example-c-cox-proportional-hazards" class="level1">
+<h1>Example C: Cox proportional hazards</h1>
+<p>Thin model code:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1">fit_cox_trt <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data) {</span>
+<span id="cb31-2">  survival<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">coxph</span>(</span>
+<span id="cb31-3">    survival<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Surv</span>(TIME, CNSR <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> TRT01P,</span>
+<span id="cb31-4">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> data,</span>
+<span id="cb31-5">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ties =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"efron"</span></span>
+<span id="cb31-6">  )</span>
+<span id="cb31-7">}</span>
+<span id="cb31-8"></span>
+<span id="cb31-9"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set.seed</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20260807</span>)</span>
+<span id="cb31-10">demo_adtte <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb31-11">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">USUBJID =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"P%03d"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">40</span>),</span>
+<span id="cb31-12">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">TRT01P =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Placebo"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Drug A"</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">each =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>),</span>
+<span id="cb31-13">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">TIME =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rexp</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">rate =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">18</span>), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rexp</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">rate =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">26</span>)),</span>
+<span id="cb31-14">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">CNSR =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rbinom</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.35</span>), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rbinom</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.40</span>))</span>
+<span id="cb31-15">)</span>
+<span id="cb31-16"></span>
+<span id="cb31-17">cox_pipeline <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> fit_cox_trt <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb31-18">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_validation</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">required =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TIME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"CNSR"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TRT01P"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb31-19">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_logging</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cox_trt"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb31-20">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_timing</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb31-21">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_warning_capture</span>()</span>
+<span id="cb31-22"></span>
+<span id="cb31-23">cox_out <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cox_pipeline</span>(demo_adtte)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[cox_trt] started</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[cox_trt] finished</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Elapsed: 0.004 s</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summary</span>(cox_out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>result)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>coefficients</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                   coef exp(coef)  se(coef)         z  Pr(&gt;|z|)
+TRT01PPlacebo 0.3422392  1.408097 0.3956067 0.8650995 0.3869842</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1">cox_out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>warnings</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>character(0)</code></pre>
+</div>
+</div>
+<p><code>fit_cox_trt()</code> contains only the model. Production logging, timing, and warning capture sit outside — the same stack can wrap a logistic model or an MMRM helper tomorrow.</p>
+</section>
+<section id="example-d-caching-a-bootstrap-contrast" class="level1">
+<h1>Example D: caching a bootstrap contrast</h1>
+<p>Bootstrap mean differences are expensive relative to a hash lookup. Decorate once; repeated identical calls hit the cache:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1">bootstrap_mean_diff <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n_boot =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">400</span>L, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">seed =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L) {</span>
+<span id="cb39-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set.seed</span>(seed)</span>
+<span id="cb39-3">  arms <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sort</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unique</span>(data<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>TRT01P))</span>
+<span id="cb39-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stopifnot</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(arms) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>L)</span>
+<span id="cb39-5">  diffs <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map_dbl</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq_len</span>(n_boot), <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(i) {</span>
+<span id="cb39-6">    boot <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> data <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb39-7">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(TRT01P) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb39-8">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">slice_sample</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prop =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">replace =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb39-9">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ungroup</span>()</span>
+<span id="cb39-10">    m <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> boot <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb39-11">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(TRT01P) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb39-12">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summarise</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">m =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>(AGE, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.groups =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"drop"</span>)</span>
+<span id="cb39-13">    m<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>m[m<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>TRT01P <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> arms[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]]] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> m<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>m[m<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>TRT01P <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> arms[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]]]</span>
+<span id="cb39-14">  })</span>
+<span id="cb39-15">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb39-16">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">arm_ref =</span> arms[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]],</span>
+<span id="cb39-17">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">arm_cmp =</span> arms[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]],</span>
+<span id="cb39-18">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean_diff =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>(diffs, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb39-19">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">se =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sd</span>(diffs, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb39-20">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">p025 =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">quantile</span>(diffs, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.025</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb39-21">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">p975 =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">quantile</span>(diffs, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.975</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb39-22">  )</span>
+<span id="cb39-23">}</span>
+<span id="cb39-24"></span>
+<span id="cb39-25">cache_dir <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">file.path</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tempdir</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"decorator-cache"</span>)</span>
+<span id="cb39-26">boot_cached <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> bootstrap_mean_diff <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb39-27">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_validation</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">required =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AGE"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TRT01P"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb39-28">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_cache</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cache_dir =</span> cache_dir, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prefix =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"boot-age"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb39-29">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_timing</span>()</span>
+<span id="cb39-30"></span>
+<span id="cb39-31">t1 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">system.time</span>(r1 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">boot_cached</span>(demo_adsl, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n_boot =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">400</span>L, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">seed =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L))</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Cache miss — running analysis</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Elapsed: 0.589 s</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1">t2 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">system.time</span>(r2 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">boot_cached</span>(demo_adsl, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n_boot =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">400</span>L, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">seed =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L))</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Cache hit: boot-age-c138e65fdd9ef0caa8c65e8777f063c8.rds</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Elapsed: 0.000 s</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">identical</span>(r1, r2)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">first_s =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unname</span>(t1[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"elapsed"</span>]]), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">second_s =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unname</span>(t2[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"elapsed"</span>]]))</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> first_s second_s 
+   0.589    0.000 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1">r1</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 6
+  arm_ref arm_cmp mean_diff    se  p025  p975
+  &lt;chr&gt;   &lt;chr&gt;       &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1 Drug A  Placebo     0.494  4.74 -8.67  10.5</code></pre>
+</div>
+</div>
+<p>Useful for bootstrap, simulation, PK, and Bayesian refits when inputs are unchanged.</p>
+</section>
+<section id="qc-and-export-decorators-architecture" class="level1">
+<h1>QC and export decorators (architecture)</h1>
+<section id="independent-qc" class="level2">
+<h2 class="anchored" data-anchor-id="independent-qc">Independent QC</h2>
+<p>A QC decorator does not embed SAS or a second R engine inside the scientific function. It <strong>orchestrates</strong> two result producers and compares:</p>
+<pre class="text"><code>Primary analysis(data)
+  → Independent QC analysis(data)   # separate script / batch / team
+  → Compare key columns / digits
+  → Write QC report
+  → Return primary result (+ QC status)</code></pre>
+<p>Sketch (both sides in R for illustration):</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1">with_qc_compare <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(fun, qc_fun, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">tol =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-8</span>) {</span>
+<span id="cb52-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data, ...) {</span>
+<span id="cb52-3">    primary <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fun</span>(data, ...)</span>
+<span id="cb52-4">    qc <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">qc_fun</span>(data, ...)</span>
+<span id="cb52-5">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Align on common columns for a simple numeric check</span></span>
+<span id="cb52-6">    common <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">intersect</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(primary), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(qc))</span>
+<span id="cb52-7">    num_cols <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> common[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map_lgl</span>(primary[common], is.numeric)]</span>
+<span id="cb52-8">    deltas <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map_dbl</span>(num_cols, <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(col) {</span>
+<span id="cb52-9">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">max</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">abs</span>(primary[[col]] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> qc[[col]]), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb52-10">    })</span>
+<span id="cb52-11">    status <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all</span>(deltas <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> tol, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb52-12">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb52-13">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">result =</span> primary,</span>
+<span id="cb52-14">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">qc_ok =</span> status,</span>
+<span id="cb52-15">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">max_abs_delta =</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(deltas)) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">max</span>(deltas) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_real_</span></span>
+<span id="cb52-16">    )</span>
+<span id="cb52-17">  }</span>
+<span id="cb52-18">}</span>
+<span id="cb52-19"></span>
+<span id="cb52-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># "Independent" QC: same science, slightly different implementation</span></span>
+<span id="cb52-21">mean_sd_by_trt_qc <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data) {</span>
+<span id="cb52-22">  data <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb52-23">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summarise</span>(</span>
+<span id="cb52-24">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.na</span>(AGE)),</span>
+<span id="cb52-25">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean_age =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>(AGE, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb52-26">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd_age =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sd</span>(AGE, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>),</span>
+<span id="cb52-27">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.by =</span> TRT01P</span>
+<span id="cb52-28">    ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb52-29">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arrange</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">match</span>(TRT01P, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unique</span>(data<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>TRT01P)))</span>
+<span id="cb52-30">}</span>
+<span id="cb52-31"></span>
+<span id="cb52-32">qc_pipeline <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> mean_sd_by_trt <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb52-33">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_validation</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">required =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AGE"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TRT01P"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb52-34">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_qc_compare</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">qc_fun =</span> mean_sd_by_trt_qc)</span>
+<span id="cb52-35"></span>
+<span id="cb52-36">qc_out <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">qc_pipeline</span>(demo_adsl)</span>
+<span id="cb52-37">qc_out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>qc_ok</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] FALSE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1">qc_out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>max_abs_delta</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2.014989</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1">qc_out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>result</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+  TRT01P      n mean_age sd_age
+  &lt;chr&gt;   &lt;int&gt;    &lt;dbl&gt;  &lt;dbl&gt;
+1 Drug A      6     49.5   10.0
+2 Placebo     6     50      8  </code></pre>
+</div>
+</div>
+<p>A production decorator would call an external QC artefact (SAS listing, locked CSV, validated package) instead of <code>mean_sd_by_trt_qc</code>.</p>
+</section>
+<section id="export" class="level2">
+<h2 class="anchored" data-anchor-id="export">Export</h2>
+<p>Export belongs at the boundary, not inside the model:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1">with_csv_export <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(fun, path) {</span>
+<span id="cb58-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(...) {</span>
+<span id="cb58-3">    result <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fun</span>(...)</span>
+<span id="cb58-4">    to_write <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.data.frame</span>(result)) {</span>
+<span id="cb58-5">      result</span>
+<span id="cb58-6">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.list</span>(result) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.data.frame</span>(result<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>result)) {</span>
+<span id="cb58-7">      result<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>result</span>
+<span id="cb58-8">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb58-9">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Export decorator expects a data frame result"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">call. =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb58-10">    }</span>
+<span id="cb58-11">    utils<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">write.csv</span>(to_write, path, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">row.names =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb58-12">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">message</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Wrote "</span>, path)</span>
+<span id="cb58-13">    result</span>
+<span id="cb58-14">  }</span>
+<span id="cb58-15">}</span></code></pre></div></div>
+</div>
+<p>Prefer a dedicated renderer such as <a href="https://crow16384.github.io/ksTFL/">ksTFL</a> for submission DOCX rather than growing ad hoc <code>write_rtf</code> / <code>write_pdf</code> branches inside every analysis.</p>
+</section>
+</section>
+<section id="application-to-kstfl" class="level1">
+<h1>Application to ksTFL</h1>
+<p>Decorator fits a <strong>reporting pipeline</strong> around a declarative table spec — not around estimand science:</p>
+<div class="cell" data-fig-width="6.5" data-fig-asp="0.16" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="kstfl-decorators">
+<div>
+<pre class="mermaid mermaid-js" data-label="kstfl-decorators">%%{init: {"theme": "neutral", "flowchart": {"rankSpacing": 28, "nodeSpacing": 12, "padding": 4}}}%%
+flowchart LR
+  spec[TFLspec] --&gt; validate[ValidateSpec]
+  validate --&gt; logNode[Log]
+  logNode --&gt; timer[Timer]
+  timer --&gt; audit[Audit]
+  audit --&gt; qc[QCCompare]
+  qc --&gt; render[write_doc]
+  render --&gt; docx[DOCX]
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p>As in the Visitor article: ksTFL separates planar analysis data from presentation metadata. Decorators wrap <strong>validate / log / time / audit / QC / render</strong> around that boundary. They should not turn every TFL into an OO class with <code>accept(HtmlVisitor)</code>.</p>
+<p>Illustrative shape (not executed):</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1">render_table <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(spec, out_dir) {</span>
+<span id="cb59-2">  report <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> ksTFL<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">create_report</span>(spec)</span>
+<span id="cb59-3">  ksTFL<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">write_doc</span>(report, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"t14_01_01"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">outDir =</span> out_dir)</span>
+<span id="cb59-4">}</span>
+<span id="cb59-5"></span>
+<span id="cb59-6">render_prod <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> render_table <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb59-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_logging</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"t14.1.1"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb59-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_timing</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb59-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">with_audit</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">analysis_id =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"T14.1.1"</span>)</span></code></pre></div></div>
+</div>
+</section>
+<section id="relationship-to-other-patterns" class="level1">
+<h1>Relationship to Other Patterns</h1>
+<div class="cell" data-fig-width="6.5" data-fig-asp="0.28" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="pattern-neighbours">
+<div>
+<pre class="mermaid mermaid-js" data-label="pattern-neighbours">%%{init: {"theme": "neutral", "flowchart": {"rankSpacing": 32, "nodeSpacing": 18, "padding": 4}}}%%
+flowchart LR
+  facade[Facade] --&gt; builder[Builder]
+  builder --&gt; decorator[Decorator]
+  decorator --&gt; strategy[Strategy]
+  strategy --&gt; analysis[AnalysisCore]
+  adapter[Adapter] --&gt; analysis
+  decorator --&gt; analysis
+</pre>
+</div>
+</div>
+</div>
+</div>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Pattern</th>
+<th>Concern</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Adapter</strong></td>
+<td>Vendor / study column and code interfaces</td>
+</tr>
+<tr class="even">
+<td><strong>Strategy</strong></td>
+<td>Choice of estimand or model among peers</td>
+</tr>
+<tr class="odd">
+<td><strong>Builder / Facade</strong></td>
+<td>Assemble a reporting or analysis façade</td>
+</tr>
+<tr class="even">
+<td><strong>Decorator</strong></td>
+<td>Orthogonal ops: log, time, audit, cache, QC</td>
+</tr>
+<tr class="odd">
+<td><strong>Visitor</strong></td>
+<td>Many operations over a stable object graph</td>
+</tr>
+</tbody>
+</table>
+<p>Decorator composes especially well with Strategy (swap the core) and Adapter (feed a normalised tibble into a decorated analysis).</p>
+</section>
+<section id="advantages" class="level1">
+<h1>Advantages</h1>
+<ul>
+<li>Separation of scientific and operational concerns</li>
+<li>Reusable infrastructure across analyses</li>
+<li>Smaller, testable statistical functions</li>
+<li>Flexible composition per environment (dev vs production)</li>
+<li>Natural home for regulatory audit metadata</li>
+</ul>
+</section>
+<section id="limitations" class="level1">
+<h1>Limitations</h1>
+<p>Long chains are harder to debug: errors and return shapes may originate several wrappers above the core. Prefer:</p>
+<ul>
+<li>few, well-named decorators;</li>
+<li>outermost metadata wrappers documented once;</li>
+<li>logging that prints which layer is active.</li>
+</ul>
+<pre class="text"><code>Validation → Logging → Timing → Caching → Warnings → Audit → Analysis</code></pre>
+</section>
+<section id="decorator-versus-inheritance" class="level1">
+<h1>Decorator versus Inheritance</h1>
+<p>Without Decorator, optional features explode into subclasses:</p>
+<pre class="text"><code>Analysis
+  → AnalysisWithLogging
+  → AnalysisWithLoggingAndTiming
+  → AnalysisWithLoggingTimingValidation
+  → …</code></pre>
+<p>Decorators compose <em>n</em> behaviours with <em>n</em> wrappers instead of <img src="https://latex.codecogs.com/png.latex?2%5En"> subclasses.</p>
+</section>
+<section id="decorator-versus-middleware" class="level1">
+<h1>Decorator versus Middleware</h1>
+<p>A decorator wraps <strong>one</strong> function. Middleware manages a shared request/response pipeline (validation → auth → cache → handler). Many clinical systems start with decorators and grow into middleware when every endpoint shares the same stages.</p>
+</section>
+<section id="when-not-to-use-decorator" class="level1">
+<h1>When not to use Decorator</h1>
+<ul>
+<li>One-off scripts where a few <code>message()</code> lines suffice</li>
+<li>Changing the scientific estimand — that is Strategy, not decoration</li>
+<li>Permanent data harmonisation — Adapter or ETL</li>
+<li>Submission TFL layout — declarative specs (ksTFL), not export decorators stacked on model objects</li>
+<li>When the return-type nesting of metadata wrappers costs more than it saves — unwrap at one façade instead</li>
+</ul>
+</section>
+<section id="closing" class="level1">
+<h1>Closing</h1>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Situation</th>
+<th>Prefer</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Same science, more ops (log / time / audit / cache)</td>
+<td>Decorator stack</td>
+</tr>
+<tr class="even">
+<td>Swap Cox vs parametric survival</td>
+<td>Strategy</td>
+</tr>
+<tr class="odd">
+<td>Vendor column / code differences</td>
+<td>Adapter</td>
+</tr>
+<tr class="even">
+<td>Walk subject graphs for QC / incidence</td>
+<td>Visitor or S3 generics</td>
+</tr>
+<tr class="odd">
+<td>Submission-quality DOCX TFLs</td>
+<td>ksTFL declarative render</td>
+</tr>
+<tr class="even">
+<td>Shared stages across many endpoints</td>
+<td>Middleware pipeline</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>The Decorator pattern adds behaviour <strong>around</strong> statistical functions without editing them. In clinical programming that yields thin model and summary code, reusable validation and audit layers, optional caching for expensive resampling, and QC/export hooks at the boundary.</p>
+<p>Among GoF patterns, Decorator is especially valuable because it separates <strong>scientific logic</strong> from <strong>operational concerns</strong>, so the same analysis can run in development, validation, and production with different stacks — simply by changing which wrappers are applied.</p>
+<p>Related posts in this series: Adapter (vendor interfaces) and Visitor (operations over clinical object graphs).</p>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<ul>
+<li>Gamma, E., Helm, R., Johnson, R., and Vlissides, J. (1994). <em>Design Patterns: Elements of Reusable Object-Oriented Software</em>. Addison-Wesley.</li>
+<li>ksTFL documentation: <a href="https://crow16384.github.io/ksTFL/" class="uri">https://crow16384.github.io/ksTFL/</a></li>
+</ul>
+
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>QC</category>
+  <category>Clinical Trials</category>
+  <category>Data analysis</category>
+  <category>Data Management</category>
+  <category>Dynamic Programming (DP)</category>
+  <guid>https://al-garik.github.io/ks-blog/posts/2026-08-17-decorators/</guid>
+  <pubDate>Sun, 16 Aug 2026 21:00:00 GMT</pubDate>
+  <media:content url="https://al-garik.github.io/ks-blog/posts/2026-08-17-decorators/images/post-logo.png" medium="image" type="image/png" height="81" width="144"/>
+</item>
 <item>
   <title>Powerful Data Validation Engine</title>
   <dc:creator>Vladimir Larchenko (KeyStat Solutions)</dc:creator>
