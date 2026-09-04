@@ -592,37 +592,6 @@ and identify the interval
 
 $$\delta_{TP}\in[\delta_L,\delta_U]$$
 
-# A very important issue in your particular formulation
-
-Based on a common protocol wording — essentially:
-
-> add/subtract a constant delta to the MAR imputed endpoint values in the direction of lack of efficacy for DRUG and improvement for Placebo
-
-Document the transformation explicitly as:
-
-$$Y^{TP}_{ij}=Y^{MAR}_{ij}+s_j\delta$$
-
-where
-
-$$s_j= \begin{cases} -1\quad \text{DRUG}\\ +1\quad \text{PLACEBO}\end{cases}$$
-
-But **only if the observation was missing**.
-
-That gives a very clean implementation and, importantly, makes it
-obvious that the operation is performed independently within every MI
-dataset.
-
-Avoid wording such as:
-
-> "the imputed dataset was adjusted"
-
-because it can sound as though you create one adjusted dataset. Better
-is:
-
-> "For each imputed dataset, the MAR-imputed endpoint values for subjects with missing endpoint assessments were delta-adjusted..."
-
-That makes the MI structure explicit.
-
 # One more subtle issue: ANOVA vs treatment contrast
 
 If the actual analysis is:
@@ -943,7 +912,7 @@ imp <- mice(
   method          = meth,
   predictorMatrix = pred,
   printFlag       = FALSE,
-  seed            = 1109
+  seed            = 3456
 )
 
 imp
@@ -995,10 +964,14 @@ pool_one_delta <- function(datasets, delta = 0, delta_drug = NULL, delta_pbo = N
   s <- summary(pooled)
   z <- s[s$term == "TRTDRUG", ]
 
+  delta    = if (is.null(delta_drug) && is.null(delta_pbo)) delta else NA_real_
+  delta_drug = if (is.null(delta_drug)) delta else delta_drug
+  delta_pbo  = if (is.null(delta_pbo)) delta else delta_pbo
+  
   tibble(
-    delta    = if (is.null(delta_drug) && is.null(delta_pbo)) delta else NA_real_,
-    delta_drug = if (is.null(delta_drug)) delta else delta_drug,
-    delta_pbo  = if (is.null(delta_pbo)) delta else delta_pbo,
+    delta = delta,
+    delta_drug = delta_drug,
+    delta_pbo = delta_pbo,
     estimate = z$estimate,
     SE       = z$std.error,
     df       = z$df,
