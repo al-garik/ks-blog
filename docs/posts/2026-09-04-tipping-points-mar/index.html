@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Vladimir Larchenko">
+<meta name="dcterms.date" content="2026-09-04">
+
+<title>Tipping-Point Analysis under MAR Multiple Imputation – Technical Blog</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<link href="../../images/favicon.png" rel="icon" type="image/png">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-030b739f9d5739cb2296ef50509d8e93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>
+(function(){
+  // Robustly ensure the navbar title links to the site Home (same as the Home menu link).
+  function setTitleToHome() {
+    try {
+      var brandContainer = document.querySelector('.navbar-brand-container');
+      if (!brandContainer) return false;
+      var titleAnchor = brandContainer.querySelector('a.navbar-brand:not(.navbar-brand-logo)');
+      var homeLink = document.querySelector('a.nav-link[href$="index.html"]') || document.querySelector('a.nav-link');
+      if (!titleAnchor || !homeLink) return false;
+      var homeHref = homeLink.getAttribute('href');
+      var resolved = new URL(homeHref, window.location.href).href;
+      titleAnchor.setAttribute('href', resolved);
+      return true;
+    } catch (err) {
+      console && console.warn && console.warn('navbar-fix error', err);
+      return false;
+    }
+  }
+
+  // Try a few strategies: immediate attempt, repeated attempts, and a MutationObserver.
+  var tried = false;
+  function attempt() {
+    if (setTitleToHome()) {
+      tried = true;
+      if (interval) clearInterval(interval);
+      if (observer) observer.disconnect();
+    }
+  }
+
+  var interval = setInterval(attempt, 200);
+
+  var observer = new MutationObserver(function() {
+    if (!tried) attempt();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var root = document.querySelector('body');
+    if (root) observer.observe(root, { childList: true, subtree: true });
+    attempt();
+  });
+})();
+</script>
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="https://keystatsolutions.com" class="navbar-brand navbar-brand-logo">
+    <img src="../../images/keystat-logo.svg" alt="KeyStat Solutions" class="navbar-logo light-content">
+    <img src="../../images/keystat-logo.svg" alt="KeyStat Solutions" class="navbar-logo dark-content">
+    </a>
+    <a class="navbar-brand" href="https://keystatsolutions.com">
+    <span class="navbar-title">Technical Blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://al-garik.github.io/ks-blog/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.r-bloggers.com"> 
+<span class="menu-text">R-Bloggers</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#example-setting" id="toc-example-setting" class="nav-link" data-scroll-target="#example-setting">Example setting</a></li>
+  <li><a href="#delta-adjustment" id="toc-delta-adjustment" class="nav-link" data-scroll-target="#delta-adjustment">Delta adjustment</a>
+  <ul class="collapse">
+  <li><a href="#what-delta-can-mean" id="toc-what-delta-can-mean" class="nav-link" data-scroll-target="#what-delta-can-mean">What <span class="math inline">\(\delta\)</span> can mean</a></li>
+  <li><a href="#why-an-arm-wise-delta-is-not-a-delta-change-in-delta" id="toc-why-an-arm-wise-delta-is-not-a-delta-change-in-delta" class="nav-link" data-scroll-target="#why-an-arm-wise-delta-is-not-a-delta-change-in-delta">Why an arm-wise <span class="math inline">\(\delta\)</span> is not a <span class="math inline">\(\delta\)</span> change in <span class="math inline">\(\Delta\)</span></a></li>
+  <li><a href="#what-a-protocol-should-state" id="toc-what-a-protocol-should-state" class="nav-link" data-scroll-target="#what-a-protocol-should-state">What a protocol should state</a></li>
+  </ul></li>
+  <li><a href="#why-every-imputed-dataset-must-be-adjusted-separately" id="toc-why-every-imputed-dataset-must-be-adjusted-separately" class="nav-link" data-scroll-target="#why-every-imputed-dataset-must-be-adjusted-separately">Why every imputed dataset must be adjusted separately</a></li>
+  <li><a href="#the-statistical-procedure" id="toc-the-statistical-procedure" class="nav-link" data-scroll-target="#the-statistical-procedure">The statistical procedure</a>
+  <ul class="collapse">
+  <li><a href="#step-1-analyze-each-imputed-dataset" id="toc-step-1-analyze-each-imputed-dataset" class="nav-link" data-scroll-target="#step-1-analyze-each-imputed-dataset">Step 1 — Analyze each imputed dataset</a></li>
+  <li><a href="#step-2-rubin-pooling" id="toc-step-2-rubin-pooling" class="nav-link" data-scroll-target="#step-2-rubin-pooling">Step 2 — Rubin pooling</a></li>
+  </ul></li>
+  <li><a href="#one-sided-p-value" id="toc-one-sided-p-value" class="nav-link" data-scroll-target="#one-sided-p-value">One-sided p-value</a></li>
+  <li><a href="#what-is-the-tipping-point" id="toc-what-is-the-tipping-point" class="nav-link" data-scroll-target="#what-is-the-tipping-point">What is the tipping point?</a></li>
+  <li><a href="#r-implementation" id="toc-r-implementation" class="nav-link" data-scroll-target="#r-implementation">R implementation</a>
+  <ul class="collapse">
+  <li><a href="#extract-all-imputed-datasets" id="toc-extract-all-imputed-datasets" class="nav-link" data-scroll-target="#extract-all-imputed-datasets">Extract all imputed datasets</a></li>
+  <li><a href="#delta-adjustment-1" id="toc-delta-adjustment-1" class="nav-link" data-scroll-target="#delta-adjustment-1">Delta adjustment</a></li>
+  </ul></li>
+  <li><a href="#analyze-each-imputed-dataset" id="toc-analyze-each-imputed-dataset" class="nav-link" data-scroll-target="#analyze-each-imputed-dataset">Analyze each imputed dataset</a></li>
+  <li><a href="#pool-the-50-analyses-for-one-delta" id="toc-pool-the-50-analyses-for-one-delta" class="nav-link" data-scroll-target="#pool-the-50-analyses-for-one-delta">Pool the 50 analyses for one delta</a></li>
+  <li><a href="#obtain-the-one-sided-p-value" id="toc-obtain-the-one-sided-p-value" class="nav-link" data-scroll-target="#obtain-the-one-sided-p-value">Obtain the one-sided p-value</a></li>
+  <li><a href="#run-the-complete-tipping-point-grid" id="toc-run-the-complete-tipping-point-grid" class="nav-link" data-scroll-target="#run-the-complete-tipping-point-grid">Run the complete tipping-point grid</a></li>
+  <li><a href="#find-the-tipping-point-numerically" id="toc-find-the-tipping-point-numerically" class="nav-link" data-scroll-target="#find-the-tipping-point-numerically">Find the tipping point numerically</a></li>
+  <li><a href="#a-very-important-issue-in-your-particular-formulation" id="toc-a-very-important-issue-in-your-particular-formulation" class="nav-link" data-scroll-target="#a-very-important-issue-in-your-particular-formulation">A very important issue in your particular formulation</a></li>
+  <li><a href="#one-more-subtle-issue-anova-vs-treatment-contrast" id="toc-one-more-subtle-issue-anova-vs-treatment-contrast" class="nav-link" data-scroll-target="#one-more-subtle-issue-anova-vs-treatment-contrast">One more subtle issue: ANOVA vs treatment contrast</a>
+  <ul class="collapse">
+  <li><a href="#the-complete-conceptual-picture" id="toc-the-complete-conceptual-picture" class="nav-link" data-scroll-target="#the-complete-conceptual-picture">The complete conceptual picture</a></li>
+  </ul></li>
+  <li><a href="#worked-example-simulated-fvc-trial" id="toc-worked-example-simulated-fvc-trial" class="nav-link" data-scroll-target="#worked-example-simulated-fvc-trial">Worked example: simulated FVC trial</a>
+  <ul class="collapse">
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#step-1-simulate-complete-fvc-data" id="toc-step-1-simulate-complete-fvc-data" class="nav-link" data-scroll-target="#step-1-simulate-complete-fvc-data">Step 1 — Simulate complete FVC data</a></li>
+  <li><a href="#step-2-impose-mar-missingness-on-endpoint-fvc" id="toc-step-2-impose-mar-missingness-on-endpoint-fvc" class="nav-link" data-scroll-target="#step-2-impose-mar-missingness-on-endpoint-fvc">Step 2 — Impose MAR missingness on endpoint FVC</a></li>
+  <li><a href="#step-3-describe-the-incomplete-data" id="toc-step-3-describe-the-incomplete-data" class="nav-link" data-scroll-target="#step-3-describe-the-incomplete-data">Step 3 — Describe the incomplete data</a></li>
+  <li><a href="#step-4-mar-multiple-imputation-with-mice" id="toc-step-4-mar-multiple-imputation-with-mice" class="nav-link" data-scroll-target="#step-4-mar-multiple-imputation-with-mice">Step 4 — MAR multiple imputation with <code>mice</code></a></li>
+  <li><a href="#step-5-analysis-and-pooling-helpers" id="toc-step-5-analysis-and-pooling-helpers" class="nav-link" data-scroll-target="#step-5-analysis-and-pooling-helpers">Step 5 — Analysis and pooling helpers</a></li>
+  <li><a href="#step-6-one-dimensional-tipping-point-grid" id="toc-step-6-one-dimensional-tipping-point-grid" class="nav-link" data-scroll-target="#step-6-one-dimensional-tipping-point-grid">Step 6 — One-dimensional tipping-point grid</a></li>
+  <li><a href="#step-7-tipping-point-graphics" id="toc-step-7-tipping-point-graphics" class="nav-link" data-scroll-target="#step-7-tipping-point-graphics">Step 7 — Tipping-point graphics</a></li>
+  <li><a href="#step-8-two-dimensional-tipping-surface" id="toc-step-8-two-dimensional-tipping-surface" class="nav-link" data-scroll-target="#step-8-two-dimensional-tipping-surface">Step 8 — Two-dimensional tipping surface</a></li>
+  <li><a href="#step-9-interpretation" id="toc-step-9-interpretation" class="nav-link" data-scroll-target="#step-9-interpretation">Step 9 — Interpretation</a></li>
+  </ul></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a>
+  <ul class="collapse">
+  <li><a href="#missing-data-mechanisms-and-multiple-imputation" id="toc-missing-data-mechanisms-and-multiple-imputation" class="nav-link" data-scroll-target="#missing-data-mechanisms-and-multiple-imputation">Missing-data mechanisms and multiple imputation</a></li>
+  <li><a href="#delta-adjustment-and-tipping-point-sensitivity" id="toc-delta-adjustment-and-tipping-point-sensitivity" class="nav-link" data-scroll-target="#delta-adjustment-and-tipping-point-sensitivity">Delta-adjustment and tipping-point sensitivity</a></li>
+  <li><a href="#regulatory-context" id="toc-regulatory-context" class="nav-link" data-scroll-target="#regulatory-context">Regulatory context</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Tipping-Point Analysis under MAR Multiple Imputation</h1>
+<p class="subtitle lead">Delta-adjust each imputation, Rubin pool, then one-sided inference</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">R</div>
+    <div class="quarto-category">Clinical Trials</div>
+    <div class="quarto-category">Data analysis</div>
+    <div class="quarto-category">Missing Data</div>
+    <div class="quarto-category">Data Imputation</div>
+    <div class="quarto-category">Tipping Point</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Vladimir Larchenko </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 4, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/post-logo.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Decorator architecture"><img src="images/post-logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img" alt="Decorator architecture"></a></p>
+</figure>
+</div>
+<figcaption>Decorator architecture</figcaption>
+</figure>
+</div>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>A tipping-point analysis asks how far the <strong>imputed</strong> outcomes would have to depart from MAR<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, in the direction of lack of efficacy, before a one-sided treatment comparison loses significance (Ratitch, O’Kelly, and Tosiello, 2013; Cro, Morris, Kenward, and Carpenter, 2020). Regulatory guidance treats such sensitivity analyses as part of the estimand framework rather than as optional extras (National Research Council, 2010; ICH, 2019). With multiple imputation the architecture is:</p>
+<div class="cell" data-fig-width="5.5" data-fig-height="5.8" data-out-width="70%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="tip-pipeline">
+<div>
+<pre class="mermaid mermaid-js" data-label="tip-pipeline">%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "titleColor": "#1a252f"}, "flowchart": {"padding": 10, "nodeSpacing": 14, "rankSpacing": 22, "curve": "linear"}}}%%
+flowchart TD
+  raw["Incomplete data"]
+  mi["MAR MI once"]
+  stack["MI datasets 1..M"]
+  adj["Delta-adjust missing values"]
+  fit["Analyze each imputation"]
+  pool["Rubin pool contrast"]
+  pval["One-sided p-value"]
+  raw --&gt; mi --&gt; stack --&gt; adj --&gt; fit --&gt; pool --&gt; pval
+  classDef once fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef each fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  class raw,mi,stack once
+  class adj,fit,pool,pval each
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p>There is an important terminology point first: <strong>the ordinary ANOVA<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> F-test itself is not one-sided</strong>. For two treatment groups, the ANOVA test is equivalent to a two-sided <span class="math inline">\(t\)</span>-test. A directional, one-sided hypothesis should therefore be expressed as a planned treatment contrast, e.g.</p>
+<p><span class="math display">\[H_0 : \mu_D - \mu_P \leq 0 \quad \text{vs} \quad H_1 : \mu_D - \mu_P &gt; 0.\]</span></p>
+<p>That distinction becomes important for a tipping-point analysis.</p>
+</section>
+<section id="example-setting" class="level1">
+<h1>Example setting</h1>
+<p>Suppose:</p>
+<ul>
+<li><code>TRT = "DRUG"</code> or <code>"PLACEBO"</code></li>
+<li><code>Y</code> = primary endpoint (higher is better)</li>
+<li>missing endpoint values are imputed under MAR</li>
+<li>the primary analysis compares DRUG against PLACEBO</li>
+<li>the test is one-sided in favor of DRUG.</li>
+</ul>
+<p>Suppose the MAR estimate is</p>
+<p><span class="math display">\[\Delta_{MAR} = \mu_D - \mu_P\]</span></p>
+<p>The tipping-point analysis asks:</p>
+<blockquote class="blockquote">
+<p>How unfavorable would the missing endpoint outcomes have to be, relative to MAR, before the one-sided treatment comparison is no longer statistically significant?</p>
+</blockquote>
+</section>
+<section id="delta-adjustment" class="level1">
+<h1>Delta adjustment</h1>
+<p>Delta-adjustment after MAR imputation is a controlled multiple-imputation sensitivity device: an offset is applied to imputed values to encode a clinically directed MNAR departure, then the primary analysis is repeated (Ratitch et al., 2013; Cro et al., 2020). For a <strong>higher-is-better</strong> endpoint, the unfavorable adjustment is</p>
+<p><span class="math display">\[
+Y_i^* = \begin{cases} Y_i^{MAR} - \delta, &amp; i \in D, Y_i \text{ missing} \\ Y_i^{MAR} + \delta, &amp; i \in P, Y_i \text{ missing} \\ Y_i, &amp; \text{observed.} \end{cases}
+\]</span></p>
+<p>So DRUG is made worse and PLACEBO is made better.</p>
+<p>The word <code>delta</code> is then ambiguous. Two different quantities are often called <span class="math inline">\(\delta\)</span> in a SAP, and they do not coincide.</p>
+<section id="what-delta-can-mean" class="level2">
+<h2 class="anchored" data-anchor-id="what-delta-can-mean">What <span class="math inline">\(\delta\)</span> can mean</h2>
+<p><strong>Definition A — arm-wise shift.</strong> <span class="math inline">\(\delta\)</span> is the constant added to (or subtracted from) each originally missing observation. In the higher-is-better rule above, every missing DRUG value is lowered by <span class="math inline">\(\delta\)</span> and every missing PLACEBO value is raised by <span class="math inline">\(\delta\)</span>. This is the definition used in the R code later.</p>
+<p><strong>Definition B — shift in the treatment contrast.</strong> <span class="math inline">\(\delta\)</span> is the intended change in <span class="math inline">\(\mu_D-\mu_P\)</span> relative to MAR. A protocol that says “the tipping point is a <span class="math inline">\(100\,\mathrm{mL}\)</span> adverse departure from MAR” often means Definition B: the pooled contrast itself has moved by about <span class="math inline">\(-100\,\mathrm{mL}\)</span>.</p>
+<p>They are not interchangeable.</p>
+</section>
+<section id="why-an-arm-wise-delta-is-not-a-delta-change-in-delta" class="level2">
+<h2 class="anchored" data-anchor-id="why-an-arm-wise-delta-is-not-a-delta-change-in-delta">Why an arm-wise <span class="math inline">\(\delta\)</span> is not a <span class="math inline">\(\delta\)</span> change in <span class="math inline">\(\Delta\)</span></h2>
+<p>Write <span class="math inline">\(\pi_D\)</span> and <span class="math inline">\(\pi_P\)</span> for the missingness fractions on DRUG and PLACEBO. Observed values are never shifted, so the arm means move only through the imputed subjects:</p>
+<p><span class="math display">\[
+\bar Y_D^\star \approx \bar Y_D^{\mathrm{MAR}} - \pi_D\,\delta,
+\qquad
+\bar Y_P^\star \approx \bar Y_P^{\mathrm{MAR}} + \pi_P\,\delta.
+\]</span></p>
+<p>The treatment contrast therefore changes by</p>
+<p><span class="math display">\[
+\Delta^\star - \Delta_{\mathrm{MAR}}
+\approx
+(-\pi_D\delta)-(+\pi_P\delta)
+=
+-\delta(\pi_D+\pi_P).
+\]</span></p>
+<p>Two special cases make the protocol wording concrete.</p>
+<p>If <strong>all</strong> endpoint values were missing (<span class="math inline">\(\pi_D=\pi_P=1\)</span>), then <span class="math inline">\(\Delta^\star-\Delta_{\mathrm{MAR}}\approx-2\delta\)</span>. One arm-wise unit produces a <strong>two-unit</strong> hit to the contrast: DRUG is lowered by <span class="math inline">\(\delta\)</span> <em>and</em> PLACEBO is raised by <span class="math inline">\(\delta\)</span>.</p>
+<p>If missingness is modest, the hit is smaller. With <span class="math inline">\(\pi_D=\pi_P=0.20\)</span>, an arm-wise <span class="math inline">\(\delta=100\,\mathrm{mL}\)</span> moves the contrast by only about <span class="math inline">\(-40\,\mathrm{mL}\)</span>. Calling that “a <span class="math inline">\(100\)</span> mL tipping point” would overstate how far the <em>treatment effect</em> has been pushed.</p>
+<p>If only the <strong>imputed means</strong> are discussed, not the overall arm means, the factor of two remains even when <span class="math inline">\(\pi&lt;1\)</span>: the mean of the missing DRUG values is <span class="math inline">\(-\delta\)</span> and the mean of the missing PLACEBO values is <span class="math inline">\(+\delta\)</span>, so their difference changes by <span class="math inline">\(-2\delta\)</span>. That is a statement about the MNAR departure among dropouts, not about <span class="math inline">\(\Delta\)</span> in the ITT<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> population.</p>
+</section>
+<section id="what-a-protocol-should-state" class="level2">
+<h2 class="anchored" data-anchor-id="what-a-protocol-should-state">What a protocol should state</h2>
+<p>A protocol (or SAP<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>) should name both the <strong>operation</strong> and the <strong>estimand of the displayed <span class="math inline">\(\delta\)</span></strong>.</p>
+<ol type="1">
+<li><strong>Who is shifted.</strong> Only originally missing endpoint values, never observed values.</li>
+<li><strong>Direction.</strong> For a higher-is-better endpoint, DRUG missing values are worsened and PLACEBO missing values are improved (or only one arm is shifted; that must be said).</li>
+<li><strong>Scale of <span class="math inline">\(\delta\)</span>.</strong> Either
+<ul>
+<li>“arm-wise: <span class="math inline">\(\delta\)</span> mL is subtracted from each missing DRUG value and added to each missing PLACEBO value” (Definition A), or</li>
+<li>“contrast-wise: <span class="math inline">\(\delta\)</span> is the target adverse change in <span class="math inline">\(\mu_D-\mu_P\)</span>” (Definition B).</li>
+</ul></li>
+<li><strong>If Definition B is used, how it is implemented.</strong> For example, shift only missing DRUG values by <span class="math inline">\(\delta/\pi_D\)</span>, or split the contrast shift as <span class="math inline">\(\delta_D\)</span> and <span class="math inline">\(\delta_P\)</span> with <span class="math inline">\(\delta_D\pi_D+\delta_P\pi_P=\delta\)</span>. Without that map, programmers cannot reproduce the grid.</li>
+</ol>
+<p>A short numerical illustration. Suppose <span class="math inline">\(\Delta_{\mathrm{MAR}}=160\)</span> mL, <span class="math inline">\(\pi_D=\pi_P=0.20\)</span>, and the one-sided test tips when the pooled contrast falls to <span class="math inline">\(80\)</span> mL. That is a <strong><span class="math inline">\(80\)</span> mL</strong> adverse move in the treatment effect (Definition B). The corresponding arm-wise <span class="math inline">\(\delta\)</span> (Definition A) is</p>
+<p><span class="math display">\[
+\delta_{\mathrm{arm}}
+\approx
+\frac{80}{\pi_D+\pi_P}
+=
+\frac{80}{0.40}
+=
+200\,\mathrm{mL}.
+\]</span></p>
+<p>Reporting “<span class="math inline">\(\delta_{\mathrm{TP}}=200\)</span>” without saying <em>arm-wise</em> looks more extreme than reporting “the contrast was worsened by <span class="math inline">\(80\)</span> mL”. Both numbers describe the same analysis. They answer different questions.</p>
+<p>This article uses <strong>Definition A</strong>. Tables and plots are labelled as the arm-wise shift of originally missing FVC<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>. The two-dimensional grid later lets <span class="math inline">\(\delta_{\mathrm{DRUG}}\)</span> and <span class="math inline">\(\delta_{\mathrm{PLACEBO}}\)</span> differ, which is the honest way to avoid hiding the factor of two inside a single symbol.</p>
+</section>
+</section>
+<section id="why-every-imputed-dataset-must-be-adjusted-separately" class="level1">
+<h1>Why every imputed dataset must be adjusted separately</h1>
+<p>Suppose you have <span class="math inline">\(M=50\)</span> MI datasets:</p>
+<p><span class="math display">\[D_1,D_2,\ldots,D_{50}.\]</span></p>
+<p>You <strong>do not</strong> calculate one average imputed value and perform the tipping-point analysis on that.</p>
+<p>Instead, for each delta:</p>
+<p><span class="math display">\[\delta_1,\delta_2,\ldots,\delta_K\]</span></p>
+<p>you create</p>
+<p><span class="math display">\[D^{*}_{m,k}\]</span></p>
+<p>for every combination of:</p>
+<ul>
+<li>imputation <span class="math inline">\(m=1,\ldots,M\)</span></li>
+<li>delta <span class="math inline">\(k=1,\ldots,K\)</span>.</li>
+</ul>
+<p>So with 50 imputations and 11 delta values, you have</p>
+<p><span class="math display">\[50\times11=550\]</span></p>
+<p>analyses.</p>
+<p>For each fixed delta, the 50 treatment-effect estimates are combined using MI rules.</p>
+<p>This preserves the uncertainty arising from the imputation itself. Multiple imputation is specifically intended to retain between-imputation variability rather than treating one completed dataset as if it were the truth.</p>
+</section>
+<section id="the-statistical-procedure" class="level1">
+<h1>The statistical procedure</h1>
+<p>For a given <span class="math inline">\(\delta\)</span>:</p>
+<section id="step-1-analyze-each-imputed-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="step-1-analyze-each-imputed-dataset">Step 1 — Analyze each imputed dataset</h2>
+<p>For imputation <span class="math inline">\(m\)</span>, fit for example</p>
+<p><span class="math display">\[Y^*=\beta_0 + \beta_1 TRT + \beta_2 Y_{\mathrm{baseline}} + \varepsilon\]</span></p>
+<p>That is usually more representative of a clinical-trial primary analysis than a simple one-way ANOVA.</p>
+</section>
+<section id="step-2-rubin-pooling" class="level2">
+<h2 class="anchored" data-anchor-id="step-2-rubin-pooling">Step 2 — Rubin pooling</h2>
+<p>For <span class="math inline">\(M\)</span> imputations, Rubin’s rules (Rubin, 1987) give</p>
+<p><span class="math display">\[\bar\beta(\delta) = \frac{1}{M}\sum^M_{m=1}\hat\beta_m(\delta)\]</span></p>
+<p>and</p>
+<p><span class="math display">\[\bar U(\delta) = \frac{1}{M}\sum_m U_m(\delta).\]</span></p>
+<p>The between-imputation variance is</p>
+<p><span class="math display">\[B(\delta) = \frac{1}{M-1}\sum_m \Big[\hat \beta_m(\delta)-\bar \beta(\delta)\Big]^2\]</span></p>
+<p>Then the total variance is</p>
+<p><span class="math display">\[T(\delta) = \bar U(\delta) + \Big(1+\frac{1}{M}\Big)B(\delta)\]</span></p>
+<p>Thus</p>
+<p><span class="math display">\[SE(\delta) = \sqrt{T(\delta)}\]</span></p>
+<p>The degrees of freedom are obtained using the MI combining rules. Modern implementations of <code>mice::pool()</code> use the Barnard–Rubin (1999) MI-adjusted degrees of freedom rather than simply using the complete-data residual df.</p>
+</section>
+</section>
+<section id="one-sided-p-value" class="level1">
+<h1>One-sided p-value</h1>
+<p>Suppose efficacy means</p>
+<p><span class="math display">\[H_1: \beta_1 &gt; 0.\]</span></p>
+<p>Then</p>
+<p><span class="math display">\[p_{one-sided} = 1 - F_{t,\nu}(t(\delta))\]</span></p>
+<p>where <span class="math inline">\(F_{t,\nu}\)</span> is the <span class="math inline">\(t\)</span> CDF with MI-adjusted degrees of freedom.</p>
+<p>So if your significance level is</p>
+<p><span class="math display">\[\alpha=0.025,\]</span></p>
+<p>you declare efficacy at a particular delta if</p>
+<p><span class="math display">\[p_{\text{one-sided}}(\delta)&lt;0.025.\]</span></p>
+<p>Equivalently,</p>
+<p><span class="math display">\[t(\delta) &gt; t_{0.975,\nu}.\]</span></p>
+</section>
+<section id="what-is-the-tipping-point" class="level1">
+<h1>What is the tipping point?</h1>
+<p>Imagine the following results:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: right;"><span class="math inline">\(\delta\)</span></th>
+<th style="text-align: right;">pooled estimate</th>
+<th style="text-align: right;">one-sided p</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">5.2</td>
+<td style="text-align: right;">0.003</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4.0</td>
+<td style="text-align: right;">0.008</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2.8</td>
+<td style="text-align: right;">0.019</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.6</td>
+<td style="text-align: right;">0.047</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">0.31</td>
+</tr>
+</tbody>
+</table>
+<p>Then the tipping point lies between</p>
+<p><span class="math display">\[\delta=2\]</span></p>
+<p>and</p>
+<p><span class="math display">\[\delta=3\]</span></p>
+<p>The interpretation is roughly:</p>
+<blockquote class="blockquote">
+<p>Under the MAR analysis, the treatment comparison is significant. The conclusion ceases to be significant when the missing DRUG outcomes are sufficiently worsened and the missing PLACEBO outcomes sufficiently improved by approximately this delta.</p>
+</blockquote>
+<p>Usually one reports the smallest delta at which the one-sided test fails, together with the corresponding treatment estimate, SE, CI and p-value.</p>
+</section>
+<section id="r-implementation" class="level1">
+<h1>R implementation</h1>
+<p>Here is a fairly direct implementation using <code>mice</code>.</p>
+<p>Suppose <code>imp</code> is your <code>mids</code> object.</p>
+<p>First preserve the original missingness indicator:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> imp<span class="sc">$</span>data</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>dat<span class="sc">$</span>miss_y <span class="ot">&lt;-</span> <span class="fu">is.na</span>(dat<span class="sc">$</span>Y)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>This is crucial.</p>
+<p>You want to adjust <strong>only values that were originally missing and subsequently imputed</strong>.</p>
+<p>You must not do this:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">=</span> Y <span class="sc">-</span> delta</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>because that changes observed values too.</p>
+<section id="extract-all-imputed-datasets" class="level2">
+<h2 class="anchored" data-anchor-id="extract-all-imputed-datasets">Extract all imputed datasets</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mice)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>imp_data <span class="ot">&lt;-</span> <span class="fu">complete</span>(imp, <span class="at">action =</span> <span class="st">"all"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><code>mice</code> supports working with the collection of completed imputations, and its tooling distinguishes observed from imputed values.</p>
+</section>
+<section id="delta-adjustment-1" class="level2">
+<h2 class="anchored" data-anchor-id="delta-adjustment-1">Delta adjustment</h2>
+<p>For higher-is-better:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>make_tipping_data <span class="ot">&lt;-</span> <span class="cf">function</span>(data, delta) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  data <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">Y_tp =</span> <span class="fu">case_when</span>(</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        miss_y <span class="sc">&amp;</span> TRT <span class="sc">==</span> <span class="st">"DRUG"</span>    <span class="sc">~</span> Y <span class="sc">-</span> delta,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        miss_y <span class="sc">&amp;</span> TRT <span class="sc">==</span> <span class="st">"PLACEBO"</span> <span class="sc">~</span> Y <span class="sc">+</span> delta,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="cn">TRUE</span> <span class="sc">~</span> Y</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Then:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>delta_grid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">5</span>, <span class="at">by =</span> <span class="fl">0.5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="analyze-each-imputed-dataset" class="level1">
+<h1>Analyze each imputed dataset</h1>
+<p>For a simple two-arm comparison:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fit_one <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    Y_tp <span class="sc">~</span> TRT,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> data</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>For a treatment contrast, make PLACEBO the reference:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>data<span class="sc">$</span>TRT <span class="ot">&lt;-</span> <span class="fu">relevel</span>(<span class="fu">factor</span>(data<span class="sc">$</span>TRT), <span class="at">ref =</span> <span class="st">"PLACEBO"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Then the coefficient of <code>TRTDRUG</code> is</p>
+<p><span class="math display">\[\hat\mu_D - \hat\mu_P.\]</span></p>
+</section>
+<section id="pool-the-50-analyses-for-one-delta" class="level1">
+<h1>Pool the 50 analyses for one delta</h1>
+<p>You can fit each completed dataset separately and turn the results into a <code>mira</code> object:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mice)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>fit_and_pool <span class="ot">&lt;-</span> <span class="cf">function</span>(datasets, delta) {</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  fits <span class="ot">&lt;-</span> <span class="fu">lapply</span>(datasets, <span class="cf">function</span>(dat) {</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    dat <span class="ot">&lt;-</span> <span class="fu">make_tipping_data</span>(dat, delta)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    dat<span class="sc">$</span>TRT <span class="ot">&lt;-</span> <span class="fu">relevel</span>(</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">factor</span>(dat<span class="sc">$</span>TRT),</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">ref =</span> <span class="st">"PLACEBO"</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lm</span>(Y_tp <span class="sc">~</span> TRT, <span class="at">data =</span> dat)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  pooled <span class="ot">&lt;-</span> <span class="fu">pool</span>(<span class="fu">as.mira</span>(fits))</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  pooled</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Then:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>pooled <span class="ot">&lt;-</span> <span class="fu">fit_and_pool</span>(imp_data, <span class="at">delta =</span> <span class="dv">2</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(pooled)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="obtain-the-one-sided-p-value" class="level1">
+<h1>Obtain the one-sided p-value</h1>
+<p><code>summary(pool(...))</code> ordinarily gives the usual two-sided p-value.</p>
+<p>For the treatment coefficient:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>s <span class="ot">&lt;-</span> <span class="fu">summary</span>(pooled)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>trt_row <span class="ot">&lt;-</span> s[s<span class="sc">$</span>term <span class="sc">==</span> <span class="st">"TRTDRUG"</span>, ]</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>t_stat <span class="ot">&lt;-</span> trt_row<span class="sc">$</span>estimate <span class="sc">/</span> trt_row<span class="sc">$</span>std.error</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>df     <span class="ot">&lt;-</span> trt_row<span class="sc">$</span>df</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>p_one <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> <span class="fu">pt</span>(t_stat, df)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimate =</span> trt_row<span class="sc">$</span>estimate,</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">SE       =</span> trt_row<span class="sc">$</span>std.error,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">df       =</span> df,</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">t        =</span> t_stat,</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">p_one    =</span> p_one</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>For</p>
+<p><span class="math display">\[H_1: DRUG &gt; PLACEBO,\]</span></p>
+<p>this is the appropriate tail.</p>
+</section>
+<section id="run-the-complete-tipping-point-grid" class="level1">
+<h1>Run the complete tipping-point grid</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>tip_results <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(delta_grid, <span class="cf">function</span>(delta) {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  fits <span class="ot">&lt;-</span> <span class="fu">lapply</span>(imp_data, <span class="cf">function</span>(dat) {</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    dat <span class="ot">&lt;-</span> <span class="fu">make_tipping_data</span>(dat, delta)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    dat<span class="sc">$</span>TRT <span class="ot">&lt;-</span> <span class="fu">relevel</span>(</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">factor</span>(dat<span class="sc">$</span>TRT),</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">ref =</span> <span class="st">"PLACEBO"</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lm</span>(Y_tp <span class="sc">~</span> TRT, <span class="at">data =</span> dat)</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>  pooled <span class="ot">&lt;-</span> <span class="fu">pool</span>(<span class="fu">as.mira</span>(fits))</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">summary</span>(pooled)</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> s[s<span class="sc">$</span>term <span class="sc">==</span> <span class="st">"TRTDRUG"</span>, ]</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>  t_stat <span class="ot">&lt;-</span> z<span class="sc">$</span>estimate <span class="sc">/</span> z<span class="sc">$</span>std.error</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">delta    =</span> delta,</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">estimate =</span> z<span class="sc">$</span>estimate,</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">SE       =</span> z<span class="sc">$</span>std.error,</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">df       =</span> z<span class="sc">$</span>df,</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">t        =</span> t_stat,</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_one    =</span> <span class="dv">1</span> <span class="sc">-</span> <span class="fu">pt</span>(t_stat, z<span class="sc">$</span>df)</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>You then get something like:</p>
+<pre><code># A tibble:
+  delta estimate    SE    df     t   p_one
+   0.0    5.21    1.74  86.4  2.99  0.002
+   0.5    4.60    1.76  85.8  2.61  0.005
+   1.0    4.01    1.78  84.7  2.25  0.013
+   1.5    3.40    1.80  82.9  1.89  0.031
+   2.0    2.82    1.82  81.5  1.55  0.063</code></pre>
+<p>Therefore the tipping point is between 1.5 and 2.0.</p>
+</section>
+<section id="find-the-tipping-point-numerically" class="level1">
+<h1>Find the tipping point numerically</h1>
+<p>Instead of restricting yourself to a coarse grid, you can find the crossing more precisely.</p>
+<p>For example:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tip_results <span class="sc">%&gt;%</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_one <span class="sc">&gt;=</span> <span class="fl">0.025</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(delta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>This gives the first delta on your grid where significance is lost.</p>
+<p>For a report, show both:</p>
+<pre><code>Delta grid: 0, 0.25, 0.50, ..., 5.00</code></pre>
+<p>and identify the interval</p>
+<p><span class="math display">\[\delta_{TP}\in[\delta_L,\delta_U]\]</span></p>
+</section>
+<section id="a-very-important-issue-in-your-particular-formulation" class="level1">
+<h1>A very important issue in your particular formulation</h1>
+<p>Based on a common protocol wording — essentially:</p>
+<blockquote class="blockquote">
+<p>add/subtract a constant delta to the MAR imputed endpoint values in the direction of lack of efficacy for DRUG and improvement for Placebo</p>
+</blockquote>
+<p>Document the transformation explicitly as:</p>
+<p><span class="math display">\[Y^{TP}_{ij}=Y^{MAR}_{ij}+s_j\delta\]</span></p>
+<p>where</p>
+<p><span class="math display">\[s_j= \begin{cases} -1\quad \text{DRUG}\\ +1\quad \text{PLACEBO}\end{cases}\]</span></p>
+<p>But <strong>only if the observation was missing</strong>.</p>
+<p>That gives a very clean implementation and, importantly, makes it obvious that the operation is performed independently within every MI dataset.</p>
+<p>Avoid wording such as:</p>
+<blockquote class="blockquote">
+<p>“the imputed dataset was adjusted”</p>
+</blockquote>
+<p>because it can sound as though you create one adjusted dataset. Better is:</p>
+<blockquote class="blockquote">
+<p>“For each imputed dataset, the MAR-imputed endpoint values for subjects with missing endpoint assessments were delta-adjusted…”</p>
+</blockquote>
+<p>That makes the MI structure explicit.</p>
+</section>
+<section id="one-more-subtle-issue-anova-vs-treatment-contrast" class="level1">
+<h1>One more subtle issue: ANOVA vs treatment contrast</h1>
+<p>If the actual analysis is:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">lm</span>(Y <span class="sc">~</span> TRT)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>with two groups, then</p>
+<p><span class="math display">\[F=t^2.\]</span></p>
+<p>The F-test answers</p>
+<p><span class="math display">\[H_0: \mu_D=\mu_P\]</span></p>
+<p>without direction.</p>
+<p>For a <strong>one-sided efficacy claim</strong>, extract the DRUG-versus-PLACEBO coefficient and calculate the one-sided test.</p>
+<p>For example:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(Y_tp <span class="sc">~</span> TRT, <span class="at">data =</span> dat)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fu">coef</span>(fit)[<span class="st">"TRTDRUG"</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>and then pool <code>beta</code>.</p>
+<p>If your actual primary analysis has baseline adjustment, LS-means, strata, site effects, repeated measurements, etc., the same tipping-point architecture remains valid, but the model inside each imputation should be <strong>exactly the primary analysis model</strong>.</p>
+<section id="the-complete-conceptual-picture" class="level2">
+<h2 class="anchored" data-anchor-id="the-complete-conceptual-picture">The complete conceptual picture</h2>
+<div class="cell" data-fig-width="7" data-fig-height="8.2" data-out-width="82%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="tip-architecture">
+<div>
+<pre class="mermaid mermaid-js" data-label="tip-architecture">%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "clusterBkg": "#f7f9fb", "clusterBorder": "#5d6d7e", "titleColor": "#1a252f"}, "flowchart": {"padding": 10, "nodeSpacing": 14, "rankSpacing": 26, "curve": "linear"}}}%%
+flowchart TD
+  raw["Original incomplete data"]
+  mi["MAR multiple imputation once"]
+  stack["Completed MI datasets 1..M"]
+  delta0["Start at delta = 0"]
+  adj["Delta-adjust originally missing&lt;br/&gt;values in all M datasets"]
+  fit["Fit primary ANOVA/ANCOVA;&lt;br/&gt;extract contrast in each of M"]
+  pool["Rubin pool the M contrasts"]
+  pval["One-sided p-value"]
+  ask{"p &gt;= alpha?"}
+  tip["TIPPING POINT"]
+  more["Increase delta"]
+  raw --&gt; mi --&gt; stack --&gt; delta0 --&gt; adj --&gt; fit --&gt; pool --&gt; pval --&gt; ask
+  ask --&gt;|yes| tip
+  ask --&gt;|no| more --&gt; adj
+  classDef step fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef stopc fill:#fdebd0,stroke:#b9770e,color:#1a252f,stroke-width:1.5px
+  classDef good fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  class raw,mi,stack,delta0,adj,fit,pool,pval,more step
+  class ask stopc
+  class tip good
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p>The most important methodological principle is therefore:</p>
+<p><span class="math display">\[\boxed{ \text{For each }\delta,\; \text{adjust all }M\text{ imputed datasets separately, analyze all }M, \text{ then pool.} }\]</span></p>
+<p>That is the part that makes a multiple-imputation tipping-point analysis fundamentally different from simply modifying one completed dataset.</p>
+<p>If the actual primary analysis is <strong>ANOVA with LSMeans/contrast (e.g.&nbsp;SAS PROC MIXED/GLIMMIX)</strong> rather than <code>lm(Y ~ TRT)</code>, the same tipping-point procedure can be implemented with <code>emmeans</code> and Rubin pooling, which is closer to how this appears in a clinical study SAP.</p>
+</section>
+</section>
+<section id="worked-example-simulated-fvc-trial" class="level1">
+<h1>Worked example: simulated FVC trial</h1>
+<p>The methods above are now applied to a simulated two-arm study whose primary efficacy variable <span class="math inline">\(Y\)</span> is <strong>forced vital capacity (FVC)</strong>, in millilitres. Higher FVC is better, so the one-sided claim remains</p>
+<p><span class="math display">\[H_0:\mu_D-\mu_P\le 0\quad\text{vs}\quad H_1:\mu_D-\mu_P&gt;0.\]</span></p>
+<p>Gender (<code>SEX</code>) enters both the imputation model and the analysis model as a factor. The analysis inside every completed dataset is the ANCOVA</p>
+<p><span class="math display">\[\mathrm{FVC}=\beta_0+\beta_1\mathrm{TRT}+\beta_2\mathrm{FVC}_{\mathrm{bl}}+\beta_3\mathrm{SEX}+\varepsilon.\]</span></p>
+<p>With <code>PLACEBO</code> as the reference level, <span class="math inline">\(\beta_1\)</span> is the gender- and baseline-adjusted DRUG-versus-PLACEBO contrast.</p>
+<p>The steps below follow that pipeline: simulate complete FVC, impose MAR missingness, impute with <code>mice</code>, delta-adjust each imputation, pool with Rubin’s rules, then read the tipping point from the one-sided <span class="math inline">\(p\)</span>-value curve.</p>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<p>Packages used for wrangling, imputation, pooling, and graphics:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mice)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'mice'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:stats':
+
+    filter</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    cbind, rbind</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">45672</span>)</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>alpha_one <span class="ot">&lt;-</span> <span class="fl">0.025</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><code>set.seed(45672)</code> makes the simulated trial, the missingness indicators, and the PMM draws reproducible.</p>
+</section>
+<section id="step-1-simulate-complete-fvc-data" class="level2">
+<h2 class="anchored" data-anchor-id="step-1-simulate-complete-fvc-data">Step 1 — Simulate complete FVC data</h2>
+<p>A complete-data trial is generated first so that missingness can be imposed afterwards under a known MAR mechanism. Design choices:</p>
+<ul>
+<li><span class="math inline">\(N=200\)</span>, 1:1 randomisation to <code>DRUG</code> or <code>PLACEBO</code>.</li>
+<li>About 40% female; males have a higher baseline FVC (about +800 mL), as in adult spirometry.</li>
+<li>Placebo declines more than DRUG from baseline to the endpoint (treatment difference about 160 mL).</li>
+<li>Residual SD is 250 mL, which is in a plausible range for FVC change in patients with some lung disease.</li>
+</ul>
+<p><code>FVC_true</code> is the complete endpoint value. It is kept only for diagnostics and is <strong>not</strong> used in imputation or in the tipping-point model.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>dat_complete <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">SUBJID =</span> <span class="fu">sprintf</span>(<span class="st">"S%03d"</span>, <span class="fu">seq_len</span>(n)),</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">TRT    =</span> <span class="fu">factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">"PLACEBO"</span>, <span class="st">"DRUG"</span>), <span class="at">each =</span> n <span class="sc">/</span> <span class="dv">2</span>),</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>                  <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"PLACEBO"</span>, <span class="st">"DRUG"</span>)),</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">SEX    =</span> <span class="fu">factor</span>(</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rbinom</span>(n, <span class="dv">1</span>, <span class="fl">0.40</span>),</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"M"</span>, <span class="st">"F"</span>)</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">FVC_bl =</span> <span class="dv">2750</span> <span class="sc">+</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">if_else</span>(SEX <span class="sc">==</span> <span class="st">"F"</span>, <span class="sc">-</span><span class="dv">800</span>, <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">rnorm</span>(<span class="fu">n</span>(), <span class="at">sd =</span> <span class="dv">400</span>),</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">decline =</span> <span class="fu">if_else</span>(TRT <span class="sc">==</span> <span class="st">"DRUG"</span>, <span class="dv">50</span>, <span class="dv">210</span>) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="fu">n</span>(), <span class="at">sd =</span> <span class="dv">250</span>),</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">FVC_true =</span> FVC_bl <span class="sc">-</span> decline</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>dat_complete <span class="sc">%&gt;%</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(TRT, SEX) <span class="sc">%&gt;%</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">n        =</span> <span class="fu">n</span>(),</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">FVC_bl   =</span> <span class="fu">mean</span>(FVC_bl),</span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">FVC    =</span> <span class="fu">mean</span>(FVC_true),</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">change   =</span> <span class="fu">mean</span>(FVC_true <span class="sc">-</span> FVC_bl),</span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups  =</span> <span class="st">"drop"</span></span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 6
+  TRT     SEX       n FVC_bl   FVC change
+  &lt;fct&gt;   &lt;fct&gt; &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+1 PLACEBO M        63  2688. 2494. -195. 
+2 PLACEBO F        37  1871. 1674. -197. 
+3 DRUG    M        62  2870. 2823.  -47.1
+4 DRUG    F        38  1969. 1876.  -92.7</code></pre>
+</div>
+</div>
+<p>The complete-data treatment contrast is the difference in mean endpoint FVC after accounting for the larger male lungs and the larger placebo decline. Gender is a <strong>factor</strong>, not a numeric 0/1 covariate in the analysis model, so the later <code>lm()</code> dummy-coding stays explicit.</p>
+</section>
+<section id="step-2-impose-mar-missingness-on-endpoint-fvc" class="level2">
+<h2 class="anchored" data-anchor-id="step-2-impose-mar-missingness-on-endpoint-fvc">Step 2 — Impose MAR missingness on endpoint FVC</h2>
+<p>Only endpoint FVC is allowed to be missing. The probability of a missing endpoint value depends on <strong>observed</strong> variables (<code>TRT</code>, <code>FVC_bl</code>, <code>SEX</code>) and not on <code>FVC_true</code>. That is a MAR mechanism, which is exactly what standard <code>mice</code> imputation assumes.</p>
+<p>The logistic missingness model is tilted so that dropout is higher on PLACEBO, higher at lower baseline FVC, and slightly higher in females. The intercept is chosen so that the overall missingness rate is about 15–25%.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> dat_complete <span class="sc">%&gt;%</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">lp_miss =</span> <span class="sc">-</span><span class="fl">1.70</span> <span class="sc">+</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>      <span class="fl">0.55</span> <span class="sc">*</span> (TRT <span class="sc">==</span> <span class="st">"PLACEBO"</span>) <span class="sc">+</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>      <span class="fl">0.22</span> <span class="sc">*</span> (SEX <span class="sc">==</span> <span class="st">"F"</span>) <span class="sc">+</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>      <span class="fl">0.0007</span> <span class="sc">*</span> (<span class="dv">2400</span> <span class="sc">-</span> FVC_bl),</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_miss  =</span> <span class="fu">plogis</span>(lp_miss),</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">miss_fvc =</span> <span class="fu">rbinom</span>(<span class="fu">n</span>(), <span class="dv">1</span>, p_miss) <span class="sc">==</span> <span class="dv">1</span>,</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">FVC =</span> <span class="fu">if_else</span>(miss_fvc, <span class="cn">NA_real_</span>, FVC_true)</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>dat <span class="sc">%&gt;%</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(TRT, SEX) <span class="sc">%&gt;%</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">n       =</span> <span class="fu">n</span>(),</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_miss  =</span> <span class="fu">sum</span>(miss_fvc),</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_miss =</span> <span class="dv">100</span> <span class="sc">*</span> <span class="fu">mean</span>(miss_fvc),</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 5
+  TRT     SEX       n n_miss pct_miss
+  &lt;fct&gt;   &lt;fct&gt; &lt;int&gt;  &lt;int&gt;    &lt;dbl&gt;
+1 PLACEBO M        63      9     14.3
+2 PLACEBO F        37     12     32.4
+3 DRUG    M        62      9     14.5
+4 DRUG    F        38      9     23.7</code></pre>
+</div>
+</div>
+<p><code>miss_fvc</code> is stored <strong>before</strong> imputation. Later delta-adjustment uses this flag, not <code>is.na(FVC)</code> on a completed dataset, because after <code>mice</code> every FVC value is filled in.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>p_miss_overall <span class="ot">&lt;-</span> <span class="fu">mean</span>(dat<span class="sc">$</span>miss_fvc)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>p_miss_overall</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.195</code></pre>
+</div>
+</div>
+</section>
+<section id="step-3-describe-the-incomplete-data" class="level2">
+<h2 class="anchored" data-anchor-id="step-3-describe-the-incomplete-data">Step 3 — Describe the incomplete data</h2>
+<p>Two plots check that the simulation looks like a small FVC trial: missingness differs by arm and gender, and the observed endpoint distributions still show a DRUG advantage among completers.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>miss_plot_dat <span class="ot">&lt;-</span> dat <span class="sc">%&gt;%</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(TRT, SEX, miss_fvc) <span class="sc">%&gt;%</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(TRT, SEX) <span class="sc">%&gt;%</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pct =</span> <span class="dv">100</span> <span class="sc">*</span> n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(miss_fvc)</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(miss_plot_dat, <span class="fu">aes</span>(<span class="at">x =</span> TRT, <span class="at">y =</span> pct, <span class="at">fill =</span> SEX)) <span class="sc">+</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.8</span>), <span class="at">width =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"MAR missingness for endpoint FVC"</span>,</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Treatment"</span>,</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Missing endpoint FVC (%)"</span>,</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"Gender"</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-miss-fvc" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-miss-fvc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-miss-fvc-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;1: Percent of subjects with missing endpoint FVC, by treatment and gender."><img src="index_files/figure-html/fig-miss-fvc-1.png" class="img-fluid figure-img" width="672"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-miss-fvc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Percent of subjects with missing endpoint FVC, by treatment and gender.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  dat <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span>miss_fvc),</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> TRT, <span class="at">y =</span> FVC, <span class="at">fill =</span> SEX)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_violin</span>(<span class="at">alpha =</span> <span class="fl">0.35</span>, <span class="at">colour =</span> <span class="cn">NA</span>) <span class="sc">+</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">width =</span> <span class="fl">0.18</span>, <span class="at">outlier.shape =</span> <span class="cn">NA</span>, <span class="at">alpha =</span> <span class="fl">0.85</span>) <span class="sc">+</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Observed endpoint FVC (completers)"</span>,</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Treatment"</span>,</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Endpoint FVC (mL)"</span>,</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"Gender"</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-obs-fvc" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-obs-fvc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-obs-fvc-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;2: Observed endpoint FVC among completers, by treatment and gender."><img src="index_files/figure-html/fig-obs-fvc-1.png" class="img-fluid figure-img" width="672"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-obs-fvc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Observed endpoint FVC among completers, by treatment and gender.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Observed-case means are <strong>not</strong> the primary analysis. They are shown only to confirm that the generated FVC values and the MAR dropout pattern are in a sensible range.</p>
+</section>
+<section id="step-4-mar-multiple-imputation-with-mice" class="level2">
+<h2 class="anchored" data-anchor-id="step-4-mar-multiple-imputation-with-mice">Step 4 — MAR multiple imputation with <code>mice</code></h2>
+<p><code>FVC</code> is the only incomplete analysis variable. Predictors are <code>TRT</code>, <code>FVC_bl</code>, and <code>SEX</code>. Including gender in the imputation model matters because males and females have different FVC levels; omitting it would impute toward a pooled mean and distort both arms.</p>
+<p><code>SUBJID</code> and <code>FVC_true</code> are excluded as predictors. <code>FVC_true</code> would leak the complete outcome and would no longer be a realistic MAR analysis.</p>
+<p>Predictive mean matching (<code>pmm</code>) is used so imputed FVC values remain on the observed support (van Buuren, 2018). <span class="math inline">\(M=50\)</span> imputations retain between-imputation variance for Rubin’s rules.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>dat_mi <span class="ot">&lt;-</span> dat <span class="sc">%&gt;%</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TRT, SEX, FVC_bl, FVC)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>pred <span class="ot">&lt;-</span> <span class="fu">make.predictorMatrix</span>(dat_mi)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>pred[, ] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>pred[<span class="st">"FVC"</span>, <span class="fu">c</span>(<span class="st">"TRT"</span>, <span class="st">"SEX"</span>, <span class="st">"FVC_bl"</span>)] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>meth <span class="ot">&lt;-</span> <span class="fu">make.method</span>(dat_mi)</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>meth[] <span class="ot">&lt;-</span> <span class="st">""</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>meth[<span class="st">"FVC"</span>] <span class="ot">&lt;-</span> <span class="st">"pmm"</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>imp <span class="ot">&lt;-</span> <span class="fu">mice</span>(</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>  dat_mi,</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">m               =</span> <span class="dv">50</span>,</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">method          =</span> meth,</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">predictorMatrix =</span> pred,</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">printFlag       =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed            =</span> <span class="dv">1109</span></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>imp</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Class: mids
+Number of multiple imputations:  50 
+Imputation methods:
+   TRT    SEX FVC_bl    FVC 
+    ""     ""     ""  "pmm" 
+PredictorMatrix:
+       TRT SEX FVC_bl FVC
+TRT      0   0      0   0
+SEX      0   0      0   0
+FVC_bl   0   0      0   0
+FVC      1   1      1   0</code></pre>
+</div>
+</div>
+<p>Completed datasets are extracted as a list. The original missingness flag is joined back onto every imputation so that later adjustments touch <strong>only originally missing</strong> the endpoint values.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>imp_data <span class="ot">&lt;-</span> <span class="fu">complete</span>(imp, <span class="at">action =</span> <span class="st">"all"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> <span class="fu">mutate</span>(.x, <span class="at">miss_fvc =</span> dat<span class="sc">$</span>miss_fvc, <span class="at">SUBJID =</span> dat<span class="sc">$</span>SUBJID))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="step-5-analysis-and-pooling-helpers" class="level2">
+<h2 class="anchored" data-anchor-id="step-5-analysis-and-pooling-helpers">Step 5 — Analysis and pooling helpers</h2>
+<p>The following functions implement the architecture from the methods section, now with FVC names and gender in the ANCOVA.</p>
+<ol type="1">
+<li><code>make_tipping_data()</code> applies the higher-is-better MNAR shift: missing DRUG FVC is reduced by <span class="math inline">\(\delta\)</span>, missing PLACEBO FVC is increased by <span class="math inline">\(\delta\)</span>, observed values are left unchanged.</li>
+<li><code>fit_ancova()</code> fits <span class="math inline">\(\mathrm{FVC}^{\mathrm{TP}}\sim\mathrm{TRT}+\mathrm{FVC}_{\mathrm{bl}}+\mathrm{SEX}\)</span> with <code>PLACEBO</code> as the reference.</li>
+<li><code>pool_one_delta()</code> analyses all <span class="math inline">\(M\)</span> imputations at a given <span class="math inline">\(\delta\)</span> (or at a pair of arm-specific deltas) and returns the Rubin-pooled treatment contrast and the one-sided <span class="math inline">\(p\)</span>-value.</li>
+</ol>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>make_tipping_data <span class="ot">&lt;-</span> <span class="cf">function</span>(data, delta, <span class="at">delta_drug =</span> <span class="cn">NULL</span>, <span class="at">delta_pbo =</span> <span class="cn">NULL</span>) {</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  d_drug <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">is.null</span>(delta_drug)) delta <span class="cf">else</span> delta_drug</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  d_pbo  <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">is.null</span>(delta_pbo)) delta <span class="cf">else</span> delta_pbo</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  data <span class="sc">%&gt;%</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">FVC_tp =</span> <span class="fu">case_when</span>(</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>        miss_fvc <span class="sc">&amp;</span> TRT <span class="sc">==</span> <span class="st">"DRUG"</span>    <span class="sc">~</span> FVC <span class="sc">-</span> d_drug,</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>        miss_fvc <span class="sc">&amp;</span> TRT <span class="sc">==</span> <span class="st">"PLACEBO"</span> <span class="sc">~</span> FVC <span class="sc">+</span> d_pbo,</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>        <span class="cn">TRUE</span> <span class="sc">~</span> FVC</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>fit_ancova <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>  data<span class="sc">$</span>TRT <span class="ot">&lt;-</span> <span class="fu">relevel</span>(<span class="fu">factor</span>(data<span class="sc">$</span>TRT), <span class="at">ref =</span> <span class="st">"PLACEBO"</span>)</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>  data<span class="sc">$</span>SEX <span class="ot">&lt;-</span> <span class="fu">factor</span>(data<span class="sc">$</span>SEX, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"M"</span>, <span class="st">"F"</span>))</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(FVC_tp <span class="sc">~</span> TRT <span class="sc">+</span> FVC_bl <span class="sc">+</span> SEX, <span class="at">data =</span> data)</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>pool_one_delta <span class="ot">&lt;-</span> <span class="cf">function</span>(datasets, <span class="at">delta =</span> <span class="dv">0</span>, <span class="at">delta_drug =</span> <span class="cn">NULL</span>, <span class="at">delta_pbo =</span> <span class="cn">NULL</span>) {</span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>  fits <span class="ot">&lt;-</span> <span class="fu">lapply</span>(datasets, <span class="cf">function</span>(dat) {</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>    dat <span class="ot">&lt;-</span> <span class="fu">make_tipping_data</span>(dat, delta, delta_drug, delta_pbo)</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fit_ancova</span>(dat)</span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>  pooled <span class="ot">&lt;-</span> <span class="fu">pool</span>(<span class="fu">as.mira</span>(fits))</span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">summary</span>(pooled)</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> s[s<span class="sc">$</span>term <span class="sc">==</span> <span class="st">"TRTDRUG"</span>, ]</span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">delta    =</span> <span class="cf">if</span> (<span class="fu">is.null</span>(delta_drug) <span class="sc">&amp;&amp;</span> <span class="fu">is.null</span>(delta_pbo)) delta <span class="cf">else</span> <span class="cn">NA_real_</span>,</span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">delta_drug =</span> <span class="cf">if</span> (<span class="fu">is.null</span>(delta_drug)) delta <span class="cf">else</span> delta_drug,</span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">delta_pbo  =</span> <span class="cf">if</span> (<span class="fu">is.null</span>(delta_pbo)) delta <span class="cf">else</span> delta_pbo,</span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">estimate =</span> z<span class="sc">$</span>estimate,</span>
+<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">SE       =</span> z<span class="sc">$</span>std.error,</span>
+<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">df       =</span> z<span class="sc">$</span>df,</span>
+<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">t        =</span> z<span class="sc">$</span>estimate <span class="sc">/</span> z<span class="sc">$</span>std.error,</span>
+<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_one    =</span> <span class="dv">1</span> <span class="sc">-</span> <span class="fu">pt</span>(z<span class="sc">$</span>estimate <span class="sc">/</span> z<span class="sc">$</span>std.error, z<span class="sc">$</span>df),</span>
+<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_lo    =</span> z<span class="sc">$</span>estimate <span class="sc">-</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, z<span class="sc">$</span>df) <span class="sc">*</span> z<span class="sc">$</span>std.error,</span>
+<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_hi    =</span> z<span class="sc">$</span>estimate <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, z<span class="sc">$</span>df) <span class="sc">*</span> z<span class="sc">$</span>std.error</span>
+<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><span class="math inline">\(\delta=0\)</span> is the ordinary MAR analysis: no MNAR shift, only <code>mice</code> imputation and the ANCOVA with gender.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>mar_result <span class="ot">&lt;-</span> <span class="fu">pool_one_delta</span>(imp_data, <span class="at">delta =</span> <span class="dv">0</span>)</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>mar_result</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 10
+  delta delta_drug delta_pbo estimate    SE    df     t     p_one ci_lo ci_hi
+  &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1     0          0         0     171.  40.6  134.  4.21 0.0000229  90.7  251.</code></pre>
+</div>
+</div>
+<p>If <code>p_one</code> at <span class="math inline">\(\delta=0\)</span> is below 0.025, the MAR conclusion is that DRUG preserves more FVC than PLACEBO. The tipping-point question is how large an adverse shift of the <strong>imputed</strong> values is needed before that claim is lost.</p>
+</section>
+<section id="step-6-one-dimensional-tipping-point-grid" class="level2">
+<h2 class="anchored" data-anchor-id="step-6-one-dimensional-tipping-point-grid">Step 6 — One-dimensional tipping-point grid</h2>
+<p>A grid of arm-wise deltas from 0 to 300 mL is applied. For each <span class="math inline">\(\delta\)</span>, all 50 imputations are adjusted, the ANCOVA is fitted 50 times, and Rubin’s rules are applied <strong>before</strong> the one-sided test. That is 13 × 50 = 650 fitted models, not one adjusted dataset.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>delta_grid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">300</span>, <span class="at">by =</span> <span class="dv">25</span>)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>tip_results <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(delta_grid, <span class="cf">function</span>(d) {</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pool_one_delta</span>(imp_data, <span class="at">delta =</span> d)</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>tip_results</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 13 × 10
+   delta delta_drug delta_pbo estimate    SE    df     t     p_one  ci_lo ci_hi
+   &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;
+ 1     0          0         0    171.   40.6  134.  4.21 0.0000229  90.7   251.
+ 2    25         25        25    162.   40.6  134.  3.98 0.0000561  81.3   242.
+ 3    50         50        50    152.   40.6  134.  3.74 0.000135   71.7   233.
+ 4    75         75        75    143.   40.8  134.  3.50 0.000315   62.1   223.
+ 5   100        100       100    133.   40.9  135.  3.26 0.000712   52.4   214.
+ 6   125        125       125    124.   41.2  136.  3.01 0.00155    42.5   205.
+ 7   150        150       150    115.   41.4  136.  2.77 0.00324    32.6   196.
+ 8   175        175       175    105.   41.7  137.  2.52 0.00646    22.6   188.
+ 9   200        200       200     95.7  42.1  138.  2.27 0.0123     12.5   179.
+10   225        225       225     86.3  42.5  140.  2.03 0.0221      2.28  170.
+11   250        250       250     76.9  42.9  141.  1.79 0.0378     -8.00  162.
+12   275        275       275     67.5  43.4  142.  1.55 0.0612    -18.4   153.
+13   300        300       300     58.1  44.0  144.  1.32 0.0943    -28.8   145.</code></pre>
+</div>
+</div>
+<p>The first grid point at which the one-sided test fails (<span class="math inline">\(p \ge 0.025\)</span>) brackets the tipping point from above. A linear interpolation on the <span class="math inline">\(p\)</span>-value (or on the <span class="math inline">\(t\)</span> statistic) between the last significant and first non-significant grid points gives a finer <span class="math inline">\(\delta_{\mathrm{TP}}\)</span>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>last_sig <span class="ot">&lt;-</span> tip_results <span class="sc">%&gt;%</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_one <span class="sc">&lt;</span> alpha_one) <span class="sc">%&gt;%</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(delta, <span class="at">n =</span> <span class="dv">1</span>)</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>first_ns <span class="ot">&lt;-</span> tip_results <span class="sc">%&gt;%</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_one <span class="sc">&gt;=</span> alpha_one) <span class="sc">%&gt;%</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(delta, <span class="at">n =</span> <span class="dv">1</span>)</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(last_sig) <span class="sc">==</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">nrow</span>(first_ns) <span class="sc">==</span> <span class="dv">1</span>) {</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>  delta_tp <span class="ot">&lt;-</span> <span class="fu">approx</span>(</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">x    =</span> <span class="fu">c</span>(last_sig<span class="sc">$</span>p_one, first_ns<span class="sc">$</span>p_one),</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">y    =</span> <span class="fu">c</span>(last_sig<span class="sc">$</span>delta, first_ns<span class="sc">$</span>delta),</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">xout =</span> alpha_one</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">$</span>y</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> <span class="cf">if</span> (<span class="fu">nrow</span>(first_ns) <span class="sc">==</span> <span class="dv">0</span>) {</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>  delta_tp <span class="ot">&lt;-</span> <span class="cn">NA_real_</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>  delta_tp <span class="ot">&lt;-</span> first_ns<span class="sc">$</span>delta</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a><span class="fu">list</span>(</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">last_significant =</span> last_sig,</span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">first_nonsignificant =</span> first_ns,</span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">delta_tp_interpolated =</span> delta_tp</span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$last_significant
+# A tibble: 1 × 10
+  delta delta_drug delta_pbo estimate    SE    df     t  p_one ci_lo ci_hi
+  &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1   225        225       225     86.3  42.5  140.  2.03 0.0221  2.28  170.
+
+$first_nonsignificant
+# A tibble: 1 × 10
+  delta delta_drug delta_pbo estimate    SE    df     t  p_one ci_lo ci_hi
+  &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1   250        250       250     76.9  42.9  141.  1.79 0.0378 -8.00  162.
+
+$delta_tp_interpolated
+[1] 229.6535</code></pre>
+</div>
+</div>
+<p>A direct root finder on the pooled one-sided <span class="math inline">\(p\)</span>-value is used when the grid straddles 0.025. This evaluates a few extra <span class="math inline">\(\delta\)</span> values but does not replace the grid, which remains the reportable display.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>p_one_at <span class="ot">&lt;-</span> <span class="cf">function</span>(d) {</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pool_one_delta</span>(imp_data, <span class="at">delta =</span> d)<span class="sc">$</span>p_one</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(last_sig) <span class="sc">==</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">nrow</span>(first_ns) <span class="sc">==</span> <span class="dv">1</span>) {</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  delta_tp_exact <span class="ot">&lt;-</span> <span class="fu">uniroot</span>(</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(d) <span class="fu">p_one_at</span>(d) <span class="sc">-</span> alpha_one,</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">interval =</span> <span class="fu">c</span>(last_sig<span class="sc">$</span>delta, first_ns<span class="sc">$</span>delta)</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">$</span>root</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>  delta_tp_exact <span class="ot">&lt;-</span> delta_tp</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>delta_tp_exact</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 230.5703</code></pre>
+</div>
+</div>
+</section>
+<section id="step-7-tipping-point-graphics" class="level2">
+<h2 class="anchored" data-anchor-id="step-7-tipping-point-graphics">Step 7 — Tipping-point graphics</h2>
+<p>The <span class="math inline">\(p\)</span>-value curve shows when the one-sided test crosses <span class="math inline">\(\alpha=0.025\)</span>. The estimate curve shows the same information on the FVC (mL) scale, with Rubin-pooled 95% confidence intervals. The vertical line is the interpolated (or <code>uniroot</code>) tipping point.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>p_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(tip_results, <span class="fu">aes</span>(<span class="at">x =</span> delta, <span class="at">y =</span> p_one)) <span class="sc">+</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> alpha_one, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"One-sided p-value versus MNAR delta"</span>,</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Dashed line: alpha = 0.025; dotted line: tipping point"</span>,</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Delta applied to missing endpoint FVC (mL)"</span>,</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"One-sided p-value (DRUG &gt; PLACEBO)"</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.finite</span>(delta_tp_exact)) {</span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>  p_plot <span class="ot">&lt;-</span> p_plot <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> delta_tp_exact, <span class="at">linetype =</span> <span class="st">"dotted"</span>)</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>p_plot</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-p-delta" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-p-delta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-p-delta-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;3: One-sided p-value versus the arm-wise MNAR delta applied to originally missing endpoint FVC."><img src="index_files/figure-html/fig-p-delta-1.png" class="img-fluid figure-img" width="672"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-p-delta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: One-sided p-value versus the arm-wise MNAR delta applied to originally missing endpoint FVC.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>est_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(tip_results, <span class="fu">aes</span>(<span class="at">x =</span> delta, <span class="at">y =</span> estimate)) <span class="sc">+</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> ci_lo, <span class="at">ymax =</span> ci_hi), <span class="at">alpha =</span> <span class="fl">0.18</span>) <span class="sc">+</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Pooled treatment effect versus MNAR delta"</span>,</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Ribbon: Rubin-pooled 95% CI; higher FVC is better"</span>,</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Delta applied to missing endpoint FVC (mL)"</span>,</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Pooled DRUG − PLACEBO contrast (mL)"</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.finite</span>(delta_tp_exact)) {</span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>  est_plot <span class="ot">&lt;-</span> est_plot <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> delta_tp_exact, <span class="at">linetype =</span> <span class="st">"dotted"</span>)</span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>est_plot</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-est-delta" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-est-delta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-est-delta-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;4: Rubin-pooled DRUG minus PLACEBO contrast versus MNAR delta, with 95% confidence interval."><img src="index_files/figure-html/fig-est-delta-1.png" class="img-fluid figure-img" width="672"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-est-delta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Rubin-pooled DRUG minus PLACEBO contrast versus MNAR delta, with 95% confidence interval.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="step-8-two-dimensional-tipping-surface" class="level2">
+<h2 class="anchored" data-anchor-id="step-8-two-dimensional-tipping-surface">Step 8 — Two-dimensional tipping surface</h2>
+<p>A single shared <span class="math inline">\(\delta\)</span> is only one path through MNAR space: it worsens missing DRUG values and improves missing PLACEBO values by the same amount. A coarse grid over <span class="math inline">\((\delta_{\mathrm{DRUG}},\delta_{\mathrm{PLACEBO}})\)</span> shows other combinations that lose or retain significance (cf.&nbsp;two-way tipping-point displays in Gorst-Rasmussen and Tarp-Johansen, 2022). Each cell is still a full Rubin pool of the 50 imputations.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>delta_2d <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">300</span>, <span class="at">by =</span> <span class="dv">75</span>)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>tip_2d <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(<span class="at">delta_drug =</span> delta_2d, <span class="at">delta_pbo =</span> delta_2d) <span class="sc">%&gt;%</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pmap_dfr</span>(<span class="cf">function</span>(delta_drug, delta_pbo) {</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pool_one_delta</span>(</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>      imp_data,</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">delta_drug =</span> delta_drug,</span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">delta_pbo  =</span> delta_pbo</span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(tip_2d, <span class="fu">aes</span>(<span class="at">x =</span> delta_drug, <span class="at">y =</span> delta_pbo, <span class="at">fill =</span> p_one)) <span class="sc">+</span></span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, p_one)), <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dotted"</span>) <span class="sc">+</span></span>
+<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradient</span>(<span class="at">low =</span> <span class="st">"white"</span>, <span class="at">high =</span> <span class="st">"grey30"</span>) <span class="sc">+</span></span>
+<span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Two-dimensional tipping surface"</span>,</span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Fill and labels: one-sided p-value; dotted line: shared delta"</span>,</span>
+<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Delta applied to missing DRUG FVC (mL)"</span>,</span>
+<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Delta applied to missing PLACEBO FVC (mL)"</span>,</span>
+<span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"p (one-sided)"</span></span>
+<span id="cb44-23"><a href="#cb44-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb44-25"><a href="#cb44-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-tip-2d" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-tip-2d-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-tip-2d-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;5: One-sided p-values on a two-dimensional MNAR grid. The dotted diagonal is the shared-delta analysis."><img src="index_files/figure-html/fig-tip-2d-1.png" class="img-fluid figure-img" width="672"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tip-2d-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: One-sided p-values on a two-dimensional MNAR grid. The dotted diagonal is the shared-delta analysis.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The dotted diagonal is the one-dimensional analysis from Step 6. Cells with <span class="math inline">\(p \ge 0.025\)</span> are combinations of MNAR shifts that tip the conclusion.</p>
+</section>
+<section id="step-9-interpretation" class="level2">
+<h2 class="anchored" data-anchor-id="step-9-interpretation">Step 9 — Interpretation</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>tip_results <span class="sc">%&gt;%</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>    delta,</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">estimate =</span> <span class="fu">round</span>(estimate, <span class="dv">1</span>),</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">SE =</span> <span class="fu">round</span>(SE, <span class="dv">1</span>),</span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">df =</span> <span class="fu">round</span>(df, <span class="dv">1</span>),</span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">t =</span> <span class="fu">round</span>(t, <span class="dv">2</span>),</span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_one =</span> <span class="fu">signif</span>(p_one, <span class="dv">3</span>),</span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">significant =</span> p_one <span class="sc">&lt;</span> alpha_one</span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 13 × 7
+   delta estimate    SE    df     t     p_one significant
+   &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;lgl&gt;      
+ 1     0    171.   40.6  134.  4.21 0.0000229 TRUE       
+ 2    25    162.   40.6  134.  3.98 0.0000561 TRUE       
+ 3    50    152.   40.6  134   3.74 0.000135  TRUE       
+ 4    75    143.   40.8  134.  3.5  0.000315  TRUE       
+ 5   100    133.   40.9  135.  3.26 0.000712  TRUE       
+ 6   125    124.   41.2  136.  3.01 0.00155   TRUE       
+ 7   150    114.   41.4  136.  2.77 0.00324   TRUE       
+ 8   175    105.   41.7  137.  2.52 0.00646   TRUE       
+ 9   200     95.7  42.1  138.  2.27 0.0123    TRUE       
+10   225     86.3  42.5  140.  2.03 0.0221    TRUE       
+11   250     76.9  42.9  141.  1.79 0.0378    FALSE      
+12   275     67.5  43.4  142.  1.55 0.0612    FALSE      
+13   300     58.1  44    144.  1.32 0.0943    FALSE      </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>tp_txt <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">is.finite</span>(delta_tp_exact)) {</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste0</span>(<span class="fu">round</span>(delta_tp_exact, <span class="dv">1</span>), <span class="st">" mL"</span>)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"not reached on the explored grid"</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(</span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"MAR (delta = 0): estimate = "</span>,</span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(mar_result<span class="sc">$</span>estimate, <span class="dv">1</span>),</span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">" mL, one-sided p = "</span>,</span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">signif</span>(mar_result<span class="sc">$</span>p_one, <span class="dv">3</span>),</span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">".</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Interpolated / uniroot tipping point: "</span>,</span>
+<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>  tp_txt,</span>
+<span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">".</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Overall endpoint missingness: "</span>,</span>
+<span id="cb47-17"><a href="#cb47-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> p_miss_overall, <span class="dv">1</span>),</span>
+<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"%.</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb47-19"><a href="#cb47-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">sep =</span> <span class="st">""</span></span>
+<span id="cb47-20"><a href="#cb47-20" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>MAR (delta = 0): estimate = 170.9 mL, one-sided p = 2.29e-05.
+Interpolated / uniroot tipping point: 230.6 mL.
+Overall endpoint missingness: 19.5%.</code></pre>
+</div>
+</div>
+<p>Reading the results:</p>
+<ul>
+<li><strong>MAR analysis (<span class="math inline">\(\delta=0\)</span>).</strong> This is the primary MI estimator: endpoint FVC is imputed from treatment, baseline FVC, and gender, then analysed with the same ANCOVA. A one-sided <span class="math inline">\(p&lt;0.025\)</span> means the simulated trial would claim that DRUG preserves more FVC than PLACEBO under MAR.</li>
+<li><strong>Gender.</strong> <code>SEX</code> is a factor in the <code>mice</code> predictor matrix and in <code>lm(FVC_tp ~ TRT + FVC_bl + SEX)</code>. The pooled <code>TRTDRUG</code> coefficient is therefore a baseline- and gender-adjusted contrast, not a raw mean difference that ignores the larger male FVC.</li>
+<li><strong>Delta meaning.</strong> Each reported <span class="math inline">\(\delta\)</span> is an <strong>arm-wise</strong> shift of originally missing values only. Worsening missing DRUG outcomes by <span class="math inline">\(\delta\)</span> and improving missing PLACEBO outcomes by the same <span class="math inline">\(\delta\)</span> moves the treatment contrast by roughly <span class="math inline">\(-\delta(\pi_D+\pi_P)\)</span>, where <span class="math inline">\(\pi_D\)</span> and <span class="math inline">\(\pi_P\)</span> are the missingness fractions. That is not the same as shifting the treatment effect by <span class="math inline">\(\delta\)</span>.</li>
+<li><strong>Tipping point.</strong> <span class="math inline">\(\delta_{\mathrm{TP}}\)</span> is the smallest adverse arm-wise shift at which the one-sided test is no longer significant at <span class="math inline">\(\alpha=0.025\)</span>. Values below <span class="math inline">\(\delta_{\mathrm{TP}}\)</span> still support efficacy under this MNAR family; values at or above <span class="math inline">\(\delta_{\mathrm{TP}}\)</span> do not.</li>
+<li><strong>What is not claimed.</strong> The exercise does not prove that missing data are MAR. It asks how far the imputed FVC values would have to depart from MAR, in the direction of lack of efficacy, before the one-sided conclusion changes. Observed FVC values are never shifted.</li>
+</ul>
+</section>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<section id="missing-data-mechanisms-and-multiple-imputation" class="level2">
+<h2 class="anchored" data-anchor-id="missing-data-mechanisms-and-multiple-imputation">Missing-data mechanisms and multiple imputation</h2>
+<ul>
+<li>Rubin, D. B. (1976). Inference and missing data. <em>Biometrika</em>, 63(3), 581–592. <a href="https://doi.org/10.1093/biomet/63.3.581" class="uri">https://doi.org/10.1093/biomet/63.3.581</a></li>
+<li>Rubin, D. B. (1987). <em>Multiple Imputation for Nonresponse in Surveys</em>. Wiley.</li>
+<li>Barnard, J., and Rubin, D. B. (1999). Small-sample degrees of freedom with multiple imputation. <em>Biometrika</em>, 86(4), 948–955. <a href="https://doi.org/10.1093/biomet/86.4.948" class="uri">https://doi.org/10.1093/biomet/86.4.948</a></li>
+<li>van Buuren, S. (2018). <em>Flexible Imputation of Missing Data</em>. 2nd ed.&nbsp;Chapman &amp; Hall/CRC.</li>
+<li>van Buuren, S., and Groothuis-Oudshoorn, K. (2011). mice: Multivariate Imputation by Chained Equations in R. <em>Journal of Statistical Software</em>, 45(3), 1–67. <a href="https://doi.org/10.18637/jss.v045.i03" class="uri">https://doi.org/10.18637/jss.v045.i03</a></li>
+</ul>
+</section>
+<section id="delta-adjustment-and-tipping-point-sensitivity" class="level2">
+<h2 class="anchored" data-anchor-id="delta-adjustment-and-tipping-point-sensitivity">Delta-adjustment and tipping-point sensitivity</h2>
+<ul>
+<li>Yan, X., Lee, S., and Li, N. (2009). Missing data handling methods in medical device clinical trials. <em>Journal of Biopharmaceutical Statistics</em>, 19(6), 1085–1098. <a href="https://doi.org/10.1080/10543400903243009" class="uri">https://doi.org/10.1080/10543400903243009</a></li>
+<li>Ratitch, B., O’Kelly, M., and Tosiello, R. (2013). Missing data in clinical trials: from clinical assumptions to statistical analysis using pattern mixture models. <em>Pharmaceutical Statistics</em>, 12(6), 337–347. <a href="https://doi.org/10.1002/pst.1549" class="uri">https://doi.org/10.1002/pst.1549</a></li>
+<li>Cro, S., Morris, T. P., Kenward, M. G., and Carpenter, J. R. (2020). Sensitivity analysis for clinical trials with missing continuous outcome data using controlled multiple imputation: a practical guide. <em>Statistics in Medicine</em>, 39(21), 2815–2842. <a href="https://doi.org/10.1002/sim.8569" class="uri">https://doi.org/10.1002/sim.8569</a></li>
+<li>Gorst-Rasmussen, A., and Tarp-Johansen, M. J. (2022). Fast tipping point sensitivity analyses in clinical trials with missing continuous outcomes under multiple imputation. <em>Journal of Biopharmaceutical Statistics</em>, 32(6), 942–953. <a href="https://doi.org/10.1080/10543406.2022.2058525" class="uri">https://doi.org/10.1080/10543406.2022.2058525</a></li>
+</ul>
+</section>
+<section id="regulatory-context" class="level2">
+<h2 class="anchored" data-anchor-id="regulatory-context">Regulatory context</h2>
+<ul>
+<li>National Research Council (2010). <em>The Prevention and Treatment of Missing Data in Clinical Trials</em>. National Academies Press. <a href="https://doi.org/10.17226/12955" class="uri">https://doi.org/10.17226/12955</a></li>
+<li>ICH (2019). <em>ICH E9(R1) Addendum on Estimands and Sensitivity Analysis in Clinical Trials</em>. International Council for Harmonisation.</li>
+</ul>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Missing at random (Rubin, 1976): missingness depends on observed data, not on the unobserved values themselves.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Analysis Of Variance<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Intent To Treat<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>Statistical Analysis Plan<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>Forced Vital Capacity<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/al-garik\.github\.io\/ks-blog\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 KeyStat Solutions. All rights reserved.</p>
+</div>   
+    <div class="nav-footer-center">
+<p>Powered by <a href="https://quarto.org/">Quarto</a></p>
+</div>
+    <div class="nav-footer-right">
+<p>Made with ❤️ for the R community</p>
+</div>
+  </div>
+</footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
+
+
+
+
+</body></html>

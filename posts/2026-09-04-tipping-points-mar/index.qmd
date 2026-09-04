@@ -1,0 +1,1265 @@
+---
+title: "Tipping-Point Analysis under MAR Multiple Imputation"
+subtitle: "Delta-adjust each imputation, Rubin pool, then one-sided inference"
+author: "Vladimir Larchenko"
+date: 2026-09-04
+categories: [R, Clinical Trials, Data analysis, Missing Data, Data Imputation, Tipping Point]
+image: images/post-logo.png
+---
+
+![Decorator architecture](images/post-logo.png){fig-align="center"}
+
+# Introduction
+
+A tipping-point analysis asks how far the **imputed** outcomes would
+have to depart from MAR^[Missing at random (Rubin, 1976): missingness
+depends on observed data, not on the unobserved values themselves.],
+in the direction of lack of efficacy, before a one-sided treatment
+comparison loses significance (Ratitch, O'Kelly, and Tosiello, 2013;
+Cro, Morris, Kenward, and Carpenter, 2020). Regulatory guidance treats
+such sensitivity analyses as part of the estimand framework rather than
+as optional extras (National Research Council, 2010; ICH, 2019). With
+multiple imputation the architecture is:
+
+```{mermaid}
+%%| label: tip-pipeline
+%%| fig-width: 5.5
+%%| fig-height: 5.8
+%%| out-width: "70%"
+%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "titleColor": "#1a252f"}, "flowchart": {"padding": 10, "nodeSpacing": 14, "rankSpacing": 22, "curve": "linear"}}}%%
+flowchart TD
+  raw["Incomplete data"]
+  mi["MAR MI once"]
+  stack["MI datasets 1..M"]
+  adj["Delta-adjust missing values"]
+  fit["Analyze each imputation"]
+  pool["Rubin pool contrast"]
+  pval["One-sided p-value"]
+  raw --> mi --> stack --> adj --> fit --> pool --> pval
+  classDef once fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef each fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  class raw,mi,stack once
+  class adj,fit,pool,pval each
+```
+
+```{tikz}
+%| label: tip-pipeline-pdf
+%| echo: false
+%| eval: !expr knitr::is_latex_output()
+%| fig-align: center
+%| fig-width: 4.2
+\usetikzlibrary{arrows.meta,positioning}
+\begin{tikzpicture}[
+  font=\sffamily\small,
+  once/.style={
+    draw={rgb,255:red,31;green,111;blue,139},
+    fill={rgb,255:red,214;green,234;blue,248},
+    very thick, align=center, inner sep=5pt,
+    text={rgb,255:red,26;green,37;blue,47},
+    minimum width=48mm, minimum height=8mm
+  },
+  each/.style={
+    draw={rgb,255:red,30;green,132;blue,73},
+    fill={rgb,255:red,213;green,245;blue,227},
+    very thick, align=center, inner sep=5pt,
+    text={rgb,255:red,26;green,37;blue,47},
+    minimum width=48mm, minimum height=8mm
+  },
+  arr/.style={-{Latex}, thick, draw={rgb,255:red,80;green,90;blue,100}}
+]
+  \node[once] (raw) {Incomplete data};
+  \node[once, below=5mm of raw] (mi) {MAR MI once};
+  \node[once, below=5mm of mi] (stk) {MI datasets $1,\ldots,M$};
+  \node[each, below=5mm of stk] (adj) {Delta-adjust missing values};
+  \node[each, below=5mm of adj] (fit) {Analyze each imputation};
+  \node[each, below=5mm of fit] (pool) {Rubin pool contrast};
+  \node[each, below=5mm of pool] (pval) {One-sided $p$-value};
+  \foreach \a/\b in {raw/mi, mi/stk, stk/adj, adj/fit, fit/pool, pool/pval}
+    \draw[arr] (\a) -- (\b);
+\end{tikzpicture}
+```
+
+There is an important terminology point first: **the ordinary ANOVA^[Analysis Of Variance]
+F-test itself is not one-sided**. For two treatment groups, the ANOVA
+test is equivalent to a two-sided $t$-test. A directional, one-sided
+hypothesis should therefore be expressed as a planned treatment
+contrast, e.g.
+
+$$H_0 : \mu_D - \mu_P \leq 0 \quad \text{vs} \quad H_1 : \mu_D - \mu_P > 0.$$
+
+That distinction becomes important for a tipping-point analysis.
+
+# Example setting
+
+Suppose:
+
+* `TRT = "DRUG"` or `"PLACEBO"`
+* `Y` = primary endpoint (higher is better)
+* missing endpoint values are imputed under MAR
+* the primary analysis compares DRUG against PLACEBO
+* the test is one-sided in favor of DRUG.
+
+Suppose the MAR estimate is
+
+$$\Delta_{MAR} = \mu_D - \mu_P$$
+
+The tipping-point analysis asks:
+
+> How unfavorable would the missing endpoint outcomes have to be, relative to MAR, before the one-sided treatment comparison is no longer statistically significant?
+
+# Delta adjustment
+
+Delta-adjustment after MAR imputation is a controlled multiple-imputation
+sensitivity device: an offset is applied to imputed values to encode a
+clinically directed MNAR departure, then the primary analysis is
+repeated (Ratitch et al., 2013; Cro et al., 2020). For a
+**higher-is-better** endpoint, the unfavorable adjustment is
+
+$$
+Y_i^* = \begin{cases} Y_i^{MAR} - \delta, & i \in D, Y_i \text{ missing} \\ Y_i^{MAR} + \delta, & i \in P, Y_i \text{ missing} \\ Y_i, & \text{observed.} \end{cases}
+$$
+
+So DRUG is made worse and PLACEBO is made better.
+
+The word `delta` is then ambiguous. Two different quantities are often
+called $\delta$ in a SAP, and they do not coincide.
+
+## What $\delta$ can mean
+
+**Definition A — arm-wise shift.** $\delta$ is the constant added to
+(or subtracted from) each originally missing observation. In the
+higher-is-better rule above, every missing DRUG value is lowered by
+$\delta$ and every missing PLACEBO value is raised by $\delta$. This
+is the definition used in the R code later.
+
+**Definition B — shift in the treatment contrast.** $\delta$ is the
+intended change in $\mu_D-\mu_P$ relative to MAR. A protocol that
+says "the tipping point is a $100\,\mathrm{mL}$ adverse departure from
+MAR" often means Definition B: the pooled contrast itself has moved
+by about $-100\,\mathrm{mL}$.
+
+They are not interchangeable.
+
+## Why an arm-wise $\delta$ is not a $\delta$ change in $\Delta$
+
+Write $\pi_D$ and $\pi_P$ for the missingness fractions on DRUG and
+PLACEBO. Observed values are never shifted, so the arm means move
+only through the imputed subjects:
+
+$$
+\bar Y_D^\star \approx \bar Y_D^{\mathrm{MAR}} - \pi_D\,\delta,
+\qquad
+\bar Y_P^\star \approx \bar Y_P^{\mathrm{MAR}} + \pi_P\,\delta.
+$$
+
+The treatment contrast therefore changes by
+
+$$
+\Delta^\star - \Delta_{\mathrm{MAR}}
+\approx
+(-\pi_D\delta)-(+\pi_P\delta)
+=
+-\delta(\pi_D+\pi_P).
+$$
+
+Two special cases make the protocol wording concrete.
+
+If **all** endpoint values were missing ($\pi_D=\pi_P=1$), then
+$\Delta^\star-\Delta_{\mathrm{MAR}}\approx-2\delta$. One arm-wise
+unit produces a **two-unit** hit to the contrast: DRUG is lowered by
+$\delta$ *and* PLACEBO is raised by $\delta$.
+
+If missingness is modest, the hit is smaller. With
+$\pi_D=\pi_P=0.20$, an arm-wise $\delta=100\,\mathrm{mL}$ moves the
+contrast by only about $-40\,\mathrm{mL}$. Calling that "a $100$ mL
+tipping point" would overstate how far the *treatment effect* has
+been pushed.
+
+If only the **imputed means** are discussed, not the overall arm
+means, the factor of two remains even when $\pi<1$: the mean of the
+missing DRUG values is $-\delta$ and the mean of the missing PLACEBO
+values is $+\delta$, so their difference changes by $-2\delta$. That
+is a statement about the MNAR departure among dropouts, not about
+$\Delta$ in the ITT^[Intent To Treat] population.
+
+## What a protocol should state
+
+A protocol (or SAP^[Statistical Analysis Plan]) should name both the **operation** and the
+**estimand of the displayed $\delta$**.
+
+1. **Who is shifted.** Only originally missing endpoint values, never
+   observed values.
+1. **Direction.** For a higher-is-better endpoint, DRUG missing
+   values are worsened and PLACEBO missing values are improved (or
+   only one arm is shifted; that must be said).
+1. **Scale of $\delta$.** Either
+   - "arm-wise: $\delta$ mL is subtracted from each missing DRUG
+     value and added to each missing PLACEBO value" (Definition A),
+     or
+   - "contrast-wise: $\delta$ is the target adverse change in
+     $\mu_D-\mu_P$" (Definition B).
+1. **If Definition B is used, how it is implemented.** For example,
+   shift only missing DRUG values by $\delta/\pi_D$, or split the
+   contrast shift as $\delta_D$ and $\delta_P$ with
+   $\delta_D\pi_D+\delta_P\pi_P=\delta$. Without that map, programmers
+   cannot reproduce the grid.
+
+A short numerical illustration. Suppose $\Delta_{\mathrm{MAR}}=160$
+mL, $\pi_D=\pi_P=0.20$, and the one-sided test tips when the pooled
+contrast falls to $80$ mL. That is a **$80$ mL** adverse move in the
+treatment effect (Definition B). The corresponding arm-wise
+$\delta$ (Definition A) is
+
+$$
+\delta_{\mathrm{arm}}
+\approx
+\frac{80}{\pi_D+\pi_P}
+=
+\frac{80}{0.40}
+=
+200\,\mathrm{mL}.
+$$
+
+Reporting "$\delta_{\mathrm{TP}}=200$" without saying *arm-wise*
+looks more extreme than reporting "the contrast was worsened by
+$80$ mL". Both numbers describe the same analysis. They answer
+different questions.
+
+This article uses **Definition A**. Tables and plots are labelled as
+the arm-wise shift of originally missing FVC^[Forced Vital Capacity]. The two-dimensional
+grid later lets $\delta_{\mathrm{DRUG}}$ and $\delta_{\mathrm{PLACEBO}}$
+differ, which is the honest way to avoid hiding the factor of two
+inside a single symbol.
+
+# Why every imputed dataset must be adjusted separately
+
+Suppose you have $M=50$ MI datasets:
+
+$$D_1,D_2,\ldots,D_{50}.$$
+
+You **do not** calculate one average imputed value and perform the tipping-point analysis on that.
+
+Instead, for each delta:
+
+$$\delta_1,\delta_2,\ldots,\delta_K$$
+
+you create
+
+$$D^{*}_{m,k}$$
+
+for every combination of:
+
+* imputation $m=1,\ldots,M$
+* delta $k=1,\ldots,K$.
+
+So with 50 imputations and 11 delta values, you have
+
+$$50\times11=550$$
+
+analyses.
+
+For each fixed delta, the 50 treatment-effect estimates are combined using MI rules.
+
+This preserves the uncertainty arising from the imputation itself. Multiple imputation is specifically intended to retain between-imputation variability rather than treating one completed dataset as if it were the truth.
+
+
+# The statistical procedure
+
+For a given $\delta$:
+
+## Step 1 — Analyze each imputed dataset
+
+For imputation $m$, fit for example
+
+$$Y^*=\beta_0 + \beta_1 TRT + \beta_2 Y_{\mathrm{baseline}} + \varepsilon$$
+
+That is usually more representative of a clinical-trial primary analysis than a simple one-way ANOVA.
+
+## Step 2 — Rubin pooling
+
+For $M$ imputations, Rubin's rules (Rubin, 1987) give
+
+$$\bar\beta(\delta) = \frac{1}{M}\sum^M_{m=1}\hat\beta_m(\delta)$$
+
+and
+
+$$\bar U(\delta) = \frac{1}{M}\sum_m U_m(\delta).$$
+
+The between-imputation variance is
+
+$$B(\delta) = \frac{1}{M-1}\sum_m \Big[\hat \beta_m(\delta)-\bar \beta(\delta)\Big]^2$$
+
+Then the total variance is
+
+$$T(\delta) = \bar U(\delta) + \Big(1+\frac{1}{M}\Big)B(\delta)$$
+
+Thus
+
+$$SE(\delta) = \sqrt{T(\delta)}$$
+
+The degrees of freedom are obtained using the MI combining rules.
+Modern implementations of `mice::pool()` use the Barnard–Rubin
+(1999) MI-adjusted degrees of freedom rather than simply using the
+complete-data residual df.
+
+# One-sided p-value
+
+Suppose efficacy means
+
+$$H_1: \beta_1 > 0.$$
+
+Then
+
+$$p_{one-sided} = 1 - F_{t,\nu}(t(\delta))$$
+
+where $F_{t,\nu}$ is the $t$ CDF with MI-adjusted degrees of freedom.
+
+So if your significance level is
+
+$$\alpha=0.025,$$
+
+you declare efficacy at a particular delta if
+
+$$p_{\text{one-sided}}(\delta)<0.025.$$
+
+Equivalently,
+
+$$t(\delta) > t_{0.975,\nu}.$$
+
+# What is the tipping point?
+
+Imagine the following results:
+
+| $\delta$ | pooled estimate | one-sided p |
+| ---------: | --------------: | ----------: |
+|          0 |             5.2 |       0.003 |
+|          1 |             4.0 |       0.008 |
+|          2 |             2.8 |       0.019 |
+|          3 |             1.6 |       0.047 |
+|          4 |             0.4 |        0.31 |
+
+Then the tipping point lies between
+
+$$\delta=2$$
+
+and
+
+$$\delta=3$$
+
+The interpretation is roughly:
+
+> Under the MAR analysis, the treatment comparison is significant. The conclusion ceases to be significant when the missing DRUG outcomes are sufficiently worsened and the missing PLACEBO outcomes sufficiently improved by approximately this delta.
+
+Usually one reports the smallest delta at which the one-sided test
+fails, together with the corresponding treatment estimate, SE, CI and
+p-value.
+
+# R implementation
+
+Here is a fairly direct implementation using `mice`.
+
+Suppose `imp` is your `mids` object.
+
+First preserve the original missingness indicator:
+
+```{r}
+#| eval: false
+dat <- imp$data
+
+dat$miss_y <- is.na(dat$Y)
+```
+
+This is crucial.
+
+You want to adjust **only values that were originally missing and subsequently imputed**.
+
+You must not do this:
+
+```{r}
+#| eval: false
+Y = Y - delta
+```
+
+because that changes observed values too.
+
+## Extract all imputed datasets
+
+```{r}
+#| eval: false
+library(mice)
+library(dplyr)
+
+imp_data <- complete(imp, action = "all")
+```
+
+`mice` supports working with the collection of completed imputations, and its tooling distinguishes observed from imputed values.
+
+## Delta adjustment
+
+For higher-is-better:
+
+```{r}
+#| eval: false
+make_tipping_data <- function(data, delta) {
+
+  data %>%
+    mutate(
+      Y_tp = case_when(
+        miss_y & TRT == "DRUG"    ~ Y - delta,
+        miss_y & TRT == "PLACEBO" ~ Y + delta,
+        TRUE ~ Y
+      )
+    )
+}
+```
+
+Then:
+
+```{r}
+#| eval: false
+delta_grid <- seq(0, 5, by = 0.5)
+```
+
+# Analyze each imputed dataset
+
+For a simple two-arm comparison:
+
+```{r}
+#| eval: false
+fit_one <- function(data) {
+
+  lm(
+    Y_tp ~ TRT,
+    data = data
+  )
+}
+```
+
+For a treatment contrast, make PLACEBO the reference:
+
+```{r}
+#| eval: false
+data$TRT <- relevel(factor(data$TRT), ref = "PLACEBO")
+```
+
+Then the coefficient of `TRTDRUG` is
+
+$$\hat\mu_D - \hat\mu_P.$$
+
+# Pool the 50 analyses for one delta
+
+You can fit each completed dataset separately and turn the results into a `mira` object:
+
+```{r}
+#| eval: false
+library(mice)
+
+fit_and_pool <- function(datasets, delta) {
+
+  fits <- lapply(datasets, function(dat) {
+
+    dat <- make_tipping_data(dat, delta)
+
+    dat$TRT <- relevel(
+      factor(dat$TRT),
+      ref = "PLACEBO"
+    )
+
+    lm(Y_tp ~ TRT, data = dat)
+  })
+
+  pooled <- pool(as.mira(fits))
+
+  pooled
+}
+```
+
+Then:
+
+```{r}
+#| eval: false
+pooled <- fit_and_pool(imp_data, delta = 2)
+summary(pooled)
+```
+
+# Obtain the one-sided p-value
+
+`summary(pool(...))` ordinarily gives the usual two-sided p-value.
+
+For the treatment coefficient:
+
+```{r}
+#| eval: false
+s <- summary(pooled)
+
+trt_row <- s[s$term == "TRTDRUG", ]
+
+t_stat <- trt_row$estimate / trt_row$std.error
+df     <- trt_row$df
+
+p_one <- 1 - pt(t_stat, df)
+
+c(
+  estimate = trt_row$estimate,
+  SE       = trt_row$std.error,
+  df       = df,
+  t        = t_stat,
+  p_one    = p_one
+)
+```
+
+For
+
+$$H_1: DRUG > PLACEBO,$$
+
+this is the appropriate tail.
+
+# Run the complete tipping-point grid
+
+```{r}
+#| eval: false
+library(purrr)
+library(tibble)
+
+tip_results <- map_dfr(delta_grid, function(delta) {
+
+  fits <- lapply(imp_data, function(dat) {
+
+    dat <- make_tipping_data(dat, delta)
+
+    dat$TRT <- relevel(
+      factor(dat$TRT),
+      ref = "PLACEBO"
+    )
+
+    lm(Y_tp ~ TRT, data = dat)
+  })
+
+  pooled <- pool(as.mira(fits))
+  s <- summary(pooled)
+
+  z <- s[s$term == "TRTDRUG", ]
+
+  t_stat <- z$estimate / z$std.error
+
+  tibble(
+    delta    = delta,
+    estimate = z$estimate,
+    SE       = z$std.error,
+    df       = z$df,
+    t        = t_stat,
+    p_one    = 1 - pt(t_stat, z$df)
+  )
+})
+```
+
+You then get something like:
+
+```
+# A tibble:
+  delta estimate    SE    df     t   p_one
+   0.0    5.21    1.74  86.4  2.99  0.002
+   0.5    4.60    1.76  85.8  2.61  0.005
+   1.0    4.01    1.78  84.7  2.25  0.013
+   1.5    3.40    1.80  82.9  1.89  0.031
+   2.0    2.82    1.82  81.5  1.55  0.063
+```
+
+Therefore the tipping point is between 1.5 and 2.0.
+
+# Find the tipping point numerically
+
+Instead of restricting yourself to a coarse grid, you can find the crossing more precisely.
+
+For example:
+
+```{r}
+#| eval: false
+tip_results %>%
+  filter(p_one >= 0.025) %>%
+  slice_min(delta)
+```
+
+This gives the first delta on your grid where significance is lost.
+
+For a report, show both:
+
+```
+Delta grid: 0, 0.25, 0.50, ..., 5.00
+```
+
+and identify the interval
+
+$$\delta_{TP}\in[\delta_L,\delta_U]$$
+
+# A very important issue in your particular formulation
+
+Based on a common protocol wording — essentially:
+
+> add/subtract a constant delta to the MAR imputed endpoint values in the direction of lack of efficacy for DRUG and improvement for Placebo
+
+Document the transformation explicitly as:
+
+$$Y^{TP}_{ij}=Y^{MAR}_{ij}+s_j\delta$$
+
+where
+
+$$s_j= \begin{cases} -1\quad \text{DRUG}\\ +1\quad \text{PLACEBO}\end{cases}$$
+
+But **only if the observation was missing**.
+
+That gives a very clean implementation and, importantly, makes it
+obvious that the operation is performed independently within every MI
+dataset.
+
+Avoid wording such as:
+
+> "the imputed dataset was adjusted"
+
+because it can sound as though you create one adjusted dataset. Better
+is:
+
+> "For each imputed dataset, the MAR-imputed endpoint values for subjects with missing endpoint assessments were delta-adjusted..."
+
+That makes the MI structure explicit.
+
+# One more subtle issue: ANOVA vs treatment contrast
+
+If the actual analysis is:
+
+```{r}
+#| eval: false
+lm(Y ~ TRT)
+```
+
+with two groups, then
+
+$$F=t^2.$$
+
+The F-test answers
+
+$$H_0: \mu_D=\mu_P$$
+
+without direction.
+
+For a **one-sided efficacy claim**, extract the DRUG-versus-PLACEBO
+coefficient and calculate the one-sided test.
+
+For example:
+
+```{r}
+#| eval: false
+fit <- lm(Y_tp ~ TRT, data = dat)
+
+beta <- coef(fit)["TRTDRUG"]
+```
+
+and then pool `beta`.
+
+If your actual primary analysis has baseline adjustment, LS-means, strata, site effects, repeated measurements, etc., the same tipping-point architecture remains valid, but the model inside each imputation should be **exactly the primary analysis model**.
+
+## The complete conceptual picture
+
+```{mermaid}
+%%| label: tip-architecture
+%%| fig-width: 7.0
+%%| fig-height: 8.2
+%%| out-width: "82%"
+%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "clusterBkg": "#f7f9fb", "clusterBorder": "#5d6d7e", "titleColor": "#1a252f"}, "flowchart": {"padding": 10, "nodeSpacing": 14, "rankSpacing": 26, "curve": "linear"}}}%%
+flowchart TD
+  raw["Original incomplete data"]
+  mi["MAR multiple imputation once"]
+  stack["Completed MI datasets 1..M"]
+  delta0["Start at delta = 0"]
+  adj["Delta-adjust originally missing<br/>values in all M datasets"]
+  fit["Fit primary ANOVA/ANCOVA;<br/>extract contrast in each of M"]
+  pool["Rubin pool the M contrasts"]
+  pval["One-sided p-value"]
+  ask{"p >= alpha?"}
+  tip["TIPPING POINT"]
+  more["Increase delta"]
+  raw --> mi --> stack --> delta0 --> adj --> fit --> pool --> pval --> ask
+  ask -->|yes| tip
+  ask -->|no| more --> adj
+  classDef step fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef stopc fill:#fdebd0,stroke:#b9770e,color:#1a252f,stroke-width:1.5px
+  classDef good fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  class raw,mi,stack,delta0,adj,fit,pool,pval,more step
+  class ask stopc
+  class tip good
+```
+
+```{tikz}
+%| label: tip-architecture-pdf
+%| echo: false
+%| eval: !expr knitr::is_latex_output()
+%| fig-align: center
+%| fig-width: 5.6
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning}
+\begin{tikzpicture}[
+  font=\sffamily\small,
+  box/.style={
+    draw={rgb,255:red,31;green,111;blue,139},
+    fill={rgb,255:red,214;green,234;blue,248},
+    very thick, align=center, inner sep=4pt,
+    text={rgb,255:red,26;green,37;blue,47},
+    minimum width=56mm, minimum height=7mm
+  },
+  ask/.style={
+    diamond, aspect=2.4,
+    draw={rgb,255:red,185;green,119;blue,14},
+    fill={rgb,255:red,253;green,235;blue,208},
+    very thick, align=center, inner sep=1pt,
+    text={rgb,255:red,26;green,37;blue,47},
+    font=\sffamily\scriptsize
+  },
+  tip/.style={
+    draw={rgb,255:red,30;green,132;blue,73},
+    fill={rgb,255:red,213;green,245;blue,227},
+    very thick, align=center, inner sep=4pt,
+    text={rgb,255:red,26;green,37;blue,47},
+    minimum width=34mm, minimum height=7mm
+  },
+  arr/.style={-{Latex}, thick, draw={rgb,255:red,80;green,90;blue,100}}
+]
+  \node[box] (a) {Original incomplete data};
+  \node[box, below=6mm of a] (b) {MAR multiple imputation once};
+  \node[box, below=6mm of b] (c) {Completed MI datasets $1,\ldots,M$};
+  \node[box, below=6mm of c] (d0) {Start at $\delta=0$};
+  \node[box, below=6mm of d0] (d) {Delta-adjust originally missing\\values in all $M$ datasets};
+  \node[box, below=6mm of d] (e) {Fit primary ANOVA/ANCOVA;\\extract contrast in each of $M$};
+  \node[box, below=6mm of e] (f) {Rubin pool the $M$ contrasts};
+  \node[box, below=6mm of f] (h) {One-sided $p$-value};
+  \node[ask, below=8mm of h] (i) {$p\ge\alpha$?};
+  \node[tip, below right=10mm and 8mm of i] (j) {TIPPING POINT};
+  \node[box, below left=10mm and 8mm of i] (k) {Increase $\delta$};
+  \draw[arr] (a) -- (b);
+  \draw[arr] (b) -- (c);
+  \draw[arr] (c) -- (d0);
+  \draw[arr] (d0) -- (d);
+  \draw[arr] (d) -- (e);
+  \draw[arr] (e) -- (f);
+  \draw[arr] (f) -- (h);
+  \draw[arr] (h) -- (i);
+  \draw[arr] (i) -- node[above right, font=\sffamily\scriptsize] {yes} (j);
+  \draw[arr] (i) -- node[above left, font=\sffamily\scriptsize] {no} (k);
+  \draw[arr] (k.west) to[out=180,in=180] (d.west);
+\end{tikzpicture}
+```
+
+The most important methodological principle is therefore:
+
+$$\boxed{ \text{For each }\delta,\; \text{adjust all }M\text{ imputed datasets separately, analyze all }M, \text{ then pool.} }$$
+
+That is the part that makes a multiple-imputation tipping-point analysis fundamentally different from simply modifying one completed dataset.
+
+If the actual primary analysis is **ANOVA with LSMeans/contrast
+(e.g. SAS PROC MIXED/GLIMMIX)** rather than `lm(Y ~ TRT)`, the same
+tipping-point procedure can be implemented with `emmeans` and Rubin
+pooling, which is closer to how this appears in a clinical study SAP.
+
+# Worked example: simulated FVC trial
+
+The methods above are now applied to a simulated two-arm study whose primary efficacy variable $Y$ is **forced vital capacity (FVC)**, in millilitres. Higher FVC is better, so the one-sided claim remains
+
+$$H_0:\mu_D-\mu_P\le 0\quad\text{vs}\quad H_1:\mu_D-\mu_P>0.$$
+
+Gender (`SEX`) enters both the imputation model and the analysis model as a factor. The analysis inside every completed dataset is the ANCOVA
+
+$$\mathrm{FVC}=\beta_0+\beta_1\mathrm{TRT}+\beta_2\mathrm{FVC}_{\mathrm{bl}}+\beta_3\mathrm{SEX}+\varepsilon.$$
+
+With `PLACEBO` as the reference level, $\beta_1$ is the gender- and baseline-adjusted DRUG-versus-PLACEBO contrast.
+
+The steps below follow that pipeline: simulate complete FVC, impose MAR missingness, impute with `mice`, delta-adjust each imputation, pool with Rubin's rules, then read the tipping point from the one-sided $p$-value curve.
+
+## Setup
+
+Packages used for wrangling, imputation, pooling, and graphics:
+
+```{r}
+library(mice)
+library(dplyr, warn.conflicts = FALSE)
+library(ggplot2)
+library(purrr)
+library(tibble)
+library(tidyr)
+
+set.seed(45672)
+alpha_one <- 0.025
+```
+
+`set.seed(45672)` makes the simulated trial, the missingness indicators, and the PMM draws reproducible.
+
+## Step 1 — Simulate complete FVC data
+
+A complete-data trial is generated first so that missingness can be imposed afterwards under a known MAR mechanism. Design choices:
+
+- $N=200$, 1:1 randomisation to `DRUG` or `PLACEBO`.
+- About 40% female; males have a higher baseline FVC (about +800 mL), as in adult spirometry.
+- Placebo declines more than DRUG from baseline to the endpoint (treatment difference about 160 mL).
+- Residual SD is 250 mL, which is in a plausible range for FVC change in patients with some lung disease.
+
+`FVC_true` is the complete endpoint value. It is kept only for diagnostics and is **not** used in imputation or in the tipping-point model.
+
+```{r}
+n <- 200
+
+dat_complete <- tibble(
+  SUBJID = sprintf("S%03d", seq_len(n)),
+  TRT    = factor(rep(c("PLACEBO", "DRUG"), each = n / 2),
+                  levels = c("PLACEBO", "DRUG")),
+  SEX    = factor(
+    rbinom(n, 1, 0.40),
+    levels = c(0, 1),
+    labels = c("M", "F")
+  )
+) %>%
+  mutate(
+    FVC_bl = 2750 +
+      if_else(SEX == "F", -800, 0) +
+      rnorm(n(), sd = 400),
+    decline = if_else(TRT == "DRUG", 50, 210) + rnorm(n(), sd = 250),
+    FVC_true = FVC_bl - decline
+  )
+
+dat_complete %>%
+  group_by(TRT, SEX) %>%
+  summarise(
+    n        = n(),
+    FVC_bl   = mean(FVC_bl),
+    FVC    = mean(FVC_true),
+    change   = mean(FVC_true - FVC_bl),
+    .groups  = "drop"
+  )
+```
+
+The complete-data treatment contrast is the difference in mean endpoint FVC after accounting for the larger male lungs and the larger placebo decline. Gender is a **factor**, not a numeric 0/1 covariate in the analysis model, so the later `lm()` dummy-coding stays explicit.
+
+## Step 2 — Impose MAR missingness on endpoint FVC
+
+Only endpoint FVC is allowed to be missing. The probability of a missing endpoint value depends on **observed** variables (`TRT`, `FVC_bl`, `SEX`) and not on `FVC_true`. That is a MAR mechanism, which is exactly what standard `mice` imputation assumes.
+
+The logistic missingness model is tilted so that dropout is higher on PLACEBO, higher at lower baseline FVC, and slightly higher in females. The intercept is chosen so that the overall missingness rate is about 15–25%.
+
+```{r}
+dat <- dat_complete %>%
+  mutate(
+    lp_miss = -1.70 +
+      0.55 * (TRT == "PLACEBO") +
+      0.22 * (SEX == "F") +
+      0.0007 * (2400 - FVC_bl),
+    p_miss  = plogis(lp_miss),
+    miss_fvc = rbinom(n(), 1, p_miss) == 1,
+    FVC = if_else(miss_fvc, NA_real_, FVC_true)
+  )
+
+dat %>%
+  group_by(TRT, SEX) %>%
+  summarise(
+    n       = n(),
+    n_miss  = sum(miss_fvc),
+    pct_miss = 100 * mean(miss_fvc),
+    .groups = "drop"
+  )
+```
+
+`miss_fvc` is stored **before** imputation. Later delta-adjustment uses this flag, not `is.na(FVC)` on a completed dataset, because after `mice` every FVC value is filled in.
+
+```{r}
+p_miss_overall <- mean(dat$miss_fvc)
+p_miss_overall
+```
+
+## Step 3 — Describe the incomplete data
+
+Two plots check that the simulation looks like a small FVC trial: missingness differs by arm and gender, and the observed endpoint distributions still show a DRUG advantage among completers.
+
+```{r}
+#| label: fig-miss-fvc
+#| fig-cap: "Percent of subjects with missing endpoint FVC, by treatment and gender."
+
+miss_plot_dat <- dat %>%
+  count(TRT, SEX, miss_fvc) %>%
+  group_by(TRT, SEX) %>%
+  mutate(pct = 100 * n / sum(n)) %>%
+  ungroup() %>%
+  filter(miss_fvc)
+
+ggplot(miss_plot_dat, aes(x = TRT, y = pct, fill = SEX)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  labs(
+    title = "MAR missingness for endpoint FVC",
+    x = "Treatment",
+    y = "Missing endpoint FVC (%)",
+    fill = "Gender"
+  ) +
+  theme_bw()
+```
+
+```{r}
+#| label: fig-obs-fvc
+#| fig-cap: "Observed endpoint FVC among completers, by treatment and gender."
+
+ggplot(
+  dat %>% filter(!miss_fvc),
+  aes(x = TRT, y = FVC, fill = SEX)
+) +
+  geom_violin(alpha = 0.35, colour = NA) +
+  geom_boxplot(width = 0.18, outlier.shape = NA, alpha = 0.85) +
+  labs(
+    title = "Observed endpoint FVC (completers)",
+    x = "Treatment",
+    y = "Endpoint FVC (mL)",
+    fill = "Gender"
+  ) +
+  theme_bw()
+```
+
+Observed-case means are **not** the primary analysis. They are shown only to confirm that the generated FVC values and the MAR dropout pattern are in a sensible range.
+
+## Step 4 — MAR multiple imputation with `mice`
+
+`FVC` is the only incomplete analysis variable. Predictors are `TRT`, `FVC_bl`, and `SEX`. Including gender in the imputation model matters because males and females have different FVC levels; omitting it would impute toward a pooled mean and distort both arms.
+
+`SUBJID` and `FVC_true` are excluded as predictors. `FVC_true` would leak the complete outcome and would no longer be a realistic MAR analysis.
+
+Predictive mean matching (`pmm`) is used so imputed FVC values remain on the observed support (van Buuren, 2018). $M=50$ imputations retain between-imputation variance for Rubin's rules.
+
+```{r}
+dat_mi <- dat %>%
+  select(TRT, SEX, FVC_bl, FVC)
+
+pred <- make.predictorMatrix(dat_mi)
+pred[, ] <- 0
+pred["FVC", c("TRT", "SEX", "FVC_bl")] <- 1
+
+meth <- make.method(dat_mi)
+meth[] <- ""
+meth["FVC"] <- "pmm"
+
+imp <- mice(
+  dat_mi,
+  m               = 50,
+  method          = meth,
+  predictorMatrix = pred,
+  printFlag       = FALSE,
+  seed            = 1109
+)
+
+imp
+```
+
+Completed datasets are extracted as a list. The original missingness flag is joined back onto every imputation so that later adjustments touch **only originally missing** the endpoint values.
+
+```{r}
+imp_data <- complete(imp, action = "all") %>%
+  map(~ mutate(.x, miss_fvc = dat$miss_fvc, SUBJID = dat$SUBJID))
+```
+
+## Step 5 — Analysis and pooling helpers
+
+The following functions implement the architecture from the methods section, now with FVC names and gender in the ANCOVA.
+
+1. `make_tipping_data()` applies the higher-is-better MNAR shift: missing DRUG FVC is reduced by $\delta$, missing PLACEBO FVC is increased by $\delta$, observed values are left unchanged.
+2. `fit_ancova()` fits $\mathrm{FVC}^{\mathrm{TP}}\sim\mathrm{TRT}+\mathrm{FVC}_{\mathrm{bl}}+\mathrm{SEX}$ with `PLACEBO` as the reference.
+3. `pool_one_delta()` analyses all $M$ imputations at a given $\delta$ (or at a pair of arm-specific deltas) and returns the Rubin-pooled treatment contrast and the one-sided $p$-value.
+
+```{r}
+make_tipping_data <- function(data, delta, delta_drug = NULL, delta_pbo = NULL) {
+  d_drug <- if (is.null(delta_drug)) delta else delta_drug
+  d_pbo  <- if (is.null(delta_pbo)) delta else delta_pbo
+
+  data %>%
+    mutate(
+      FVC_tp = case_when(
+        miss_fvc & TRT == "DRUG"    ~ FVC - d_drug,
+        miss_fvc & TRT == "PLACEBO" ~ FVC + d_pbo,
+        TRUE ~ FVC
+      )
+    )
+}
+
+fit_ancova <- function(data) {
+  data$TRT <- relevel(factor(data$TRT), ref = "PLACEBO")
+  data$SEX <- factor(data$SEX, levels = c("M", "F"))
+  lm(FVC_tp ~ TRT + FVC_bl + SEX, data = data)
+}
+
+pool_one_delta <- function(datasets, delta = 0, delta_drug = NULL, delta_pbo = NULL) {
+  fits <- lapply(datasets, function(dat) {
+    dat <- make_tipping_data(dat, delta, delta_drug, delta_pbo)
+    fit_ancova(dat)
+  })
+
+  pooled <- pool(as.mira(fits))
+  s <- summary(pooled)
+  z <- s[s$term == "TRTDRUG", ]
+
+  tibble(
+    delta    = if (is.null(delta_drug) && is.null(delta_pbo)) delta else NA_real_,
+    delta_drug = if (is.null(delta_drug)) delta else delta_drug,
+    delta_pbo  = if (is.null(delta_pbo)) delta else delta_pbo,
+    estimate = z$estimate,
+    SE       = z$std.error,
+    df       = z$df,
+    t        = z$estimate / z$std.error,
+    p_one    = 1 - pt(z$estimate / z$std.error, z$df),
+    ci_lo    = z$estimate - qt(0.975, z$df) * z$std.error,
+    ci_hi    = z$estimate + qt(0.975, z$df) * z$std.error
+  )
+}
+```
+
+$\delta=0$ is the ordinary MAR analysis: no MNAR shift, only `mice` imputation and the ANCOVA with gender.
+
+```{r}
+mar_result <- pool_one_delta(imp_data, delta = 0)
+mar_result
+```
+
+If `p_one` at $\delta=0$ is below 0.025, the MAR conclusion is that DRUG preserves more FVC than PLACEBO. The tipping-point question is how large an adverse shift of the **imputed** values is needed before that claim is lost.
+
+## Step 6 — One-dimensional tipping-point grid
+
+A grid of arm-wise deltas from 0 to 300 mL is applied. For each $\delta$, all 50 imputations are adjusted, the ANCOVA is fitted 50 times, and Rubin's rules are applied **before** the one-sided test. That is 13 × 50 = 650 fitted models, not one adjusted dataset.
+
+```{r}
+delta_grid <- seq(0, 300, by = 25)
+
+tip_results <- map_dfr(delta_grid, function(d) {
+  pool_one_delta(imp_data, delta = d)
+})
+
+tip_results
+```
+
+The first grid point at which the one-sided test fails ($p \ge 0.025$) brackets the tipping point from above. A linear interpolation on the $p$-value (or on the $t$ statistic) between the last significant and first non-significant grid points gives a finer $\delta_{\mathrm{TP}}$.
+
+```{r}
+last_sig <- tip_results %>%
+  filter(p_one < alpha_one) %>%
+  slice_max(delta, n = 1)
+
+first_ns <- tip_results %>%
+  filter(p_one >= alpha_one) %>%
+  slice_min(delta, n = 1)
+
+if (nrow(last_sig) == 1 && nrow(first_ns) == 1) {
+  delta_tp <- approx(
+    x    = c(last_sig$p_one, first_ns$p_one),
+    y    = c(last_sig$delta, first_ns$delta),
+    xout = alpha_one
+  )$y
+} else if (nrow(first_ns) == 0) {
+  delta_tp <- NA_real_
+} else {
+  delta_tp <- first_ns$delta
+}
+
+list(
+  last_significant = last_sig,
+  first_nonsignificant = first_ns,
+  delta_tp_interpolated = delta_tp
+)
+```
+
+A direct root finder on the pooled one-sided $p$-value is used when the grid straddles 0.025. This evaluates a few extra $\delta$ values but does not replace the grid, which remains the reportable display.
+
+```{r}
+p_one_at <- function(d) {
+  pool_one_delta(imp_data, delta = d)$p_one
+}
+
+if (nrow(last_sig) == 1 && nrow(first_ns) == 1) {
+  delta_tp_exact <- uniroot(
+    function(d) p_one_at(d) - alpha_one,
+    interval = c(last_sig$delta, first_ns$delta)
+  )$root
+} else {
+  delta_tp_exact <- delta_tp
+}
+
+delta_tp_exact
+```
+
+## Step 7 — Tipping-point graphics
+
+The $p$-value curve shows when the one-sided test crosses $\alpha=0.025$. The estimate curve shows the same information on the FVC (mL) scale, with Rubin-pooled 95% confidence intervals. The vertical line is the interpolated (or `uniroot`) tipping point.
+
+```{r}
+#| label: fig-p-delta
+#| fig-cap: "One-sided p-value versus the arm-wise MNAR delta applied to originally missing endpoint FVC."
+
+p_plot <- ggplot(tip_results, aes(x = delta, y = p_one)) +
+  geom_hline(yintercept = alpha_one, linetype = "dashed") +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "One-sided p-value versus MNAR delta",
+    subtitle = "Dashed line: alpha = 0.025; dotted line: tipping point",
+    x = "Delta applied to missing endpoint FVC (mL)",
+    y = "One-sided p-value (DRUG > PLACEBO)"
+  ) +
+  theme_bw()
+
+if (is.finite(delta_tp_exact)) {
+  p_plot <- p_plot + geom_vline(xintercept = delta_tp_exact, linetype = "dotted")
+}
+p_plot
+```
+
+```{r}
+#| label: fig-est-delta
+#| fig-cap: "Rubin-pooled DRUG minus PLACEBO contrast versus MNAR delta, with 95% confidence interval."
+
+est_plot <- ggplot(tip_results, aes(x = delta, y = estimate)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_ribbon(aes(ymin = ci_lo, ymax = ci_hi), alpha = 0.18) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Pooled treatment effect versus MNAR delta",
+    subtitle = "Ribbon: Rubin-pooled 95% CI; higher FVC is better",
+    x = "Delta applied to missing endpoint FVC (mL)",
+    y = "Pooled DRUG − PLACEBO contrast (mL)"
+  ) +
+  theme_bw()
+
+if (is.finite(delta_tp_exact)) {
+  est_plot <- est_plot + geom_vline(xintercept = delta_tp_exact, linetype = "dotted")
+}
+est_plot
+```
+
+## Step 8 — Two-dimensional tipping surface
+
+A single shared $\delta$ is only one path through MNAR space: it worsens missing DRUG values and improves missing PLACEBO values by the same amount. A coarse grid over $(\delta_{\mathrm{DRUG}},\delta_{\mathrm{PLACEBO}})$ shows other combinations that lose or retain significance (cf. two-way tipping-point displays in Gorst-Rasmussen and Tarp-Johansen, 2022). Each cell is still a full Rubin pool of the 50 imputations.
+
+```{r}
+#| label: fig-tip-2d
+#| fig-cap: "One-sided p-values on a two-dimensional MNAR grid. The dotted diagonal is the shared-delta analysis."
+
+delta_2d <- seq(0, 300, by = 75)
+
+tip_2d <- expand_grid(delta_drug = delta_2d, delta_pbo = delta_2d) %>%
+  pmap_dfr(function(delta_drug, delta_pbo) {
+    pool_one_delta(
+      imp_data,
+      delta_drug = delta_drug,
+      delta_pbo  = delta_pbo
+    )
+  })
+
+ggplot(tip_2d, aes(x = delta_drug, y = delta_pbo, fill = p_one)) +
+  geom_tile() +
+  geom_text(aes(label = sprintf("%.3f", p_one)), size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+  scale_fill_gradient(low = "white", high = "grey30") +
+  labs(
+    title = "Two-dimensional tipping surface",
+    subtitle = "Fill and labels: one-sided p-value; dotted line: shared delta",
+    x = "Delta applied to missing DRUG FVC (mL)",
+    y = "Delta applied to missing PLACEBO FVC (mL)",
+    fill = "p (one-sided)"
+  ) +
+  theme_bw() +
+  coord_equal()
+```
+
+The dotted diagonal is the one-dimensional analysis from Step 6. Cells with $p \ge 0.025$ are combinations of MNAR shifts that tip the conclusion.
+
+## Step 9 — Interpretation
+
+```{r}
+tip_results %>%
+  transmute(
+    delta,
+    estimate = round(estimate, 1),
+    SE = round(SE, 1),
+    df = round(df, 1),
+    t = round(t, 2),
+    p_one = signif(p_one, 3),
+    significant = p_one < alpha_one
+  )
+```
+
+```{r}
+tp_txt <- if (is.finite(delta_tp_exact)) {
+  paste0(round(delta_tp_exact, 1), " mL")
+} else {
+  "not reached on the explored grid"
+}
+
+cat(
+  "MAR (delta = 0): estimate = ",
+  round(mar_result$estimate, 1),
+  " mL, one-sided p = ",
+  signif(mar_result$p_one, 3),
+  ".\n",
+  "Interpolated / uniroot tipping point: ",
+  tp_txt,
+  ".\n",
+  "Overall endpoint missingness: ",
+  round(100 * p_miss_overall, 1),
+  "%.\n",
+  sep = ""
+)
+```
+
+Reading the results:
+
+- **MAR analysis ($\delta=0$).** This is the primary MI estimator: endpoint FVC is imputed from treatment, baseline FVC, and gender, then analysed with the same ANCOVA. A one-sided $p<0.025$ means the simulated trial would claim that DRUG preserves more FVC than PLACEBO under MAR.
+- **Gender.** `SEX` is a factor in the `mice` predictor matrix and in `lm(FVC_tp ~ TRT + FVC_bl + SEX)`. The pooled `TRTDRUG` coefficient is therefore a baseline- and gender-adjusted contrast, not a raw mean difference that ignores the larger male FVC.
+- **Delta meaning.** Each reported $\delta$ is an **arm-wise** shift of originally missing values only. Worsening missing DRUG outcomes by $\delta$ and improving missing PLACEBO outcomes by the same $\delta$ moves the treatment contrast by roughly $-\delta(\pi_D+\pi_P)$, where $\pi_D$ and $\pi_P$ are the missingness fractions. That is not the same as shifting the treatment effect by $\delta$.
+- **Tipping point.** $\delta_{\mathrm{TP}}$ is the smallest adverse arm-wise shift at which the one-sided test is no longer significant at $\alpha=0.025$. Values below $\delta_{\mathrm{TP}}$ still support efficacy under this MNAR family; values at or above $\delta_{\mathrm{TP}}$ do not.
+- **What is not claimed.** The exercise does not prove that missing data are MAR. It asks how far the imputed FVC values would have to depart from MAR, in the direction of lack of efficacy, before the one-sided conclusion changes. Observed FVC values are never shifted.
+
+# References
+
+## Missing-data mechanisms and multiple imputation
+
+- Rubin, D. B. (1976). Inference and missing data. *Biometrika*,
+  63(3), 581–592.
+  <https://doi.org/10.1093/biomet/63.3.581>
+- Rubin, D. B. (1987). *Multiple Imputation for Nonresponse in
+  Surveys*. Wiley.
+- Barnard, J., and Rubin, D. B. (1999). Small-sample degrees of
+  freedom with multiple imputation. *Biometrika*, 86(4), 948–955.
+  <https://doi.org/10.1093/biomet/86.4.948>
+- van Buuren, S. (2018). *Flexible Imputation of Missing Data*.
+  2nd ed. Chapman & Hall/CRC.
+- van Buuren, S., and Groothuis-Oudshoorn, K. (2011). mice:
+  Multivariate Imputation by Chained Equations in R. *Journal of
+  Statistical Software*, 45(3), 1–67.
+  <https://doi.org/10.18637/jss.v045.i03>
+
+## Delta-adjustment and tipping-point sensitivity
+
+- Yan, X., Lee, S., and Li, N. (2009). Missing data handling
+  methods in medical device clinical trials. *Journal of
+  Biopharmaceutical Statistics*, 19(6), 1085–1098.
+  <https://doi.org/10.1080/10543400903243009>
+- Ratitch, B., O'Kelly, M., and Tosiello, R. (2013). Missing data
+  in clinical trials: from clinical assumptions to statistical
+  analysis using pattern mixture models. *Pharmaceutical
+  Statistics*, 12(6), 337–347.
+  <https://doi.org/10.1002/pst.1549>
+- Cro, S., Morris, T. P., Kenward, M. G., and Carpenter, J. R.
+  (2020). Sensitivity analysis for clinical trials with missing
+  continuous outcome data using controlled multiple imputation: a
+  practical guide. *Statistics in Medicine*, 39(21), 2815–2842.
+  <https://doi.org/10.1002/sim.8569>
+- Gorst-Rasmussen, A., and Tarp-Johansen, M. J. (2022). Fast
+  tipping point sensitivity analyses in clinical trials with
+  missing continuous outcomes under multiple imputation. *Journal
+  of Biopharmaceutical Statistics*, 32(6), 942–953.
+  <https://doi.org/10.1080/10543406.2022.2058525>
+
+## Regulatory context
+
+- National Research Council (2010). *The Prevention and Treatment
+  of Missing Data in Clinical Trials*. National Academies Press.
+  <https://doi.org/10.17226/12955>
+- ICH (2019). *ICH E9(R1) Addendum on Estimands and Sensitivity
+  Analysis in Clinical Trials*. International Council for
+  Harmonisation.
