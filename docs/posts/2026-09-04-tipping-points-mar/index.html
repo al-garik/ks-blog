@@ -9,7 +9,7 @@
 <meta name="author" content="Vladimir Larchenko">
 <meta name="dcterms.date" content="2026-09-04">
 
-<title>Tipping-Point Analysis under MAR Multiple Imputation – Technical Blog</title>
+<title>Tipping-Point Analysis under Multiple Imputation – Technical Blog</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -256,7 +256,7 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#what-delta-can-mean" id="toc-what-delta-can-mean" class="nav-link" data-scroll-target="#what-delta-can-mean">What <span class="math inline">\(\delta\)</span> can mean</a></li>
   <li><a href="#why-an-arm-wise-delta-is-not-a-delta-change-in-delta" id="toc-why-an-arm-wise-delta-is-not-a-delta-change-in-delta" class="nav-link" data-scroll-target="#why-an-arm-wise-delta-is-not-a-delta-change-in-delta">Why an arm-wise <span class="math inline">\(\delta\)</span> is not a <span class="math inline">\(\delta\)</span> change in <span class="math inline">\(\Delta\)</span></a></li>
-  <li><a href="#what-a-protocol-should-state" id="toc-what-a-protocol-should-state" class="nav-link" data-scroll-target="#what-a-protocol-should-state">What a protocol should state</a></li>
+  <li><a href="#what-should-be-stated-clearly" id="toc-what-should-be-stated-clearly" class="nav-link" data-scroll-target="#what-should-be-stated-clearly">What should be stated clearly</a></li>
   </ul></li>
   <li><a href="#why-every-imputed-dataset-must-be-adjusted-separately" id="toc-why-every-imputed-dataset-must-be-adjusted-separately" class="nav-link" data-scroll-target="#why-every-imputed-dataset-must-be-adjusted-separately">Why every imputed dataset must be adjusted separately</a></li>
   <li><a href="#the-statistical-procedure" id="toc-the-statistical-procedure" class="nav-link" data-scroll-target="#the-statistical-procedure">The statistical procedure</a>
@@ -265,7 +265,11 @@ window.Quarto = {
   <li><a href="#step-2-rubin-pooling" id="toc-step-2-rubin-pooling" class="nav-link" data-scroll-target="#step-2-rubin-pooling">Step 2 — Rubin pooling</a></li>
   </ul></li>
   <li><a href="#one-sided-p-value" id="toc-one-sided-p-value" class="nav-link" data-scroll-target="#one-sided-p-value">One-sided p-value</a></li>
-  <li><a href="#what-is-the-tipping-point" id="toc-what-is-the-tipping-point" class="nav-link" data-scroll-target="#what-is-the-tipping-point">What is the tipping point?</a></li>
+  <li><a href="#what-is-the-tipping-point" id="toc-what-is-the-tipping-point" class="nav-link" data-scroll-target="#what-is-the-tipping-point">What is the tipping point?</a>
+  <ul class="collapse">
+  <li><a href="#statistical-versus-clinical-tipping-points" id="toc-statistical-versus-clinical-tipping-points" class="nav-link" data-scroll-target="#statistical-versus-clinical-tipping-points">Statistical versus clinical tipping points</a></li>
+  <li><a href="#what-the-tipping-point-does-not-tell-you" id="toc-what-the-tipping-point-does-not-tell-you" class="nav-link" data-scroll-target="#what-the-tipping-point-does-not-tell-you">What the tipping point does NOT tell you</a></li>
+  </ul></li>
   <li><a href="#r-implementation" id="toc-r-implementation" class="nav-link" data-scroll-target="#r-implementation">R implementation</a>
   <ul class="collapse">
   <li><a href="#extract-all-imputed-datasets" id="toc-extract-all-imputed-datasets" class="nav-link" data-scroll-target="#extract-all-imputed-datasets">Extract all imputed datasets</a></li>
@@ -293,6 +297,8 @@ window.Quarto = {
   <li><a href="#step-8-two-dimensional-tipping-surface" id="toc-step-8-two-dimensional-tipping-surface" class="nav-link" data-scroll-target="#step-8-two-dimensional-tipping-surface">Step 8 — Two-dimensional tipping surface</a></li>
   <li><a href="#step-9-interpretation" id="toc-step-9-interpretation" class="nav-link" data-scroll-target="#step-9-interpretation">Step 9 — Interpretation</a></li>
   </ul></li>
+  <li><a href="#how-to-specify-the-sensitivity-analysis" id="toc-how-to-specify-the-sensitivity-analysis" class="nav-link" data-scroll-target="#how-to-specify-the-sensitivity-analysis">How to specify the sensitivity analysis</a></li>
+  <li><a href="#take-home-message" id="toc-take-home-message" class="nav-link" data-scroll-target="#take-home-message">Take-home message</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a>
   <ul class="collapse">
   <li><a href="#missing-data-mechanisms-and-multiple-imputation" id="toc-missing-data-mechanisms-and-multiple-imputation" class="nav-link" data-scroll-target="#missing-data-mechanisms-and-multiple-imputation">Missing-data mechanisms and multiple imputation</a></li>
@@ -307,8 +313,8 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Tipping-Point Analysis under MAR Multiple Imputation</h1>
-<p class="subtitle lead">Delta-adjust each imputation, Rubin pool, then one-sided inference</p>
+<h1 class="title">Tipping-Point Analysis under Multiple Imputation</h1>
+<p class="subtitle lead">Delta-adjust originally missing outcomes, Rubin-pool the treatment contrast, and assess robustness to specified MNAR departures</p>
   <div class="quarto-categories">
     <div class="quarto-category">R</div>
     <div class="quarto-category">Clinical Trials</div>
@@ -357,7 +363,8 @@ window.Quarto = {
 </div>
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>A tipping-point analysis asks how far the <strong>imputed</strong> outcomes would have to depart from MAR<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, in the direction of lack of efficacy, before a one-sided treatment comparison loses significance (Ratitch, O’Kelly, and Tosiello, 2013; Cro, Morris, Kenward, and Carpenter, 2020). Regulatory guidance treats such sensitivity analyses as part of the estimand framework rather than as optional extras (National Research Council, 2010; ICH, 2019). With multiple imputation the architecture is:</p>
+<p>A tipping-point sensitivity analysis asks how far the assumptions about unobserved outcomes would have to depart from those used under MAR<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> before a pre-specified treatment conclusion changes. One practical implementation is controlled multiple imputation with a delta adjustment applied to originally missing outcomes, followed by re-analysis and Rubin pooling for each value of the sensitivity parameter (Ratitch, O’Kelly, and Tosiello, 2013; Cro, Morris, Kenward, and Carpenter, 2020).</p>
+<p>In a clinical-trial setting, the interpretation of a tipping point depends on exactly how the sensitivity parameter is defined and on which path through the MNAR<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> sensitivity space is explored. A tipping point therefore does not by itself establish that MAR is plausible or implausible; it describes the departure from the MAR-based analysis required to cross a specified inferential boundary.</p>
 <div class="cell" data-fig-width="5.5" data-fig-height="5.8" data-out-width="70%" data-layout-align="default">
 <div class="cell-output-display">
 <div id="tip-pipeline">
@@ -367,10 +374,10 @@ flowchart TD
   raw["Incomplete data"]
   mi["MAR MI once"]
   stack["MI datasets 1..M"]
-  adj["Delta-adjust missing values"]
-  fit["Analyze each imputation"]
-  pool["Rubin pool contrast"]
-  pval["One-sided p-value"]
+  adj["Apply sensitivity-model delta&lt;br/&gt;to originally missing values"]
+  fit["Fit primary analysis model;&lt;br/&gt;extract treatment contrast"]
+  pool["Rubin-pool treatment contrast"]
+  pval["Apply pre-specified&lt;br/&gt;inferential criterion"]
   raw --&gt; mi --&gt; stack --&gt; adj --&gt; fit --&gt; pool --&gt; pval
   classDef once fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
   classDef each fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
@@ -381,7 +388,7 @@ flowchart TD
 </div>
 </div>
 </div>
-<p>There is an important terminology point first: <strong>the ordinary ANOVA<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> F-test itself is not one-sided</strong>. For two treatment groups, the ANOVA test is equivalent to a two-sided <span class="math inline">\(t\)</span>-test. A directional, one-sided hypothesis should therefore be expressed as a planned treatment contrast, e.g.</p>
+<p>There is an important terminology point first: <strong>the ordinary ANOVA<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> F-test itself is not one-sided</strong>. For two treatment groups, the ANOVA test is equivalent to a two-sided <span class="math inline">\(t\)</span>-test. A directional, one-sided hypothesis should therefore be expressed as a planned treatment contrast, e.g.</p>
 <p><span class="math display">\[H_0 : \mu_D - \mu_P \leq 0 \quad \text{vs} \quad H_1 : \mu_D - \mu_P &gt; 0.\]</span></p>
 <p>That distinction becomes important for a tipping-point analysis.</p>
 </section>
@@ -399,7 +406,7 @@ flowchart TD
 <p><span class="math display">\[\Delta_{MAR} = \mu_D - \mu_P\]</span></p>
 <p>The tipping-point analysis asks:</p>
 <blockquote class="blockquote">
-<p>How unfavorable would the missing endpoint outcomes have to be, relative to MAR, before the one-sided treatment comparison is no longer statistically significant?</p>
+<p>How unfavorable would the missing endpoint outcomes have to be, relative to MAR, along a specified sensitivity path, before the pre-specified one-sided statistical criterion is no longer met?</p>
 </blockquote>
 </section>
 <section id="delta-adjustment" class="level1">
@@ -409,37 +416,44 @@ flowchart TD
 Y_i^* = \begin{cases} Y_i^{MAR} - \delta, &amp; i \in D, Y_i \text{ missing} \\ Y_i^{MAR} + \delta, &amp; i \in P, Y_i \text{ missing} \\ Y_i, &amp; \text{observed.} \end{cases}
 \]</span></p>
 <p>So DRUG is made worse and PLACEBO is made better.</p>
-<p>The word <code>delta</code> is then ambiguous. Two different quantities are often called <span class="math inline">\(\delta\)</span> in a SAP, and they do not coincide.</p>
+<p>The word <code>delta</code> is then ambiguous. Two different quantities are often called <span class="math inline">\(\delta\)</span>, and they do not coincide.</p>
 <section id="what-delta-can-mean" class="level2">
 <h2 class="anchored" data-anchor-id="what-delta-can-mean">What <span class="math inline">\(\delta\)</span> can mean</h2>
+<p>The symbol <span class="math inline">\(\delta\)</span> is potentially ambiguous because it can describe either a modification applied to individual missing observations or a desired change in the final treatment contrast. These are different quantities and should not be used interchangeably.</p>
 <p><strong>Definition A — arm-wise shift.</strong> <span class="math inline">\(\delta\)</span> is the constant added to (or subtracted from) each originally missing observation. In the higher-is-better rule above, every missing DRUG value is lowered by <span class="math inline">\(\delta\)</span> and every missing PLACEBO value is raised by <span class="math inline">\(\delta\)</span>. This is the definition used in the R code later.</p>
-<p><strong>Definition B — shift in the treatment contrast.</strong> <span class="math inline">\(\delta\)</span> is the intended change in <span class="math inline">\(\mu_D-\mu_P\)</span> relative to MAR. A protocol that says “the tipping point is a <span class="math inline">\(100\,\mathrm{mL}\)</span> adverse departure from MAR” often means Definition B: the pooled contrast itself has moved by about <span class="math inline">\(-100\,\mathrm{mL}\)</span>.</p>
-<p>They are not interchangeable.</p>
+<p><strong>Definition B — target change in the treatment contrast.</strong> Here <span class="math inline">\(\delta\)</span> denotes the intended adverse change in the treatment contrast relative to the MAR analysis. This is a property of the <strong>analysis result</strong>, not necessarily the numerical offset applied to each missing observation. Saying “the tipping point is a <span class="math inline">\(100\,\mathrm{mL}\)</span> adverse departure from MAR” often means Definition B: the pooled contrast itself has moved by about <span class="math inline">\(-100\,\mathrm{mL}\)</span>.</p>
+<p>They are not interchangeable. The mapping between an arm-wise observation-level shift and a desired change in an adjusted treatment contrast generally depends on the analysis model and data structure. Therefore, a simple division by the missingness fraction is valid only under appropriately simple marginal-mean settings and should not be assumed for an ANCOVA or other adjusted model.</p>
 </section>
 <section id="why-an-arm-wise-delta-is-not-a-delta-change-in-delta" class="level2">
 <h2 class="anchored" data-anchor-id="why-an-arm-wise-delta-is-not-a-delta-change-in-delta">Why an arm-wise <span class="math inline">\(\delta\)</span> is not a <span class="math inline">\(\delta\)</span> change in <span class="math inline">\(\Delta\)</span></h2>
-<p>Write <span class="math inline">\(\pi_D\)</span> and <span class="math inline">\(\pi_P\)</span> for the missingness fractions on DRUG and PLACEBO. Observed values are never shifted, so the arm means move only through the imputed subjects:</p>
+<p>Consider first the simple case where the treatment effect is the unadjusted difference in overall arm means. Write <span class="math inline">\(\pi_D\)</span> and <span class="math inline">\(\pi_P\)</span> for the fractions of endpoint observations missing in the two arms. Observed values are never shifted, so an arm-wise shift of <span class="math inline">\(-\delta\)</span> in missing DRUG observations and <span class="math inline">\(+\delta\)</span> in missing PLACEBO observations changes the overall arm means by approximately</p>
 <p><span class="math display">\[
-\bar Y_D^\star \approx \bar Y_D^{\mathrm{MAR}} - \pi_D\,\delta,
+\bar Y_D^\star - \bar Y_D^{\mathrm{MAR}} \approx -\pi_D\,\delta,
 \qquad
-\bar Y_P^\star \approx \bar Y_P^{\mathrm{MAR}} + \pi_P\,\delta.
+\bar Y_P^\star - \bar Y_P^{\mathrm{MAR}} \approx +\pi_P\,\delta.
 \]</span></p>
-<p>The treatment contrast therefore changes by</p>
+<p>Therefore, for this simple marginal-mean analysis,</p>
 <p><span class="math display">\[
 \Delta^\star - \Delta_{\mathrm{MAR}}
 \approx
-(-\pi_D\delta)-(+\pi_P\delta)
+-\delta(\pi_D+\pi_P).
+\]</span></p>
+<p>This relationship is useful for explaining the scale of an arm-wise delta, but it should <strong>not</strong> be interpreted as a general formula for the change in an adjusted treatment effect.</p>
+<p>In an ANCOVA or other model-based primary analysis, the treatment coefficient is a partial regression contrast. Its response to changing imputed outcomes depends on the covariates, design matrix, missingness pattern, and the fitted model. There is therefore generally no universal conversion such as</p>
+<p><span class="math display">\[
+\text{change in treatment coefficient}
 =
 -\delta(\pi_D+\pi_P).
 \]</span></p>
-<p>Two special cases make the protocol wording concrete.</p>
+<p>For a model-based primary analysis, the effect of the sensitivity parameter on the treatment contrast should be determined by refitting the specified analysis model in every imputed dataset and then applying the appropriate MI combining rules.</p>
+<p>Two special cases make the wording concrete for the <strong>unadjusted</strong> mean difference.</p>
 <p>If <strong>all</strong> endpoint values were missing (<span class="math inline">\(\pi_D=\pi_P=1\)</span>), then <span class="math inline">\(\Delta^\star-\Delta_{\mathrm{MAR}}\approx-2\delta\)</span>. One arm-wise unit produces a <strong>two-unit</strong> hit to the contrast: DRUG is lowered by <span class="math inline">\(\delta\)</span> <em>and</em> PLACEBO is raised by <span class="math inline">\(\delta\)</span>.</p>
-<p>If missingness is modest, the hit is smaller. With <span class="math inline">\(\pi_D=\pi_P=0.20\)</span>, an arm-wise <span class="math inline">\(\delta=100\,\mathrm{mL}\)</span> moves the contrast by only about <span class="math inline">\(-40\,\mathrm{mL}\)</span>. Calling that “a <span class="math inline">\(100\)</span> mL tipping point” would overstate how far the <em>treatment effect</em> has been pushed.</p>
-<p>If only the <strong>imputed means</strong> are discussed, not the overall arm means, the factor of two remains even when <span class="math inline">\(\pi&lt;1\)</span>: the mean of the missing DRUG values is <span class="math inline">\(-\delta\)</span> and the mean of the missing PLACEBO values is <span class="math inline">\(+\delta\)</span>, so their difference changes by <span class="math inline">\(-2\delta\)</span>. That is a statement about the MNAR departure among dropouts, not about <span class="math inline">\(\Delta\)</span> in the ITT<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> population.</p>
+<p>If missingness is modest, the hit is smaller. With <span class="math inline">\(\pi_D=\pi_P=0.20\)</span>, an arm-wise <span class="math inline">\(\delta=100\,\mathrm{mL}\)</span> moves the unadjusted contrast by only about <span class="math inline">\(-40\,\mathrm{mL}\)</span>. Calling that “a <span class="math inline">\(100\)</span> mL tipping point” would overstate how far the <em>treatment effect</em> has been pushed.</p>
+<p>If only the <strong>imputed means</strong> are discussed, not the overall arm means, the factor of two remains even when <span class="math inline">\(\pi&lt;1\)</span>: the mean of the missing DRUG values is <span class="math inline">\(-\delta\)</span> and the mean of the missing PLACEBO values is <span class="math inline">\(+\delta\)</span>, so their difference changes by <span class="math inline">\(-2\delta\)</span>. That is a statement about the MNAR departure among dropouts, not about <span class="math inline">\(\Delta\)</span> in the ITT<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> population.</p>
 </section>
-<section id="what-a-protocol-should-state" class="level2">
-<h2 class="anchored" data-anchor-id="what-a-protocol-should-state">What a protocol should state</h2>
-<p>A protocol (or SAP<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>) should name both the <strong>operation</strong> and the <strong>estimand of the displayed <span class="math inline">\(\delta\)</span></strong>.</p>
+<section id="what-should-be-stated-clearly" class="level2">
+<h2 class="anchored" data-anchor-id="what-should-be-stated-clearly">What should be stated clearly</h2>
+<p>Any description of the sensitivity analysis should name both the <strong>operation</strong> and the <strong>meaning of the displayed <span class="math inline">\(\delta\)</span></strong>.</p>
 <ol type="1">
 <li><strong>Who is shifted.</strong> Only originally missing endpoint values, never observed values.</li>
 <li><strong>Direction.</strong> For a higher-is-better endpoint, DRUG missing values are worsened and PLACEBO missing values are improved (or only one arm is shifted; that must be said).</li>
@@ -448,9 +462,9 @@ Y_i^* = \begin{cases} Y_i^{MAR} - \delta, &amp; i \in D, Y_i \text{ missing} \\ 
 <li>“arm-wise: <span class="math inline">\(\delta\)</span> mL is subtracted from each missing DRUG value and added to each missing PLACEBO value” (Definition A), or</li>
 <li>“contrast-wise: <span class="math inline">\(\delta\)</span> is the target adverse change in <span class="math inline">\(\mu_D-\mu_P\)</span>” (Definition B).</li>
 </ul></li>
-<li><strong>If Definition B is used, how it is implemented.</strong> For example, shift only missing DRUG values by <span class="math inline">\(\delta/\pi_D\)</span>, or split the contrast shift as <span class="math inline">\(\delta_D\)</span> and <span class="math inline">\(\delta_P\)</span> with <span class="math inline">\(\delta_D\pi_D+\delta_P\pi_P=\delta\)</span>. Without that map, programmers cannot reproduce the grid.</li>
+<li><strong>If Definition B is used, how it is implemented.</strong> For example, shift only missing DRUG values by <span class="math inline">\(\delta/\pi_D\)</span>, or split the contrast shift as <span class="math inline">\(\delta_D\)</span> and <span class="math inline">\(\delta_P\)</span> with <span class="math inline">\(\delta_D\pi_D+\delta_P\pi_P=\delta\)</span>. Without that map, the grid cannot be reproduced.</li>
 </ol>
-<p>A short numerical illustration. Suppose <span class="math inline">\(\Delta_{\mathrm{MAR}}=160\)</span> mL, <span class="math inline">\(\pi_D=\pi_P=0.20\)</span>, and the one-sided test tips when the pooled contrast falls to <span class="math inline">\(80\)</span> mL. That is a <strong><span class="math inline">\(80\)</span> mL</strong> adverse move in the treatment effect (Definition B). The corresponding arm-wise <span class="math inline">\(\delta\)</span> (Definition A) is</p>
+<p>In a simple unadjusted mean-difference setting, the distinction can be illustrated numerically as follows. Suppose <span class="math inline">\(\Delta_{\mathrm{MAR}}=160\)</span> mL, <span class="math inline">\(\pi_D=\pi_P=0.20\)</span>, and the one-sided test tips when the pooled contrast falls to <span class="math inline">\(80\)</span> mL. That is a <strong><span class="math inline">\(80\)</span> mL</strong> adverse move in the treatment effect (Definition B). The corresponding arm-wise <span class="math inline">\(\delta\)</span> (Definition A) is</p>
 <p><span class="math display">\[
 \delta_{\mathrm{arm}}
 \approx
@@ -482,7 +496,7 @@ Y_i^* = \begin{cases} Y_i^{MAR} - \delta, &amp; i \in D, Y_i \text{ missing} \\ 
 <p><span class="math display">\[50\times11=550\]</span></p>
 <p>analyses.</p>
 <p>For each fixed delta, the 50 treatment-effect estimates are combined using MI rules.</p>
-<p>This preserves the uncertainty arising from the imputation itself. Multiple imputation is specifically intended to retain between-imputation variability rather than treating one completed dataset as if it were the truth.</p>
+<p>This preserves the between-imputation component of uncertainty required by the multiple-imputation combining rules. Multiple imputation is specifically intended to retain between-imputation variability rather than treating one completed dataset as if it were the truth.</p>
 </section>
 <section id="the-statistical-procedure" class="level1">
 <h1>The statistical procedure</h1>
@@ -510,20 +524,33 @@ Y_i^* = \begin{cases} Y_i^{MAR} - \delta, &amp; i \in D, Y_i \text{ missing} \\ 
 </section>
 <section id="one-sided-p-value" class="level1">
 <h1>One-sided p-value</h1>
-<p>Suppose efficacy means</p>
+<p>Suppose the efficacy hypothesis is</p>
 <p><span class="math display">\[H_1: \beta_1 &gt; 0.\]</span></p>
 <p>Then</p>
 <p><span class="math display">\[p_{one-sided} = 1 - F_{t,\nu}(t(\delta))\]</span></p>
 <p>where <span class="math inline">\(F_{t,\nu}\)</span> is the <span class="math inline">\(t\)</span> CDF with MI-adjusted degrees of freedom.</p>
 <p>So if your significance level is</p>
 <p><span class="math display">\[\alpha=0.025,\]</span></p>
-<p>you declare efficacy at a particular delta if</p>
+<p>you declare that the specified statistical criterion is met at a particular delta if</p>
 <p><span class="math display">\[p_{\text{one-sided}}(\delta)&lt;0.025.\]</span></p>
 <p>Equivalently,</p>
 <p><span class="math display">\[t(\delta) &gt; t_{0.975,\nu}.\]</span></p>
 </section>
 <section id="what-is-the-tipping-point" class="level1">
 <h1>What is the tipping point?</h1>
+<p>A tipping point must always be defined relative to:</p>
+<ol type="1">
+<li>the sensitivity parameterization;</li>
+<li>the direction of the adverse departure;</li>
+<li>the analysis model;</li>
+<li>the inferential criterion; and</li>
+<li>the path or region of sensitivity values being explored.</li>
+</ol>
+<p>In this article, the one-dimensional tipping point is defined as the first value along the <strong>symmetric arm-wise path</strong></p>
+<p><span class="math display">\[\delta_D=\delta_P=\delta,\]</span></p>
+<p>where missing DRUG outcomes are decreased by <span class="math inline">\(\delta\)</span> and missing PLACEBO outcomes are increased by <span class="math inline">\(\delta\)</span>, for which the pre-specified one-sided test no longer satisfies</p>
+<p><span class="math display">\[p_{\text{one-sided}} &lt; 0.025.\]</span></p>
+<p>Thus the reported tipping point is not a universal property of the data. It is a property of the data <strong>under this particular sensitivity model and inferential rule</strong>.</p>
 <p>Imagine the following results:</p>
 <table class="caption-top table">
 <thead>
@@ -567,9 +594,26 @@ Y_i^* = \begin{cases} Y_i^{MAR} - \delta, &amp; i \in D, Y_i \text{ missing} \\ 
 <p><span class="math display">\[\delta=3\]</span></p>
 <p>The interpretation is roughly:</p>
 <blockquote class="blockquote">
-<p>Under the MAR analysis, the treatment comparison is significant. The conclusion ceases to be significant when the missing DRUG outcomes are sufficiently worsened and the missing PLACEBO outcomes sufficiently improved by approximately this delta.</p>
+<p>Under the MAR analysis, the treatment comparison meets the specified one-sided statistical criterion. That criterion ceases to be met when the missing DRUG outcomes are sufficiently worsened and the missing PLACEBO outcomes sufficiently improved by approximately this delta along the symmetric arm-wise path.</p>
 </blockquote>
-<p>Usually one reports the smallest delta at which the one-sided test fails, together with the corresponding treatment estimate, SE, CI and p-value.</p>
+<p>Usually one reports the smallest delta at which the one-sided test fails, together with the corresponding treatment estimate, SE, CI and p-value. The grid interval should remain part of the reported result; a numerical crossing (e.g.&nbsp;from <code>uniroot()</code>) is a refinement of that interval, not an estimated biological parameter.</p>
+<section id="statistical-versus-clinical-tipping-points" class="level2">
+<h2 class="anchored" data-anchor-id="statistical-versus-clinical-tipping-points">Statistical versus clinical tipping points</h2>
+<p>The tipping point used in this article is defined by <strong>statistical significance</strong>:</p>
+<p><span class="math display">\[p_{\text{one-sided}} \ge 0.025.\]</span></p>
+<p>A different and often clinically useful question is when the treatment effect ceases to exceed a pre-specified clinically relevant threshold <span class="math inline">\(M\)</span>:</p>
+<p><span class="math display">\[H_0:\beta_1\le M \quad\text{vs}\quad H_1:\beta_1&gt;M.\]</span></p>
+<p>The corresponding sensitivity boundary would answer a different question: how much departure from MAR is required before the treatment effect no longer provides evidence of exceeding the clinically relevant threshold?</p>
+<p>These two tipping points need not be the same. A result can remain clinically large while losing statistical significance, or remain statistically significant while falling below a clinically meaningful target.</p>
+</section>
+<section id="what-the-tipping-point-does-not-tell-you" class="level2">
+<h2 class="anchored" data-anchor-id="what-the-tipping-point-does-not-tell-you">What the tipping point does NOT tell you</h2>
+<p>A tipping-point analysis does not estimate the probability that the data are MNAR, nor does it establish the true value of the sensitivity parameter.</p>
+<p>It does not show that MAR is true when <span class="math inline">\(\delta=0\)</span>, nor that an MNAR departure of <span class="math inline">\(\delta_{\mathrm{TP}}\)</span> is clinically plausible.</p>
+<p>It does not mean that the treatment effect changes by exactly <span class="math inline">\(\delta_{\mathrm{TP}}\)</span>.</p>
+<p>It does not establish that efficacy disappears at the tipping point. It establishes only that the specified statistical decision rule changes at that point.</p>
+<p>Its value comes from comparing the required departure from MAR with scientifically credible and clinically plausible departures.</p>
+</section>
 </section>
 <section id="r-implementation" class="level1">
 <h1>R implementation</h1>
@@ -741,11 +785,12 @@ Y_i^* = \begin{cases} Y_i^{MAR} - \delta, &amp; i \in D, Y_i \text{ missing} \\ 
    1.0    4.01    1.78  84.7  2.25  0.013
    1.5    3.40    1.80  82.9  1.89  0.031
    2.0    2.82    1.82  81.5  1.55  0.063</code></pre>
-<p>Therefore the tipping point is between 1.5 and 2.0.</p>
+<p>Therefore the significance boundary on the arm-wise delta scale lies between 1.5 and 2.0.</p>
 </section>
 <section id="find-the-tipping-point-numerically" class="level1">
 <h1>Find the tipping point numerically</h1>
-<p>Instead of restricting yourself to a coarse grid, you can find the crossing more precisely.</p>
+<p>Instead of restricting yourself to a coarse grid, you can locate the crossing of the implemented one-sided <span class="math inline">\(p\)</span>-value function more precisely — but only after the grid has identified a bracketing interval.</p>
+<p>A root finder should only be used when the chosen interval brackets a crossing and the sensitivity function behaves appropriately over that interval. In a general application, the one-sided <span class="math inline">\(p\)</span>-value need not be globally monotone in the sensitivity parameter. The grid should therefore be used first to identify and verify the relevant crossing rather than assuming that <code>uniroot()</code> can safely be applied to an arbitrary interval.</p>
 <p>For example:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tip_results <span class="sc">%&gt;%</span></span>
@@ -790,12 +835,12 @@ flowchart TD
   mi["MAR multiple imputation once"]
   stack["Completed MI datasets 1..M"]
   delta0["Start at delta = 0"]
-  adj["Delta-adjust originally missing&lt;br/&gt;values in all M datasets"]
-  fit["Fit primary ANOVA/ANCOVA;&lt;br/&gt;extract contrast in each of M"]
-  pool["Rubin pool the M contrasts"]
-  pval["One-sided p-value"]
-  ask{"p &gt;= alpha?"}
-  tip["TIPPING POINT"]
+  adj["Apply specified sensitivity-model delta&lt;br/&gt;to originally missing values"]
+  fit["Fit the primary analysis model;&lt;br/&gt;extract the pre-specified treatment contrast"]
+  pool["Rubin-pool the M treatment contrasts"]
+  pval["Apply pre-specified inferential criterion"]
+  ask{"Criterion not met?"}
+  tip["SENSITIVITY BOUNDARY"]
   more["Increase delta"]
   raw --&gt; mi --&gt; stack --&gt; delta0 --&gt; adj --&gt; fit --&gt; pool --&gt; pval --&gt; ask
   ask --&gt;|yes| tip
@@ -814,7 +859,7 @@ flowchart TD
 <p>The most important methodological principle is therefore:</p>
 <p><span class="math display">\[\boxed{ \text{For each }\delta,\; \text{adjust all }M\text{ imputed datasets separately, analyze all }M, \text{ then pool.} }\]</span></p>
 <p>That is the part that makes a multiple-imputation tipping-point analysis fundamentally different from simply modifying one completed dataset.</p>
-<p>If the actual primary analysis is <strong>ANOVA with LSMeans/contrast (e.g.&nbsp;SAS PROC MIXED/GLIMMIX)</strong> rather than <code>lm(Y ~ TRT)</code>, the same tipping-point procedure can be implemented with <code>emmeans</code> and Rubin pooling, which is closer to how this appears in a clinical study SAP.</p>
+<p>If the actual primary analysis is <strong>ANOVA with LSMeans/contrast (e.g.&nbsp;SAS PROC MIXED/GLIMMIX)</strong> rather than <code>lm(Y ~ TRT)</code>, the same tipping-point procedure can be implemented with <code>emmeans</code> and Rubin pooling, which is closer to how many primary analyses are reported in practice.</p>
 </section>
 </section>
 <section id="worked-example-simulated-fvc-trial" class="level1">
@@ -823,7 +868,7 @@ flowchart TD
 <p><span class="math display">\[H_0:\mu_D-\mu_P\le 0\quad\text{vs}\quad H_1:\mu_D-\mu_P&gt;0.\]</span></p>
 <p>Gender (<code>SEX</code>) enters both the imputation model and the analysis model as a factor. The analysis inside every completed dataset is the ANCOVA</p>
 <p><span class="math display">\[\mathrm{FVC}=\beta_0+\beta_1\mathrm{TRT}+\beta_2\mathrm{FVC}_{\mathrm{bl}}+\beta_3\mathrm{SEX}+\varepsilon.\]</span></p>
-<p>With <code>PLACEBO</code> as the reference level, <span class="math inline">\(\beta_1\)</span> is the gender- and baseline-adjusted DRUG-versus-PLACEBO contrast.</p>
+<p>With <code>PLACEBO</code> as the reference level, <span class="math inline">\(\beta_1\)</span> is the gender- and baseline-adjusted DRUG-versus-PLACEBO contrast. Because the sensitivity analysis changes the outcome values and then refits the ANCOVA, the relationship between the arm-wise delta and the resulting treatment coefficient is determined empirically by the fitted model. The simple missingness-fraction formula given earlier should not be used to predict the ANCOVA coefficient.</p>
 <p>The steps below follow that pipeline: simulate complete FVC, impose MAR missingness, impute with <code>mice</code>, delta-adjust each imputation, pool with Rubin’s rules, then read the tipping point from the one-sided <span class="math inline">\(p\)</span>-value curve.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
@@ -861,7 +906,7 @@ Attaching package: 'mice'</code></pre>
 <ul>
 <li><span class="math inline">\(N=200\)</span>, 1:1 randomisation to <code>DRUG</code> or <code>PLACEBO</code>.</li>
 <li>About 40% female; males have a higher baseline FVC (about +800 mL), as in adult spirometry.</li>
-<li>Placebo declines more than DRUG from baseline to the endpoint (treatment difference about 160 mL).</li>
+<li>The data-generating mechanism specifies an expected treatment difference of approximately 160 mL in FVC change, with placebo declining more than DRUG. Because the trial is simulated with random error, the realized sample treatment difference will not be exactly 160 mL.</li>
 <li>Residual SD is 250 mL, which is in a plausible range for FVC change in patients with some lung disease.</li>
 </ul>
 <p><code>FVC_true</code> is the complete endpoint value. It is kept only for diagnostics and is <strong>not</strong> used in imputation or in the tipping-point model.</p>
@@ -909,7 +954,8 @@ Attaching package: 'mice'</code></pre>
 </section>
 <section id="step-2-impose-mar-missingness-on-endpoint-fvc" class="level2">
 <h2 class="anchored" data-anchor-id="step-2-impose-mar-missingness-on-endpoint-fvc">Step 2 — Impose MAR missingness on endpoint FVC</h2>
-<p>Only endpoint FVC is allowed to be missing. The probability of a missing endpoint value depends on <strong>observed</strong> variables (<code>TRT</code>, <code>FVC_bl</code>, <code>SEX</code>) and not on <code>FVC_true</code>. That is a MAR mechanism, which is exactly what standard <code>mice</code> imputation assumes.</p>
+<p>Only endpoint FVC is allowed to be missing. The probability of a missing endpoint value depends on <strong>observed</strong> variables (<code>TRT</code>, <code>FVC_bl</code>, <code>SEX</code>) and not on <code>FVC_true</code>. This missingness mechanism is MAR by construction because the probability of missingness depends on variables that remain observed rather than on the unobserved endpoint itself. The specified <code>mice</code> imputation model is designed to be compatible with that MAR assumption.</p>
+<p>More generally, <code>mice</code> is a framework for specifying multiple-imputation models; MAR is an assumption about the relationship between the missingness mechanism and the observed/unobserved data, not a property that is automatically guaranteed by using <code>mice</code>.</p>
 <p>The logistic missingness model is tilted so that dropout is higher on PLACEBO, higher at lower baseline FVC, and slightly higher in females. The intercept is chosen so that the overall missingness rate is about 15–25%.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> dat_complete <span class="sc">%&gt;%</span></span>
@@ -1016,7 +1062,7 @@ Figure&nbsp;2: Observed endpoint FVC among completers, by treatment and gender.
 <h2 class="anchored" data-anchor-id="step-4-mar-multiple-imputation-with-mice">Step 4 — MAR multiple imputation with <code>mice</code></h2>
 <p><code>FVC</code> is the only incomplete analysis variable. Predictors are <code>TRT</code>, <code>FVC_bl</code>, and <code>SEX</code>. Including gender in the imputation model matters because males and females have different FVC levels; omitting it would impute toward a pooled mean and distort both arms.</p>
 <p><code>SUBJID</code> and <code>FVC_true</code> are excluded as predictors. <code>FVC_true</code> would leak the complete outcome and would no longer be a realistic MAR analysis.</p>
-<p>Predictive mean matching (<code>pmm</code>) is used so imputed FVC values remain on the observed support (van Buuren, 2018). <span class="math inline">\(M=50\)</span> imputations retain between-imputation variance for Rubin’s rules.</p>
+<p>Predictive mean matching (<code>pmm</code>) is used so that the <strong>MAR-imputed endpoint values</strong> are selected from observed donor values and therefore remain on the observed outcome support (van Buuren, 2018). The subsequent delta adjustment is a separate sensitivity operation and can intentionally move those imputed values outside the observed support. <span class="math inline">\(M=50\)</span> imputations retain between-imputation variance for Rubin’s rules.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>dat_mi <span class="ot">&lt;-</span> dat <span class="sc">%&gt;%</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TRT, SEX, FVC_bl, FVC)</span>
@@ -1127,11 +1173,11 @@ FVC      1   1      1   0</code></pre>
 1     0          0         0     173.  40.1  139.  4.32 0.0000146  94.0  253.</code></pre>
 </div>
 </div>
-<p>If <code>p_one</code> at <span class="math inline">\(\delta=0\)</span> is below 0.025, the MAR conclusion is that DRUG preserves more FVC than PLACEBO. The tipping-point question is how large an adverse shift of the <strong>imputed</strong> values is needed before that claim is lost.</p>
+<p>If <code>p_one</code> at <span class="math inline">\(\delta=0\)</span> is below 0.025, the MAR conclusion is that the specified one-sided statistical criterion is met for the DRUG-versus-PLACEBO contrast. The tipping-point question is how large an adverse shift of the <strong>imputed</strong> values is needed before that criterion is no longer met.</p>
 </section>
 <section id="step-6-one-dimensional-tipping-point-grid" class="level2">
 <h2 class="anchored" data-anchor-id="step-6-one-dimensional-tipping-point-grid">Step 6 — One-dimensional tipping-point grid</h2>
-<p>A grid of arm-wise deltas from 0 to 300 mL is applied. For each <span class="math inline">\(\delta\)</span>, all 50 imputations are adjusted, the ANCOVA is fitted 50 times, and Rubin’s rules are applied <strong>before</strong> the one-sided test. That is 13 × 50 = 650 fitted models, not one adjusted dataset.</p>
+<p>A grid of arm-wise deltas from 0 to 300 mL is applied along the <strong>symmetric path</strong> <span class="math inline">\(\delta_D=\delta_P=\delta\)</span>. This is a deliberately chosen sensitivity path through a two-dimensional MNAR space, not a uniquely defined representation of MNAR. For each <span class="math inline">\(\delta\)</span>, all 50 imputations are adjusted, the ANCOVA is fitted 50 times, and Rubin’s rules are applied <strong>before</strong> the one-sided test. That is 13 × 50 = 650 fitted models, not one adjusted dataset.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>delta_grid <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">300</span>, <span class="at">by =</span> <span class="dv">25</span>)</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1159,7 +1205,7 @@ FVC      1   1      1   0</code></pre>
 13   300        300       300     60.4  43.4  148.  1.39 0.0831    -25.4   146.</code></pre>
 </div>
 </div>
-<p>The first grid point at which the one-sided test fails (<span class="math inline">\(p \ge 0.025\)</span>) brackets the tipping point from above. A linear interpolation on the <span class="math inline">\(p\)</span>-value (or on the <span class="math inline">\(t\)</span> statistic) between the last significant and first non-significant grid points gives a finer <span class="math inline">\(\delta_{\mathrm{TP}}\)</span>.</p>
+<p>The first grid point at which the one-sided test fails (<span class="math inline">\(p \ge 0.025\)</span>) brackets the significance boundary from above. A linear interpolation on the <span class="math inline">\(p\)</span>-value (or on the <span class="math inline">\(t\)</span> statistic) between the last significant and first non-significant grid points gives a finer numerical location of the crossing along the symmetric arm-wise path.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>last_sig <span class="ot">&lt;-</span> tip_results <span class="sc">%&gt;%</span></span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p_one <span class="sc">&lt;</span> alpha_one) <span class="sc">%&gt;%</span></span>
@@ -1203,7 +1249,7 @@ $delta_tp_interpolated
 [1] 237.4919</code></pre>
 </div>
 </div>
-<p>A direct root finder on the pooled one-sided <span class="math inline">\(p\)</span>-value is used when the grid straddles 0.025. This evaluates a few extra <span class="math inline">\(\delta\)</span> values but does not replace the grid, which remains the reportable display.</p>
+<p>A direct root finder on the pooled one-sided <span class="math inline">\(p\)</span>-value is used when the grid straddles 0.025. The grid establishes that the significance boundary lies between consecutive grid points; <code>uniroot()</code> then locates the crossing of the implemented sensitivity-analysis function more precisely. This evaluates a few extra <span class="math inline">\(\delta\)</span> values but does not replace the grid, which remains the reportable display. The numerical value should be interpreted as a <strong>numerical location of the decision boundary in the specified sensitivity model</strong>, not as an estimated clinical or biological parameter with a confidence interval.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>p_one_at <span class="ot">&lt;-</span> <span class="cf">function</span>(d) {</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pool_one_delta</span>(imp_data, <span class="at">delta =</span> d)<span class="sc">$</span>p_one</span>
@@ -1226,16 +1272,16 @@ $delta_tp_interpolated
 </section>
 <section id="step-7-tipping-point-graphics" class="level2">
 <h2 class="anchored" data-anchor-id="step-7-tipping-point-graphics">Step 7 — Tipping-point graphics</h2>
-<p>The <span class="math inline">\(p\)</span>-value curve shows when the one-sided test crosses <span class="math inline">\(\alpha=0.025\)</span>. The estimate curve shows the same information on the FVC (mL) scale, with Rubin-pooled 95% confidence intervals. The vertical line is the interpolated (or <code>uniroot</code>) tipping point.</p>
+<p>The <span class="math inline">\(p\)</span>-value curve shows when the one-sided test crosses <span class="math inline">\(\alpha=0.025\)</span>. The estimate curve shows the same information on the FVC (mL) scale, with Rubin-pooled 95% confidence intervals. The vertical line marks the numerically determined crossing of the one-sided significance threshold for the specified arm-wise sensitivity path.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>p_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(tip_results, <span class="fu">aes</span>(<span class="at">x =</span> delta, <span class="at">y =</span> p_one)) <span class="sc">+</span></span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> alpha_one, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
 <span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
 <span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"One-sided p-value versus MNAR delta"</span>,</span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Dashed line: alpha = 0.025; dotted line: tipping point"</span>,</span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Delta applied to missing endpoint FVC (mL)"</span>,</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"One-sided p-value versus symmetric arm-wise delta"</span>,</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"DRUG missing: −δ; PLACEBO missing: +δ; dashed: α = 0.025; dotted: numerical crossing"</span>,</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Arm-wise delta applied to originally missing endpoint FVC (mL)"</span>,</span>
 <span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"One-sided p-value (DRUG &gt; PLACEBO)"</span></span>
 <span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
 <span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
@@ -1248,10 +1294,10 @@ $delta_tp_interpolated
 <div id="fig-p-delta" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-p-delta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/fig-p-delta-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;3: One-sided p-value versus the arm-wise MNAR delta applied to originally missing endpoint FVC."><img src="index_files/figure-html/fig-p-delta-1.png" class="img-fluid figure-img" width="672"></a>
+<a href="index_files/figure-html/fig-p-delta-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;3: One-sided p-value versus the symmetric arm-wise delta applied to originally missing endpoint FVC."><img src="index_files/figure-html/fig-p-delta-1.png" class="img-fluid figure-img" width="672"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-p-delta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: One-sided p-value versus the arm-wise MNAR delta applied to originally missing endpoint FVC.
+Figure&nbsp;3: One-sided p-value versus the symmetric arm-wise delta applied to originally missing endpoint FVC.
 </figcaption>
 </figure>
 </div>
@@ -1264,10 +1310,10 @@ Figure&nbsp;3: One-sided p-value versus the arm-wise MNAR delta applied to origi
 <span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
 <span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
 <span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Pooled treatment effect versus MNAR delta"</span>,</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Rubin-pooled treatment contrast versus symmetric arm-wise delta"</span>,</span>
 <span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Ribbon: Rubin-pooled 95% CI; higher FVC is better"</span>,</span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Delta applied to missing endpoint FVC (mL)"</span>,</span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Pooled DRUG − PLACEBO contrast (mL)"</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Symmetric arm-wise delta applied to originally missing FVC (mL)"</span>,</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Rubin-pooled adjusted DRUG − PLACEBO contrast (mL)"</span></span>
 <span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
 <span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
 <span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a></span>
@@ -1279,10 +1325,10 @@ Figure&nbsp;3: One-sided p-value versus the arm-wise MNAR delta applied to origi
 <div id="fig-est-delta" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-est-delta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-html/fig-est-delta-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;4: Rubin-pooled DRUG minus PLACEBO contrast versus MNAR delta, with 95% confidence interval."><img src="index_files/figure-html/fig-est-delta-1.png" class="img-fluid figure-img" width="672"></a>
+<a href="index_files/figure-html/fig-est-delta-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;4: Rubin-pooled adjusted DRUG minus PLACEBO contrast versus symmetric arm-wise delta, with 95% confidence interval."><img src="index_files/figure-html/fig-est-delta-1.png" class="img-fluid figure-img" width="672"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-est-delta-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Rubin-pooled DRUG minus PLACEBO contrast versus MNAR delta, with 95% confidence interval.
+Figure&nbsp;4: Rubin-pooled adjusted DRUG minus PLACEBO contrast versus symmetric arm-wise delta, with 95% confidence interval.
 </figcaption>
 </figure>
 </div>
@@ -1291,7 +1337,8 @@ Figure&nbsp;4: Rubin-pooled DRUG minus PLACEBO contrast versus MNAR delta, with 
 </section>
 <section id="step-8-two-dimensional-tipping-surface" class="level2">
 <h2 class="anchored" data-anchor-id="step-8-two-dimensional-tipping-surface">Step 8 — Two-dimensional tipping surface</h2>
-<p>A single shared <span class="math inline">\(\delta\)</span> is only one path through MNAR space: it worsens missing DRUG values and improves missing PLACEBO values by the same amount. A coarse grid over <span class="math inline">\((\delta_{\mathrm{DRUG}},\delta_{\mathrm{PLACEBO}})\)</span> shows other combinations that lose or retain significance (cf.&nbsp;two-way tipping-point displays in Gorst-Rasmussen and Tarp-Johansen, 2022). Each cell is still a full Rubin pool of the 50 imputations.</p>
+<p>A single shared <span class="math inline">\(\delta\)</span> is only one path through MNAR space: it worsens missing DRUG values and improves missing PLACEBO values by the same amount. The shared-delta analysis should therefore be understood as a deliberately chosen sensitivity path, not as a uniquely defined representation of MNAR. Other clinically plausible assumptions may shift the two treatment arms by different amounts. The two-dimensional analysis makes this dependence visible.</p>
+<p>A coarse grid over <span class="math inline">\((\delta_{\mathrm{DRUG}},\delta_{\mathrm{PLACEBO}})\)</span> shows other combinations that lose or retain the specified statistical criterion (cf.&nbsp;two-way tipping-point displays in Gorst-Rasmussen and Tarp-Johansen, 2022). Each cell is still a full Rubin pool of the 50 imputations.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>delta_2d <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">300</span>, <span class="at">by =</span> <span class="dv">75</span>)</span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1311,9 +1358,9 @@ Figure&nbsp;4: Rubin-pooled DRUG minus PLACEBO contrast versus MNAR delta, with 
 <span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradient</span>(<span class="at">low =</span> <span class="st">"white"</span>, <span class="at">high =</span> <span class="st">"grey30"</span>) <span class="sc">+</span></span>
 <span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
 <span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Two-dimensional tipping surface"</span>,</span>
-<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Fill and labels: one-sided p-value; dotted line: shared delta"</span>,</span>
-<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Delta applied to missing DRUG FVC (mL)"</span>,</span>
-<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Delta applied to missing PLACEBO FVC (mL)"</span>,</span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Fill and labels: one-sided p-value; dotted line: shared arm-wise delta path"</span>,</span>
+<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Arm-wise delta applied to originally missing DRUG FVC (mL)"</span>,</span>
+<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Arm-wise delta applied to originally missing PLACEBO FVC (mL)"</span>,</span>
 <span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"p (one-sided)"</span></span>
 <span id="cb44-23"><a href="#cb44-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
 <span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
@@ -1331,7 +1378,9 @@ Figure&nbsp;5: One-sided p-values on a two-dimensional MNAR grid. The dotted dia
 </div>
 </div>
 </div>
-<p>The dotted diagonal is the one-dimensional analysis from Step 6. Cells with <span class="math inline">\(p \ge 0.025\)</span> are combinations of MNAR shifts that tip the conclusion.</p>
+<p>The dotted diagonal is the one-dimensional analysis from Step 6. Cells with <span class="math inline">\(p \ge 0.025\)</span> are combinations of arm-specific sensitivity shifts for which the specified one-sided statistical criterion is not met. These cells do not establish that the corresponding MNAR assumptions are plausible; they simply identify where the inferential conclusion changes under the chosen sensitivity model.</p>
+<p>The two-dimensional surface should also be interpreted as a sensitivity map rather than as an estimate of the probability of different MNAR mechanisms. The axes represent assumed departures from MAR. The analysis does not assign probabilities to those departures.</p>
+<p>In practice, the most informative region of the surface is the region containing clinically and scientifically plausible departures from MAR.</p>
 </section>
 <section id="step-9-interpretation" class="level2">
 <h2 class="anchored" data-anchor-id="step-9-interpretation">Step 9 — Interpretation</h2>
@@ -1378,7 +1427,7 @@ Figure&nbsp;5: One-sided p-values on a two-dimensional MNAR grid. The dotted dia
 <span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">" mL, one-sided p = "</span>,</span>
 <span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">signif</span>(mar_result<span class="sc">$</span>p_one, <span class="dv">3</span>),</span>
 <span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">".</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Interpolated / uniroot tipping point: "</span>,</span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Numerical crossing of one-sided criterion (symmetric arm-wise path): approximately "</span>,</span>
 <span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>  tp_txt,</span>
 <span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">".</span><span class="sc">\n</span><span class="st">"</span>,</span>
 <span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Overall endpoint missingness: "</span>,</span>
@@ -1388,19 +1437,57 @@ Figure&nbsp;5: One-sided p-values on a two-dimensional MNAR grid. The dotted dia
 <span id="cb47-20"><a href="#cb47-20" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>MAR (delta = 0): estimate = 173.3 mL, one-sided p = 1.46e-05.
-Interpolated / uniroot tipping point: 238.9 mL.
+Numerical crossing of one-sided criterion (symmetric arm-wise path): approximately 238.9 mL.
 Overall endpoint missingness: 19.5%.</code></pre>
 </div>
 </div>
 <p>Reading the results:</p>
 <ul>
-<li><strong>MAR analysis (<span class="math inline">\(\delta=0\)</span>).</strong> This is the primary MI estimator: endpoint FVC is imputed from treatment, baseline FVC, and gender, then analysed with the same ANCOVA. A one-sided <span class="math inline">\(p&lt;0.025\)</span> means the simulated trial would claim that DRUG preserves more FVC than PLACEBO under MAR.</li>
-<li><strong>Gender.</strong> <code>SEX</code> is a factor in the <code>mice</code> predictor matrix and in <code>lm(FVC_tp ~ TRT + FVC_bl + SEX)</code>. The pooled <code>TRTDRUG</code> coefficient is therefore a baseline- and gender-adjusted contrast, not a raw mean difference that ignores the larger male FVC.</li>
-<li><strong>Delta meaning.</strong> Each reported <span class="math inline">\(\delta\)</span> is an <strong>arm-wise</strong> shift of originally missing values only. Worsening missing DRUG outcomes by <span class="math inline">\(\delta\)</span> and improving missing PLACEBO outcomes by the same <span class="math inline">\(\delta\)</span> moves the treatment contrast by roughly <span class="math inline">\(-\delta(\pi_D+\pi_P)\)</span>, where <span class="math inline">\(\pi_D\)</span> and <span class="math inline">\(\pi_P\)</span> are the missingness fractions. That is not the same as shifting the treatment effect by <span class="math inline">\(\delta\)</span>.</li>
-<li><strong>Tipping point.</strong> <span class="math inline">\(\delta_{\mathrm{TP}}\)</span> is the smallest adverse arm-wise shift at which the one-sided test is no longer significant at <span class="math inline">\(\alpha=0.025\)</span>. Values below <span class="math inline">\(\delta_{\mathrm{TP}}\)</span> still support efficacy under this MNAR family; values at or above <span class="math inline">\(\delta_{\mathrm{TP}}\)</span> do not.</li>
-<li><strong>What is not claimed.</strong> The exercise does not prove that missing data are MAR. It asks how far the imputed FVC values would have to depart from MAR, in the direction of lack of efficacy, before the one-sided conclusion changes. Observed FVC values are never shifted.</li>
+<li><p><strong>MAR analysis (<span class="math inline">\(\delta=0\)</span>).</strong> Under the specified MAR imputation model and the pre-specified ANCOVA, the Rubin-pooled DRUG-versus-PLACEBO contrast is reported above with its one-sided <span class="math inline">\(p\)</span>-value. Under this simulated dataset, the one-sided statistical criterion is therefore assessed under MAR.</p></li>
+<li><p><strong>Meaning of delta.</strong> Each delta value is an arm-wise shift applied only to originally missing endpoint observations. Along the one-dimensional sensitivity path used here, missing DRUG values are decreased by <span class="math inline">\(\delta\)</span> and missing PLACEBO values are increased by <span class="math inline">\(\delta\)</span>.</p></li>
+<li><p><strong>Tipping point.</strong> In this example, <span class="math inline">\(\delta_{\mathrm{TP}}\)</span> is the approximate value along the symmetric arm-wise sensitivity path at which the one-sided test crosses the pre-specified significance threshold <span class="math inline">\(\alpha=0.025\)</span>. Values below this boundary retain statistical significance under the specified sensitivity model, while values above it do not.</p>
+<p>This is <strong>not a boundary between efficacy and no efficacy</strong>. For example, at <span class="math inline">\(\delta=250\)</span> mL the estimated treatment effect remains positive, but its confidence interval includes zero and the one-sided <span class="math inline">\(p\)</span>-value exceeds 0.025.</p>
+<p>The result therefore answers a narrower question: <strong>how large would the specified departure from MAR have to be before the pre-specified statistical conclusion changes?</strong></p></li>
+<li><p><strong>Interpretation of the numerical crossing.</strong> The reported value (approximately 238.9 mL in this seed) is an <strong>arm-wise outcome shift</strong>, not a change of that magnitude in the treatment effect. Under this sensitivity path, it means that each originally missing DRUG endpoint is shifted downward by that amount relative to its MAR-imputed value, while each originally missing PLACEBO endpoint is shifted upward by the same amount.</p>
+<p>The resulting ANCOVA treatment contrast at the boundary is much smaller than the arm-wise delta. This is expected because the delta is applied only to originally missing observations and because the final treatment contrast is estimated through the ANCOVA model.</p></li>
+<li><p><strong>Gender.</strong> <code>SEX</code> is a factor in the <code>mice</code> predictor matrix and in <code>lm(FVC_tp ~ TRT + FVC_bl + SEX)</code>. The pooled <code>TRTDRUG</code> coefficient is therefore a baseline- and gender-adjusted contrast, not a raw mean difference that ignores the larger male FVC.</p></li>
+<li><p><strong>Statistical versus clinical conclusion.</strong> The tipping point marks loss of the specified statistical criterion, not disappearance of treatment benefit. A separate clinically meaningful threshold could therefore be used to define a clinical rather than purely statistical tipping point.</p></li>
+<li><p><strong>Plausibility.</strong> The practical interpretation depends on whether a departure of that magnitude from the MAR-imputed outcomes is scientifically and clinically plausible. A large numerical tipping point is not automatically evidence of robustness unless the magnitude is meaningful relative to subject-level outcome variability and clinical expectations.</p></li>
+<li><p><strong>Scope of the conclusion.</strong> The result applies only to the specified imputation model, delta-adjustment rule, analysis model, inferential criterion, and sensitivity path. Other plausible MNAR assumptions—particularly asymmetric shifts between treatment arms—can produce different tipping boundaries. The exercise does not prove that missing data are MAR. Observed FVC values are never shifted.</p></li>
 </ul>
 </section>
+</section>
+<section id="how-to-specify-the-sensitivity-analysis" class="level1">
+<h1>How to specify the sensitivity analysis</h1>
+<p>A reproducible analysis description should state:</p>
+<ol type="1">
+<li><strong>Primary estimand and treatment contrast.</strong></li>
+<li><strong>Primary analysis model.</strong></li>
+<li><strong>Missingness/imputation model.</strong></li>
+<li><strong>Which observations are eligible for delta adjustment.</strong></li>
+<li><strong>Direction of the delta adjustment in each arm.</strong></li>
+<li><strong>Whether delta is arm-wise or contrast-wise.</strong></li>
+<li><strong>The range and increments of the sensitivity parameter.</strong></li>
+<li><strong>The rationale for the explored range.</strong></li>
+<li><strong>The inferential criterion defining the tipping boundary.</strong></li>
+<li><strong>How MI variance and degrees of freedom are combined.</strong></li>
+<li><strong>Whether the tipping point is reported as a grid interval or numerical crossing.</strong></li>
+<li><strong>How clinical plausibility of the sensitivity range will be assessed.</strong></li>
+</ol>
+</section>
+<section id="take-home-message" class="level1">
+<h1>Take-home message</h1>
+<p>A multiple-imputation tipping-point analysis is not simply a matter of subtracting a number from the treatment effect. The sensitivity parameter must first be defined as a specific departure applied to originally missing outcomes. Each sensitivity value is then applied separately to every imputed dataset, the primary analysis model is refitted, and the resulting treatment contrasts are Rubin-pooled.</p>
+<p>The resulting tipping point is conditional on the chosen sensitivity path and inferential criterion. In particular, an arm-wise delta is not generally equal to the change in an adjusted treatment effect.</p>
+<p>The most useful interpretation is therefore not:</p>
+<blockquote class="blockquote">
+<p>“The treatment effect is robust up to 239 mL.”</p>
+</blockquote>
+<p>but:</p>
+<blockquote class="blockquote">
+<p>“Under the specified sensitivity model, the one-sided statistical conclusion remains significant until an arm-wise departure of approximately 239 mL from the MAR-imputed outcomes is imposed on the originally missing observations.”</p>
+</blockquote>
+<p>Whether that represents reassuring robustness depends on whether such a departure from MAR is considered plausible.</p>
 </section>
 <section id="references" class="level1">
 <h1>References</h1>
@@ -1425,6 +1512,7 @@ Overall endpoint missingness: 19.5%.</code></pre>
 </section>
 <section id="regulatory-context" class="level2">
 <h2 class="anchored" data-anchor-id="regulatory-context">Regulatory context</h2>
+<p>ICH E9(R1) emphasizes that sensitivity analyses should assess the robustness of conclusions to assumptions underlying the chosen estimand and estimator, including assumptions concerning missing data. Tipping-point analyses are one useful approach for illustrating how conclusions change under specified departures from the primary missing-data assumptions. They should be interpreted as sensitivity analyses rather than as evidence that a particular MNAR mechanism is true.</p>
 <ul>
 <li>National Research Council (2010). <em>The Prevention and Treatment of Missing Data in Clinical Trials</em>. National Academies Press. <a href="https://doi.org/10.17226/12955" class="uri">https://doi.org/10.17226/12955</a></li>
 <li>ICH (2019). <em>ICH E9(R1) Addendum on Estimands and Sensitivity Analysis in Clinical Trials</em>. International Council for Harmonisation.</li>
@@ -1439,9 +1527,9 @@ Overall endpoint missingness: 19.5%.</code></pre>
 
 <ol>
 <li id="fn1"><p>Missing at random (Rubin, 1976): missingness depends on observed data, not on the unobserved values themselves.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>Analysis Of Variance<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn3"><p>Intent To Treat<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn4"><p>Statistical Analysis Plan<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Missing not at random<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Analysis Of Variance<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>Intent To Treat<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn5"><p>Forced Vital Capacity<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main> <!-- /main -->
