@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Vladimir Larchenko">
+<meta name="dcterms.date" content="2026-09-21">
+
+<title>Viterbi Decoding for Clinical Response Chains – Technical Blog</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<link href="../../images/favicon.png" rel="icon" type="image/png">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-030b739f9d5739cb2296ef50509d8e93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>
+(function(){
+  // Robustly ensure the navbar title links to the site Home (same as the Home menu link).
+  function setTitleToHome() {
+    try {
+      var brandContainer = document.querySelector('.navbar-brand-container');
+      if (!brandContainer) return false;
+      var titleAnchor = brandContainer.querySelector('a.navbar-brand:not(.navbar-brand-logo)');
+      var homeLink = document.querySelector('a.nav-link[href$="index.html"]') || document.querySelector('a.nav-link');
+      if (!titleAnchor || !homeLink) return false;
+      var homeHref = homeLink.getAttribute('href');
+      var resolved = new URL(homeHref, window.location.href).href;
+      titleAnchor.setAttribute('href', resolved);
+      return true;
+    } catch (err) {
+      console && console.warn && console.warn('navbar-fix error', err);
+      return false;
+    }
+  }
+
+  // Try a few strategies: immediate attempt, repeated attempts, and a MutationObserver.
+  var tried = false;
+  function attempt() {
+    if (setTitleToHome()) {
+      tried = true;
+      if (interval) clearInterval(interval);
+      if (observer) observer.disconnect();
+    }
+  }
+
+  var interval = setInterval(attempt, 200);
+
+  var observer = new MutationObserver(function() {
+    if (!tried) attempt();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var root = document.querySelector('body');
+    if (root) observer.observe(root, { childList: true, subtree: true });
+    attempt();
+  });
+})();
+</script>
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="https://keystatsolutions.com" class="navbar-brand navbar-brand-logo">
+    <img src="../../images/keystat-logo.svg" alt="KeyStat Solutions" class="navbar-logo light-content">
+    <img src="../../images/keystat-logo.svg" alt="KeyStat Solutions" class="navbar-logo dark-content">
+    </a>
+    <a class="navbar-brand" href="https://keystatsolutions.com">
+    <span class="navbar-title">Technical Blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://al-garik.github.io/ks-blog/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://www.r-bloggers.com"> 
+<span class="menu-text">R-Bloggers</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#motivation" id="toc-motivation" class="nav-link" data-scroll-target="#motivation">Motivation</a></li>
+  <li><a href="#an-hmm-on-the-visit-grid" id="toc-an-hmm-on-the-visit-grid" class="nav-link" data-scroll-target="#an-hmm-on-the-visit-grid">An HMM on the visit grid</a>
+  <ul class="collapse">
+  <li><a href="#initial-distribution" id="toc-initial-distribution" class="nav-link" data-scroll-target="#initial-distribution">Initial distribution</a></li>
+  <li><a href="#transitions" id="toc-transitions" class="nav-link" data-scroll-target="#transitions">Transitions</a></li>
+  <li><a href="#emissions-hard-constraints-and-missing-visits" id="toc-emissions-hard-constraints-and-missing-visits" class="nav-link" data-scroll-target="#emissions-hard-constraints-and-missing-visits">Emissions: hard constraints and missing visits</a></li>
+  </ul></li>
+  <li><a href="#the-viterbi-algorithm" id="toc-the-viterbi-algorithm" class="nav-link" data-scroll-target="#the-viterbi-algorithm">The Viterbi algorithm</a></li>
+  <li><a href="#a-three-visit-calculation-by-hand" id="toc-a-three-visit-calculation-by-hand" class="nav-link" data-scroll-target="#a-three-visit-calculation-by-hand">A three-visit calculation by hand</a></li>
+  <li><a href="#implementation" id="toc-implementation" class="nav-link" data-scroll-target="#implementation">Implementation</a></li>
+  <li><a href="#five-visits-one-hole" id="toc-five-visits-one-hole" class="nav-link" data-scroll-target="#five-visits-one-hole">Five visits, one hole</a>
+  <ul class="collapse">
+  <li><a href="#viterbi-versus-locf" id="toc-viterbi-versus-locf" class="nav-link" data-scroll-target="#viterbi-versus-locf">Viterbi versus LOCF</a></li>
+  </ul></li>
+  <li><a href="#unequal-spacing" id="toc-unequal-spacing" class="nav-link" data-scroll-target="#unequal-spacing">Unequal spacing</a>
+  <ul class="collapse">
+  <li><a href="#from-a-step-kernel-to-a-holding-kernel" id="toc-from-a-step-kernel-to-a-holding-kernel" class="nav-link" data-scroll-target="#from-a-step-kernel-to-a-holding-kernel">From a step kernel to a holding kernel</a></li>
+  <li><a href="#the-two-shortcuts-side-by-side" id="toc-the-two-shortcuts-side-by-side" class="nav-link" data-scroll-target="#the-two-shortcuts-side-by-side">The two shortcuts, side by side</a></li>
+  </ul></li>
+  <li><a href="#noisy-emissions" id="toc-noisy-emissions" class="nav-link" data-scroll-target="#noisy-emissions">Noisy emissions</a>
+  <ul class="collapse">
+  <li><a href="#when-the-hard-path-is-impossible" id="toc-when-the-hard-path-is-impossible" class="nav-link" data-scroll-target="#when-the-hard-path-is-impossible">When the hard path is impossible</a></li>
+  </ul></li>
+  <li><a href="#software-in-r" id="toc-software-in-r" class="nav-link" data-scroll-target="#software-in-r">Software in R</a></li>
+  <li><a href="#when-not-to-use-viterbi-here" id="toc-when-not-to-use-viterbi-here" class="nav-link" data-scroll-target="#when-not-to-use-viterbi-here">When not to use Viterbi here</a></li>
+  <li><a href="#closing" id="toc-closing" class="nav-link" data-scroll-target="#closing">Closing</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a>
+  <ul class="collapse">
+  <li><a href="#algorithm-and-hmm-theory" id="toc-algorithm-and-hmm-theory" class="nav-link" data-scroll-target="#algorithm-and-hmm-theory">Algorithm and HMM theory</a></li>
+  <li><a href="#continuous-time-and-unequal-visit-spacing" id="toc-continuous-time-and-unequal-visit-spacing" class="nav-link" data-scroll-target="#continuous-time-and-unequal-visit-spacing">Continuous time and unequal visit spacing</a></li>
+  <li><a href="#clinical-multi-state-models-and-misclassification" id="toc-clinical-multi-state-models-and-misclassification" class="nav-link" data-scroll-target="#clinical-multi-state-models-and-misclassification">Clinical multi-state models and misclassification</a></li>
+  <li><a href="#oncology-response-criteria" id="toc-oncology-response-criteria" class="nav-link" data-scroll-target="#oncology-response-criteria">Oncology response criteria</a></li>
+  <li><a href="#missing-data-locf-and-estimands" id="toc-missing-data-locf-and-estimands" class="nav-link" data-scroll-target="#missing-data-locf-and-estimands">Missing data, LOCF, and estimands</a></li>
+  <li><a href="#software" id="toc-software" class="nav-link" data-scroll-target="#software">Software</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Viterbi Decoding for Clinical Response Chains</h1>
+<p class="subtitle lead">The most probable RECIST-like path when visits go missing</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">R</div>
+    <div class="quarto-category">Clinical Trials</div>
+    <div class="quarto-category">Data analysis</div>
+    <div class="quarto-category">Missing Data</div>
+    <div class="quarto-category">Data Imputation</div>
+    <div class="quarto-category">Survival</div>
+    <div class="quarto-category">RECIST</div>
+    <div class="quarto-category">Markov-Chain</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Vladimir Larchenko </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 21, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/post-logo.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Viterbi path on a RECIST visit grid"><img src="images/post-logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img" alt="Viterbi path on a RECIST visit grid"></a></p>
+</figure>
+</div>
+<figcaption>Viterbi path on a RECIST visit grid</figcaption>
+</figure>
+</div>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Oncology trials record tumour response on a visit calendar: Baseline <span class="math inline">\(\rightarrow\)</span> Week 4 <span class="math inline">\(\rightarrow\)</span> Week 8 <span class="math inline">\(\rightarrow\)</span> Week 12 <span class="math inline">\(\rightarrow\)</span> Week 24. At each post-baseline assessment the category is one of CR, PR, SD, or PD.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> Scans are missed, windows are missed, and a visit is coded NE.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> The table then looks like</p>
+<p><span class="math display">\[
+\text{SD} \;\rightarrow\; \text{PR} \;\rightarrow\;
+{?} \;\rightarrow\; \text{PR} \;\rightarrow\; \text{CR}.
+\]</span></p>
+<p>Last observation carried forward (LOCF) fills the hole with PR. Copying the neighbour on either side does the same. Neither method asks whether the completed <em>chain</em> is a plausible disease course.</p>
+<p>A hidden Markov model (HMM) treats the recorded category as a noisy or incomplete view of a latent status <span class="math inline">\(s_t\)</span> (Baum and Petrie, 1966; Rabiner, 1989). The Viterbi algorithm (Viterbi, 1967; Forney, 1973) returns the <strong>single most probable state sequence</strong> given the recordings — the MAP<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> path, not a visit-wise majority vote.</p>
+<blockquote class="blockquote">
+<p>Restore the chain <span class="math inline">\(s_1 \rightarrow \cdots \rightarrow s_T\)</span> that maximises <span class="math inline">\(P(s_{1:T} \mid y_{1:T})\)</span>, subject to clinical transition structure (PD absorbing, improvement SD <span class="math inline">\(\to\)</span> PR <span class="math inline">\(\to\)</span> CR allowed) and to whatever was actually seen.</p>
+</blockquote>
+<p>This article implements that decoder from scratch in R, on a five-visit RECIST-like grid, including missing visits, unequal spacing, and a short misclassification extension.</p>
+<p><strong>A RECIST caveat, stated first.</strong> Under RECIST 1.1, Baseline is the <strong>reference measurement</strong>, not a response category (Therasse et al., 2000; Eisenhauer et al., 2009). CR/PR/SD/PD are defined post-baseline against baseline and nadir; confirmation rules and the 20% + 5 mm PD criterion are operational, not Markov. The five-point chain below is a <strong>latent status process on the visit calendar</strong> — a reconstruction and QC tool. It is not a best overall response (BOR) engine and must not replace the protocol estimand (ICH E9(R1), 2019).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(expm)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'Matrix'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:tidyr':
+
+    expand, pack, unpack</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'expm'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:Matrix':
+
+    expm</code></pre>
+</div>
+</div>
+</section>
+<section id="motivation" class="level1">
+<h1>Motivation</h1>
+<p>Suppose Week 8 is missing and the recorded sequence is <code>SD, PR, NA, PR, CR</code>. In practice the chain gets completed three ways:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Completed chain</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LOCF</td>
+<td>SD <span class="math inline">\(\to\)</span> PR <span class="math inline">\(\to\)</span> <strong>PR</strong> <span class="math inline">\(\to\)</span> PR <span class="math inline">\(\to\)</span> CR</td>
+</tr>
+<tr class="even">
+<td>Copy next</td>
+<td>SD <span class="math inline">\(\to\)</span> PR <span class="math inline">\(\to\)</span> <strong>PR</strong> <span class="math inline">\(\to\)</span> PR <span class="math inline">\(\to\)</span> CR</td>
+</tr>
+<tr class="odd">
+<td>Independent draw</td>
+<td>whatever the marginal at Week 8 suggests</td>
+</tr>
+</tbody>
+</table>
+<p>LOCF and copy-next agree here only because the recordings flanking the hole are both PR; they part ways as soon as the next observation differs from the last.</p>
+<p>LOCF is a poor primary analysis for longitudinal <em>means</em> (Siddiqui, Hung, and O’Neill, 2009; National Research Council, 2010; Little et al., 2012). For a <em>categorical disease course</em> it fails a second way: it ignores transition constraints. A sequence <code>PD, NA, CR</code> becomes <code>PD, PD, CR</code> under LOCF, which contradicts absorbing progression. Independent imputation of each visit can invent the same impossibility.</p>
+<p>Rabiner (1989) separates three HMM jobs:</p>
+<ol type="1">
+<li>likelihood of the recordings given the model;</li>
+<li><strong>decoding</strong> — the most probable state sequence (Viterbi);</li>
+<li>learning the parameters (Baum–Welch / EM; Baum et al., 1970).</li>
+</ol>
+<p>This post is job 2. Job 3 is out of scope: the transition matrix here is protocol-structured, not estimated from the same small trial we then “complete”.</p>
+<p>The decoding estimand is a <strong>path</strong>. The forward–backward algorithm gives the visit-wise posteriors <span class="math display">\[P(S_t = s \mid y_{1:T}),\]</span> yet the visit-wise modes can disagree with the Viterbi path (Rabiner, 1989; Cappé, Moulines, and Rydén, 2005). For “what was the most plausible course of disease?” the path is the right object.</p>
+</section>
+<section id="an-hmm-on-the-visit-grid" class="level1">
+<h1>An HMM on the visit grid</h1>
+<p>Four latent statuses, in clinical order of worsening. The plate below is the same five-visit calendar: a Markov chain of hidden statuses <span class="math inline">\(s_t\)</span> and a recording <span class="math inline">\(y_t\)</span> that may be missing.</p>
+<div class="cell" data-fig-width="8.5" data-fig-height="4" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="hero-hmm">
+<div>
+<pre class="mermaid mermaid-js" data-label="hero-hmm">%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "clusterBkg": "#f7f9fb", "clusterBorder": "#5d6d7e", "titleColor": "#1a252f"}, "flowchart": {"padding": 12, "nodeSpacing": 18, "rankSpacing": 40, "curve": "linear"}}}%%
+flowchart LR
+  subgraph hidden [Latent status]
+    S0["s1"]
+    S1["s2"]
+    S2["s3"]
+    S3["s4"]
+    S4["s5"]
+    S0 --&gt; S1 --&gt; S2 --&gt; S3 --&gt; S4
+  end
+  subgraph rec [Recorded RECIST]
+    Y0["y1"]
+    Y1["y2"]
+    Y2["y3 missing"]
+    Y3["y4"]
+    Y4["y5"]
+  end
+  S0 --&gt; Y0
+  S1 --&gt; Y1
+  S2 --&gt; Y2
+  S3 --&gt; Y3
+  S4 --&gt; Y4
+  classDef hid fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef seen fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  classDef miss fill:#fdebd0,stroke:#b9770e,color:#1a252f,stroke-width:1.8px
+  class S0,S1,S2,S3,S4 hid
+  class Y0,Y1,Y3,Y4 seen
+  class Y2 miss
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>states <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"CR"</span>, <span class="st">"PR"</span>, <span class="st">"SD"</span>, <span class="st">"PD"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Visits <span class="math inline">\(t = 1,\ldots,5\)</span> sit at Baseline, Week 4, Week 8, Week 12, and Week 24. The latent process is a Markov chain</p>
+<p><span class="math display">\[
+P(s_1) = \pi(s_1), \qquad
+P(s_t \mid s_{1:t-1}) = P(s_t \mid s_{t-1}),
+\]</span></p>
+<p>and the recording <span class="math inline">\(y_t\)</span> depends only on <span class="math inline">\(s_t\)</span> (memoryless emission). That is the classical HMM (Baum and Petrie, 1966).</p>
+<section id="initial-distribution" class="level2">
+<h2 class="anchored" data-anchor-id="initial-distribution">Initial distribution</h2>
+<p>At Baseline, eligibility usually forbids overt PD, CR is rare, and mass sits on SD (with some PR). A teaching prior:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>pi0 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">CR =</span> <span class="fl">0.05</span>, <span class="at">PR =</span> <span class="fl">0.20</span>, <span class="at">SD =</span> <span class="fl">0.70</span>, <span class="at">PD =</span> <span class="fl">0.05</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>pi0</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  CR   PR   SD   PD 
+0.05 0.20 0.70 0.05 </code></pre>
+</div>
+</div>
+<p>These numbers are <strong>expert structure</strong>, not MLE.</p>
+</section>
+<section id="transitions" class="level2">
+<h2 class="anchored" data-anchor-id="transitions">Transitions</h2>
+<p>Rows are origin <span class="math inline">\(s'\)</span>, columns destination <span class="math inline">\(s\)</span>, so the entry is <span class="math inline">\(P(s \mid s')\)</span>. PD is absorbing: once progressed, stay PD. Improvement SD <span class="math inline">\(\to\)</span> PR <span class="math inline">\(\to\)</span> CR is allowed; CR <span class="math inline">\(\to\)</span> PR is the confirmation / relapse leak, not a typical recovery from PD.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>P <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.70</span>, <span class="fl">0.20</span>, <span class="fl">0.08</span>, <span class="fl">0.02</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.15</span>, <span class="fl">0.60</span>, <span class="fl">0.20</span>, <span class="fl">0.05</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.02</span>, <span class="fl">0.18</span>, <span class="fl">0.70</span>, <span class="fl">0.10</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.00</span>, <span class="fl">0.00</span>, <span class="fl">0.00</span>, <span class="fl">1.00</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="dv">4</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">dimnames =</span> <span class="fu">list</span>(<span class="at">from =</span> states, <span class="at">to =</span> states)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>P</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    to
+from   CR   PR   SD   PD
+  CR 0.70 0.20 0.08 0.02
+  PR 0.15 0.60 0.20 0.05
+  SD 0.02 0.18 0.70 0.10
+  PD 0.00 0.00 0.00 1.00</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rowSums</span>(P)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CR PR SD PD 
+ 1  1  1  1 </code></pre>
+</div>
+</div>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>From <span class="math inline">\(\backslash\)</span> To</th>
+<th style="text-align: right;">CR</th>
+<th style="text-align: right;">PR</th>
+<th style="text-align: right;">SD</th>
+<th style="text-align: right;">PD</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CR</td>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: right;">0.02</td>
+</tr>
+<tr class="even">
+<td>PR</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">0.60</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">0.05</td>
+</tr>
+<tr class="odd">
+<td>SD</td>
+<td style="text-align: right;">0.02</td>
+<td style="text-align: right;">0.18</td>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">0.10</td>
+</tr>
+<tr class="even">
+<td>PD</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+</tr>
+</tbody>
+</table>
+<p>The last hop on the calendar is 12 weeks, not 4. The matrix above is a <strong>4-week</strong> step. Week 12 <span class="math inline">\(\to\)</span> Week 24 is handled later with a generator <span class="math inline">\(Q\)</span> and <span class="math inline">\(P(\Delta t) = \exp(Q\,\Delta t)\)</span> (Kalbfleisch and Lawless, 1985). Until then, treat <span class="math inline">\(P\)</span> as the one-step kernel on the discrete visit index, which is already enough to see Viterbi work.</p>
+</section>
+<section id="emissions-hard-constraints-and-missing-visits" class="level2">
+<h2 class="anchored" data-anchor-id="emissions-hard-constraints-and-missing-visits">Emissions: hard constraints and missing visits</h2>
+<p>The teaching model makes the recording exact:</p>
+<ul>
+<li>if <span class="math inline">\(y_t = k\)</span> is observed in <span class="math inline">\(\{\mathrm{CR},\mathrm{PR},\mathrm{SD},\mathrm{PD}\}\)</span>, then <span class="math inline">\(e_t(s) = 1\{s = k\}\)</span> (the recording <em>is</em> the state);</li>
+<li>if the visit is missing or NE, <span class="math inline">\(e_t(s) = 1\)</span> for every <span class="math inline">\(s\)</span> (the Markov prior fills the gap).</li>
+</ul>
+<p>Schwartz et al.&nbsp;(2016) clarify NE / unevaluable under RECIST 1.1; here NE is simply “no emission constraint”. The <em>Noisy emissions</em> section below replaces the indicator with a confusion matrix <span class="math inline">\(C_{s,k} = P(y=k \mid s)\)</span> (Jackson et al., 2003).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>emission_hard <span class="ot">&lt;-</span> <span class="cf">function</span>(y) {</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  e <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(states)), states)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.na</span>(y) <span class="sc">||</span> y <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"NE"</span>, <span class="st">"MISSING"</span>)) {</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    e[] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (<span class="sc">!</span>y <span class="sc">%in%</span> states) {</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"unknown category: "</span>, y)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    e[y] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  e</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="fu">emission_hard</span>(<span class="st">"PR"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CR PR SD PD 
+ 0  1  0  0 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">emission_hard</span>(<span class="cn">NA_character_</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CR PR SD PD 
+ 1  1  1  1 </code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="the-viterbi-algorithm" class="level1">
+<h1>The Viterbi algorithm</h1>
+<p>There are <span class="math inline">\(4^5 = 1024\)</span> chains on five visits — enumerable, but the point of the algorithm is the recurrence that stays <span class="math inline">\(O(T |S|^2)\)</span> when <span class="math inline">\(T\)</span> or <span class="math inline">\(|S|\)</span> grows (Durbin, Eddy, Krogh, and Mitchison, 1998).</p>
+<p>Let <span class="math inline">\(dp_t(s)\)</span> be the probability of the most probable chain that ends in <span class="math inline">\(s\)</span> at visit <span class="math inline">\(t\)</span> and that accounts for <span class="math inline">\(y_{1:t}\)</span>. Then (Viterbi, 1967; Forney, 1973; Rabiner, 1989)</p>
+<p><span class="math display">\[
+dp_1(s) = \pi(s)\, e_1(s),
+\]</span></p>
+<p><span class="math display">\[
+dp_t(s)
+  = e_t(s)
+    \cdot
+    \max_{s'}
+    \bigl[ dp_{t-1}(s') \, P(s \mid s') \bigr],
+\]</span></p>
+<p><span class="math display">\[
+\psi_t(s)
+  = \arg\max_{s'}
+    \bigl[ dp_{t-1}(s') \, P(s \mid s') \bigr].
+\]</span></p>
+<p>At <span class="math inline">\(T\)</span>, <span class="math inline">\(s_T^\star = \arg\max_s dp_T(s)\)</span>. Backpointers <span class="math inline">\(\psi\)</span> reconstruct <span class="math inline">\(s_{T-1}^\star, \ldots, s_1^\star\)</span>.</p>
+<div class="cell" data-fig-width="8" data-fig-height="1.6" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="viterbi-step">
+<div>
+<pre class="mermaid mermaid-js" data-label="viterbi-step">%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "titleColor": "#1a252f"}, "flowchart": {"padding": 12, "nodeSpacing": 18, "rankSpacing": 40, "curve": "linear"}}}%%
+flowchart LR
+  prev["dp at t-1 over s'"]
+  trans["times P(s given s')"]
+  mx["max over s'"]
+  em["times e_t(s)"]
+  now["dp_t(s)"]
+  prev --&gt; trans --&gt; mx --&gt; em --&gt; now
+  classDef step fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  class prev,trans,mx,em,now step
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p>Products of probabilities underflow. The implementation uses logarithms (Rabiner, 1989):</p>
+<p><span class="math display">\[
+\log dp_t(s)
+  = \log e_t(s)
+    + \max_{s'}
+    \bigl[ \log dp_{t-1}(s') + \log P(s \mid s') \bigr].
+\]</span></p>
+<p>If every candidate is impossible, <span class="math inline">\(\log dp_T = -\infty\)</span>: the recorded sequence is incompatible with <span class="math inline">\(P\)</span> (typically PD then CR under an absorbing kernel).</p>
+</section>
+<section id="a-three-visit-calculation-by-hand" class="level1">
+<h1>A three-visit calculation by hand</h1>
+<p>Take <span class="math inline">\(y = (\mathrm{SD},\; \mathrm{NA},\; \mathrm{PR})\)</span> and the matrices above. Visit 1 is pinned to SD:</p>
+<p><span class="math display">\[
+\log dp_1(\mathrm{SD}) = \log 0.70, \qquad
+\log dp_1(\mathrm{CR}) = \log dp_1(\mathrm{PR})
+  = \log dp_1(\mathrm{PD}) = -\infty.
+\]</span></p>
+<p>Visit 2 is missing, so <span class="math inline">\(e_2 \equiv 1\)</span> and the only surviving predecessor is SD:</p>
+<p><span class="math display">\[
+\log dp_2(s) = \log 0.70 + \log P(s \mid \mathrm{SD}).
+\]</span></p>
+<p>Visit 3 is pinned to PR, so only <span class="math inline">\(s=\mathrm{PR}\)</span> is legal:</p>
+<p><span class="math display">\[
+\log dp_3(\mathrm{PR})
+  = \max_{s'}
+    \bigl[ \log dp_2(s') + \log P(\mathrm{PR} \mid s') \bigr].
+\]</span></p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>log0 <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">log</span>(x)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  out[<span class="sc">!</span><span class="fu">is.finite</span>(out) <span class="sc">|</span> x <span class="sc">&lt;=</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="sc">-</span><span class="cn">Inf</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  out</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>logP <span class="ot">&lt;-</span> <span class="fu">log0</span>(P)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>dp1 <span class="ot">&lt;-</span> <span class="fu">log0</span>(pi0) <span class="sc">+</span> <span class="fu">log0</span>(<span class="fu">emission_hard</span>(<span class="st">"SD"</span>))</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>dp2 <span class="ot">&lt;-</span> <span class="fu">sapply</span>(states, <span class="cf">function</span>(s) {</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">max</span>(dp1 <span class="sc">+</span> logP[, s])</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>dp3 <span class="ot">&lt;-</span> <span class="fu">log0</span>(<span class="fu">emission_hard</span>(<span class="st">"PR"</span>)) <span class="sc">+</span> <span class="fu">sapply</span>(states, <span class="cf">function</span>(s) {</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">max</span>(dp2 <span class="sc">+</span> logP[, s])</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">cbind</span>(<span class="at">dp1 =</span> dp1, <span class="at">dp2 =</span> dp2, <span class="at">dp3 =</span> dp3), <span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      dp1    dp2    dp3
+CR   -Inf -4.269   -Inf
+PR   -Inf -2.071 -2.428
+SD -0.357 -0.713   -Inf
+PD   -Inf -2.659   -Inf</code></pre>
+</div>
+</div>
+<p>The surviving path is forced at the ends (SD, ?, PR). The missing middle is the <span class="math inline">\(s'\)</span> that attains the max into PR. Staying in SD at the hole wins: <span class="math inline">\(P(\mathrm{SD} \mid \mathrm{SD}) = 0.70\)</span> so <span class="math inline">\(\log dp_2(\mathrm{SD})\)</span> is far above <span class="math inline">\(\log dp_2(\mathrm{PR})\)</span>, and that occupancy beats <span class="math inline">\(P(\mathrm{PR} \mid \mathrm{PR}) = 0.60\)</span> versus <span class="math inline">\(P(\mathrm{PR} \mid \mathrm{SD}) = 0.18\)</span>. The Viterbi chain is SD <span class="math inline">\(\to\)</span> <strong>SD</strong> <span class="math inline">\(\to\)</span> PR — the same fill LOCF would have written, for a different reason (the kernel, not a copy rule). A more sticky <span class="math inline">\(P(\mathrm{PR} \mid \mathrm{PR})\)</span> would flip the backpointer.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>psi3_into_PR <span class="ot">&lt;-</span> states[<span class="fu">which.max</span>(dp2 <span class="sc">+</span> logP[, <span class="st">"PR"</span>])]</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>psi3_into_PR</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "SD"</code></pre>
+</div>
+</div>
+</section>
+<section id="implementation" class="level1">
+<h1>Implementation</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>viterbi_tv <span class="ot">&lt;-</span> <span class="cf">function</span>(y, P_list, pi0, emission) {</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  Tm <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="fu">length</span>(P_list) <span class="sc">==</span> Tm <span class="sc">-</span> <span class="dv">1</span>L)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  st <span class="ot">&lt;-</span> <span class="fu">colnames</span>(P_list[[<span class="dv">1</span>]])</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  K <span class="ot">&lt;-</span> <span class="fu">length</span>(st)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  dp <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="sc">-</span><span class="cn">Inf</span>, Tm, K, <span class="at">dimnames =</span> <span class="fu">list</span>(<span class="cn">NULL</span>, st))</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  psi <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="cn">NA_integer_</span>, Tm, K)</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  dp[<span class="dv">1</span>, ] <span class="ot">&lt;-</span> <span class="fu">log0</span>(pi0) <span class="sc">+</span> <span class="fu">log0</span>(<span class="fu">emission</span>(y[<span class="dv">1</span>]))</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (Tm <span class="sc">&gt;</span> <span class="dv">1</span>L) {</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>Tm) {</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>      logP <span class="ot">&lt;-</span> <span class="fu">log0</span>(P_list[[t <span class="sc">-</span> <span class="dv">1</span>L]])</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>      loge <span class="ot">&lt;-</span> <span class="fu">log0</span>(<span class="fu">emission</span>(y[t]))</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span> (s <span class="cf">in</span> <span class="fu">seq_len</span>(K)) {</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        scores <span class="ot">&lt;-</span> dp[t <span class="sc">-</span> <span class="dv">1</span>L, ] <span class="sc">+</span> logP[, s]</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>        psi[t, s] <span class="ot">&lt;-</span> <span class="fu">which.max</span>(scores)</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>        dp[t, s] <span class="ot">&lt;-</span> loge[s] <span class="sc">+</span> <span class="fu">max</span>(scores)</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>  log_prob <span class="ot">&lt;-</span> <span class="fu">max</span>(dp[Tm, ])</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(log_prob)) {</span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="fu">list</span>(</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>      <span class="at">path =</span> <span class="fu">rep</span>(<span class="cn">NA_character_</span>, Tm),</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>      <span class="at">log_prob =</span> <span class="sc">-</span><span class="cn">Inf</span>,</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>      <span class="at">dp =</span> dp,</span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>      <span class="at">psi =</span> psi,</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">feasible =</span> <span class="cn">FALSE</span></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>    ))</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>  path_idx <span class="ot">&lt;-</span> <span class="fu">integer</span>(Tm)</span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>  path_idx[Tm] <span class="ot">&lt;-</span> <span class="fu">which.max</span>(dp[Tm, ])</span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (Tm <span class="sc">&gt;</span> <span class="dv">1</span>L) {</span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (t <span class="cf">in</span> Tm<span class="sc">:</span><span class="dv">2</span>) {</span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>      path_idx[t <span class="sc">-</span> <span class="dv">1</span>L] <span class="ot">&lt;-</span> psi[t, path_idx[t]]</span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">path =</span> st[path_idx],</span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_prob =</span> log_prob,</span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">dp =</span> dp,</span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">psi =</span> psi,</span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">feasible =</span> <span class="cn">TRUE</span></span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a>viterbi <span class="ot">&lt;-</span> <span class="cf">function</span>(y, P, pi0, emission) {</span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">viterbi_tv</span>(y, <span class="fu">rep</span>(<span class="fu">list</span>(P), <span class="fu">length</span>(y) <span class="sc">-</span> <span class="dv">1</span>L), pi0, emission)</span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The recurrence is written once, against a <em>list</em> of one-step kernels — one per hop, <code>P_list[[t - 1]]</code> carrying hop <span class="math inline">\(t - 1 \to t\)</span>. The homogeneous decoder is the special case of feeding the same <span class="math inline">\(P\)</span> to every hop. We will cash in that generality in the <em>Unequal spacing</em> section.</p>
+<p><code>feasible = FALSE</code> is the honest answer when the recordings contradict the kernel (hard PD then CR). <code>which.max()</code> on a row of <span class="math inline">\(-\infty\)</span> would otherwise invent a traceback.</p>
+</section>
+<section id="five-visits-one-hole" class="level1">
+<h1>Five visits, one hole</h1>
+<p>ADaM-style long data: <code>USUBJID</code>, <code>VISIT</code>, <code>TIME</code>, <code>AVALC</code> in <code>{CR, PR, SD, PD, NA}</code>. Subject <code>SUBJ001</code> is the teaching sequence with a hole at Week 8. A few neighbours are simulated from the same <span class="math inline">\((\pi, P)\)</span> with MAR-like missingness after Baseline.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">20260814</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>visits <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">VISIT =</span> <span class="fu">factor</span>(</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">"Baseline"</span>, <span class="st">"Week 4"</span>, <span class="st">"Week 8"</span>, <span class="st">"Week 12"</span>, <span class="st">"Week 24"</span>),</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Baseline"</span>, <span class="st">"Week 4"</span>, <span class="st">"Week 8"</span>, <span class="st">"Week 12"</span>, <span class="st">"Week 24"</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">TIME =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">4</span>, <span class="dv">8</span>, <span class="dv">12</span>, <span class="dv">24</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>draw_chain <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">character</span>(<span class="fu">nrow</span>(visits))</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>  s[<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">sample</span>(states, <span class="dv">1</span>L, <span class="at">prob =</span> pi0)</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="fu">length</span>(s)) {</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>    s[t] <span class="ot">&lt;-</span> <span class="fu">sample</span>(states, <span class="dv">1</span>L, <span class="at">prob =</span> P[s[t <span class="sc">-</span> <span class="dv">1</span>L], ])</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>  s</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>n_subj <span class="ot">&lt;-</span> <span class="dv">8</span>L</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>sim <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(<span class="fu">seq_len</span>(n_subj), <span class="cf">function</span>(i) {</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">USUBJID =</span> <span class="fu">sprintf</span>(<span class="st">"SUBJ%03d"</span>, i),</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>    visits,</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">TRUE_S =</span> <span class="fu">draw_chain</span>()</span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">%&gt;%</span></span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(USUBJID) <span class="sc">%&gt;%</span></span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">miss =</span> TIME <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> <span class="fu">runif</span>(<span class="fu">n</span>()) <span class="sc">&lt;</span> <span class="fl">0.18</span>,</span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">AVALC =</span> <span class="fu">ifelse</span>(miss, <span class="cn">NA_character_</span>, TRUE_S)</span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Teaching subject: SD → PR → (missing) → PR → CR</span></span>
+<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a>teach <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>  <span class="at">USUBJID =</span> <span class="st">"SUBJ001"</span>,</span>
+<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a>  <span class="at">VISIT =</span> visits<span class="sc">$</span>VISIT,</span>
+<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a>  <span class="at">AVALC =</span> <span class="fu">c</span>(<span class="st">"SD"</span>, <span class="st">"PR"</span>, <span class="cn">NA_character_</span>, <span class="st">"PR"</span>, <span class="st">"CR"</span>),</span>
+<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a>  <span class="at">TRUE_S =</span> <span class="fu">c</span>(<span class="st">"SD"</span>, <span class="st">"PR"</span>, <span class="st">"PR"</span>, <span class="st">"PR"</span>, <span class="st">"CR"</span>)</span>
+<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a>sim <span class="ot">&lt;-</span> sim <span class="sc">%&gt;%</span></span>
+<span id="cb23-43"><a href="#cb23-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rows_update</span>(teach, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"USUBJID"</span>, <span class="st">"VISIT"</span>))</span>
+<span id="cb23-44"><a href="#cb23-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-45"><a href="#cb23-45" aria-hidden="true" tabindex="-1"></a>sim <span class="sc">%&gt;%</span></span>
+<span id="cb23-46"><a href="#cb23-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(USUBJID <span class="sc">==</span> <span class="st">"SUBJ001"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb23-47"><a href="#cb23-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(USUBJID, VISIT, TIME, AVALC)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 4
+  USUBJID VISIT     TIME AVALC
+  &lt;chr&gt;   &lt;fct&gt;    &lt;dbl&gt; &lt;chr&gt;
+1 SUBJ001 Baseline     0 SD   
+2 SUBJ001 Week 4       4 PR   
+3 SUBJ001 Week 8       8 &lt;NA&gt; 
+4 SUBJ001 Week 12     12 PR   
+5 SUBJ001 Week 24     24 CR   </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>y001 <span class="ot">&lt;-</span> sim <span class="sc">%&gt;%</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(USUBJID <span class="sc">==</span> <span class="st">"SUBJ001"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(TIME) <span class="sc">%&gt;%</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(AVALC)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>vt001 <span class="ot">&lt;-</span> <span class="fu">viterbi</span>(y001, P, pi0, emission_hard)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>vt001<span class="sc">$</span>path</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "SD" "PR" "PR" "PR" "CR"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>vt001<span class="sc">$</span>log_prob</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -4.990245</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>vt001<span class="sc">$</span>feasible</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<p>The DP table (log-domain). <span class="math inline">\(-\)</span>Inf marks states ruled out by a hard emission. At Week 8 every column is finite: the hole.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>dp_tbl <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">round</span>(vt001<span class="sc">$</span>dp, <span class="dv">3</span>))</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>dp_tbl<span class="sc">$</span>VISIT <span class="ot">&lt;-</span> <span class="fu">levels</span>(visits<span class="sc">$</span>VISIT)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>dp_tbl<span class="sc">$</span>AVALC <span class="ot">&lt;-</span> y001</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>dp_tbl <span class="sc">%&gt;%</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(VISIT, AVALC, <span class="fu">all_of</span>(states))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     VISIT AVALC     CR     PR     SD     PD
+1 Baseline    SD   -Inf   -Inf -0.357   -Inf
+2   Week 4    PR   -Inf -2.071   -Inf   -Inf
+3   Week 8  &lt;NA&gt; -3.969 -2.582 -3.681 -5.067
+4  Week 12    PR   -Inf -3.093   -Inf   -Inf
+5  Week 24    CR -4.990   -Inf   -Inf   -Inf</code></pre>
+</div>
+</div>
+<p>Week 8 is restored as PR: the most probable bridge from the Week-4 PR into the Week-12 PR, under this <span class="math inline">\(P\)</span>.</p>
+<section id="viterbi-versus-locf" class="level2">
+<h2 class="anchored" data-anchor-id="viterbi-versus-locf">Viterbi versus LOCF</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>locf_fill <span class="ot">&lt;-</span> <span class="cf">function</span>(y) {</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  last <span class="ot">&lt;-</span> <span class="cn">NA_character_</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> y</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(y)) {</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.na</span>(y[i])) last <span class="ot">&lt;-</span> y[i]</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    out[i] <span class="ot">&lt;-</span> last</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  out</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>compare_one <span class="ot">&lt;-</span> <span class="cf">function</span>(y, P, pi0, emission) {</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>  vt <span class="ot">&lt;-</span> <span class="fu">viterbi</span>(y, P, pi0, emission)</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">VISIT =</span> <span class="fu">levels</span>(visits<span class="sc">$</span>VISIT),</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">TIME =</span> visits<span class="sc">$</span>TIME,</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">observed =</span> y,</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">viterbi =</span> vt<span class="sc">$</span>path,</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">locf =</span> <span class="fu">locf_fill</span>(y),</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">feasible =</span> vt<span class="sc">$</span>feasible,</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_prob =</span> vt<span class="sc">$</span>log_prob</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>cmp001 <span class="ot">&lt;-</span> <span class="fu">compare_one</span>(y001, P, pi0, emission_hard)</span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>cmp001 <span class="sc">%&gt;%</span></span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(VISIT, observed, viterbi, locf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 4
+  VISIT    observed viterbi locf 
+  &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt;
+1 Baseline SD       SD      SD   
+2 Week 4   PR       PR      PR   
+3 Week 8   &lt;NA&gt;     PR      PR   
+4 Week 12  PR       PR      PR   
+5 Week 24  CR       CR      CR   </code></pre>
+</div>
+</div>
+<p>On this particular hole LOCF and Viterbi agree. They need not. Replace the Week-12 recording with SD and Viterbi prefers an SD middle; LOCF still copies PR.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>y_alt <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"SD"</span>, <span class="st">"PR"</span>, <span class="cn">NA</span>, <span class="st">"SD"</span>, <span class="st">"SD"</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>cmp002 <span class="ot">&lt;-</span> <span class="fu">compare_one</span>(y_alt, P, pi0, emission_hard)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>cmp002 <span class="sc">%&gt;%</span> <span class="fu">select</span>(VISIT, observed, viterbi, locf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 4
+  VISIT    observed viterbi locf 
+  &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt;
+1 Baseline SD       SD      SD   
+2 Week 4   PR       PR      PR   
+3 Week 8   &lt;NA&gt;     SD      PR   
+4 Week 12  SD       SD      SD   
+5 Week 24  SD       SD      SD   </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>rank_of <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">match</span>(x, <span class="fu">c</span>(<span class="st">"CR"</span>, <span class="st">"PR"</span>, <span class="st">"SD"</span>, <span class="st">"PD"</span>))</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>plot_df <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  cmp002 <span class="sc">%&gt;%</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(VISIT, TIME, <span class="at">method =</span> <span class="st">"Viterbi"</span>, <span class="at">state =</span> viterbi),</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  cmp002 <span class="sc">%&gt;%</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(VISIT, TIME, <span class="at">method =</span> <span class="st">"LOCF"</span>, <span class="at">state =</span> locf),</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>  cmp002 <span class="sc">%&gt;%</span></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(observed)) <span class="sc">%&gt;%</span></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(VISIT, TIME, <span class="at">method =</span> <span class="st">"Observed"</span>, <span class="at">state =</span> observed)</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="fu">factor</span>(method, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Observed"</span>, <span class="st">"Viterbi"</span>, <span class="st">"LOCF"</span>)),</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="fu">rank_of</span>(state)</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_df, <span class="fu">aes</span>(TIME, y, <span class="at">colour =</span> method, <span class="at">shape =</span> method)) <span class="sc">+</span></span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> <span class="fu">filter</span>(plot_df, method <span class="sc">!=</span> <span class="st">"Observed"</span>), <span class="at">linewidth =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(</span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> visits<span class="sc">$</span>TIME,</span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">as.character</span>(visits<span class="sc">$</span>VISIT)</span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_reverse</span>(</span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"CR"</span>, <span class="st">"PR"</span>, <span class="st">"SD"</span>, <span class="st">"PD"</span>)</span>
+<span id="cb37-29"><a href="#cb37-29" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb37-30"><a href="#cb37-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(</span>
+<span id="cb37-31"><a href="#cb37-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="at">Observed =</span> <span class="st">"#222222"</span>, <span class="at">Viterbi =</span> <span class="st">"#2C7FB8"</span>, <span class="at">LOCF =</span> <span class="st">"#D95F0E"</span>)</span>
+<span id="cb37-32"><a href="#cb37-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb37-33"><a href="#cb37-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb37-34"><a href="#cb37-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">colour =</span> <span class="cn">NULL</span>, <span class="at">shape =</span> <span class="cn">NULL</span>,</span>
+<span id="cb37-35"><a href="#cb37-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"SUBJ001: observed recordings, Viterbi path, LOCF"</span></span>
+<span id="cb37-36"><a href="#cb37-36" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb37-37"><a href="#cb37-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
+<span id="cb37-38"><a href="#cb37-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-paths" class="quarto-float quarto-figure quarto-figure-center anchored" width="691.2">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-paths-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-paths-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;1: "><img src="index_files/figure-html/fig-paths-1.png" id="fig-paths" class="img-fluid figure-img" width="691"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-paths-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="unequal-spacing" class="level1">
+<h1>Unequal spacing</h1>
+<p>Week 12 <span class="math inline">\(\to\)</span> Week 24 is three times a 4-week step. Treating that hop like any other understates the chance the disease moved during the long gap. What exactly “treating it like any other” means comes in two flavors, and we will compare both against the honest one.</p>
+<section id="from-a-step-kernel-to-a-holding-kernel" class="level2">
+<h2 class="anchored" data-anchor-id="from-a-step-kernel-to-a-holding-kernel">From a step kernel to a holding kernel</h2>
+<p>A continuous-time Markov chain (CTMC) describes the process with a generator <span class="math inline">\(Q\)</span> instead of a step matrix: off-diagonal <span class="math inline">\(q_{ij} \ge 0\)</span> is the instantaneous rate of jumping from state <span class="math inline">\(i\)</span> to state <span class="math inline">\(j\)</span> “per week”, the diagonal is <span class="math inline">\(-q_i\)</span>, the rate of leaving state <span class="math inline">\(i\)</span> altogether, so rows sum to 0, and an absorbing PD is the all-zero row (<span class="math inline">\(Q_{\mathrm{PD},\cdot} = 0\)</span>). The transition kernel over an interval <span class="math inline">\(\Delta t\)</span> is then the matrix exponential</p>
+<p><span class="math display">\[
+P(\Delta t) = \exp(Q\,\Delta t)
+\]</span></p>
+<p>(Kalbfleisch and Lawless, 1985; Jackson, 2011). The longer the visit gap, the further <span class="math inline">\(P(\Delta t)\)</span> moves from the identity: more time to leave every state. Compute the exponential with a proper algorithm, not a truncated series (Moler and Van Loan, 2003); <code>expm::expm()</code> implements Pade with scaling and squaring.</p>
+<p>A natural first move is to recover <span class="math inline">\(Q\)</span> from the protocol <span class="math inline">\(P\)</span> as a matrix logarithm, <span class="math inline">\(Q = \log(P)/4\)</span>, so that <span class="math inline">\(P(4) = P\)</span> exactly, and then let <span class="math inline">\(P(12) = \exp(3 \cdot 4\,Q)\)</span>. This does not work here:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>Ql <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">logm</span>(P)) <span class="sc">/</span> <span class="dv">4</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>Ql</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              [,1]        [,2]        [,3]        [,4]
+[1,] -0.0979035783  0.07699224  0.01787038 0.003040954
+[2,]  0.0598251562 -0.14913036  0.07772671 0.011578499
+[3,] -0.0007348382  0.07203501 -0.09973973 0.028439562
+[4,]  0.0000000000  0.00000000  0.00000000 0.000000000</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">min</span>(Ql[<span class="sc">!</span><span class="fu">diag</span>(<span class="dv">4</span>)])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -0.0007348382</code></pre>
+</div>
+</div>
+<p>The off-diagonal entry <span class="math inline">\(q_{\mathrm{SD},\mathrm{CR}} &lt; 0\)</span> disqualifies <span class="math inline">\(\log(P)/4\)</span> as a generator: this <span class="math inline">\(P\)</span> is a step kernel that is not embeddable in a CTMC — a 4-week step SD <span class="math inline">\(\to\)</span> CR is allowed, but not as a <em>rate</em> of crossing SD to CR directly. (Embeddability is a real constraint, not a curiosity: a matrix can be a fine one-step kernel and still have no valid generator.) So <span class="math inline">\(Q\)</span> below is its own expert structure, chosen so that <span class="math inline">\(P(4)\)</span> resembles the protocol <span class="math inline">\(P\)</span> — within <span class="math inline">\(\pm 0.05\)</span> per entry — while rows sum to 0 and PD stays absorbing:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>Q <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="sc">-</span><span class="fl">0.10</span>,  <span class="fl">0.070</span>, <span class="fl">0.020</span>, <span class="fl">0.010</span>,</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>     <span class="fl">0.040</span>, <span class="sc">-</span><span class="fl">0.120</span>, <span class="fl">0.060</span>, <span class="fl">0.020</span>,</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>     <span class="fl">0.005</span>,  <span class="fl">0.050</span>, <span class="sc">-</span><span class="fl">0.080</span>, <span class="fl">0.025</span>,</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>     <span class="fl">0.000</span>,  <span class="fl">0.000</span>,  <span class="fl">0.000</span>, <span class="fl">0.000</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="dv">4</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">dimnames =</span> <span class="fu">list</span>(<span class="at">from =</span> states, <span class="at">to =</span> states)</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a><span class="fu">rowSums</span>(Q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          CR           PR           SD           PD 
+1.734723e-18 1.040834e-17 0.000000e+00 0.000000e+00 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">max</span>(<span class="fu">abs</span>(P <span class="sc">-</span> <span class="fu">as.matrix</span>(<span class="fu">expm</span>(Q <span class="sc">*</span> <span class="dv">4</span>))))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.04936662</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>P4 <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">expm</span>(Q <span class="sc">*</span> <span class="dv">4</span>))</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>P12 <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">expm</span>(Q <span class="sc">*</span> <span class="dv">12</span>))</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="fu">dimnames</span>(P4) <span class="ot">&lt;-</span> <span class="fu">dimnames</span>(P12) <span class="ot">&lt;-</span> <span class="fu">dimnames</span>(Q)</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(P4, <span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    to
+from    CR    PR    SD    PD
+  CR 0.686 0.189 0.079 0.046
+  PR 0.106 0.649 0.168 0.076
+  SD 0.025 0.138 0.744 0.093
+  PD 0.000 0.000 0.000 1.000</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(P12, <span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    to
+from    CR    PR    SD    PD
+  CR 0.370 0.284 0.191 0.155
+  PR 0.156 0.363 0.270 0.211
+  SD 0.070 0.218 0.467 0.245
+  PD 0.000 0.000 0.000 1.000</code></pre>
+</div>
+</div>
+<p>Over 12 weeks the chain has more time to leave CR/PR/SD for PD; the PD row stays <span class="math inline">\((0,0,0,1)\)</span>. The cash-in from the Implementation section: <code>viterbi_tv</code> was built for a <em>list</em> of kernels, so the time-inhomogeneous decoder is just the call — <span class="math inline">\(P_t = P(\Delta t_t)\)</span> at each hop instead of a single <span class="math inline">\(P\)</span>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>P_list <span class="ot">&lt;-</span> <span class="fu">list</span>(P4, P4, P4, P12)</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>vt_tv <span class="ot">&lt;-</span> <span class="fu">viterbi_tv</span>(y001, P_list, pi0, emission_hard)</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>vt_tv<span class="sc">$</span>path</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "SD" "PR" "PR" "PR" "CR"</code></pre>
+</div>
+</div>
+</section>
+<section id="the-two-shortcuts-side-by-side" class="level2">
+<h2 class="anchored" data-anchor-id="the-two-shortcuts-side-by-side">The two shortcuts, side by side</h2>
+<p>Two shortcuts to the same 12-week hop are tempting, and both misplace probability relative to <span class="math inline">\(P(\Delta t)\)</span>:</p>
+<ul>
+<li><em>use <span class="math inline">\(P\)</span> once anyway</em>: pretends the gap is 4 weeks; too little time to move, so movement is forced earlier in the calendar than the data warrant;</li>
+<li><em>apply <span class="math inline">\(P\)</span> three times</em> (<span class="math inline">\(P^3\)</span>): gets the total time roughly right but enforces a hidden rhythm — three exactly-4-week transitions, with a hold at Weeks 16 and 20 that no scan ever visited; its 12-week holding probabilities differ from <span class="math inline">\(P(12)\)</span>’s entry by entry (e.g.&nbsp;CR <span class="math inline">\(\to\)</span> CR 0.41 vs 0.37; SD <span class="math inline">\(\to\)</span> SD 0.42 vs 0.47).</li>
+</ul>
+<p>For SUBJ001 all three decode the same hole as PR, so we add one chain where the choices disagree — <code>SD, PR, --, --, PD</code> — two holes, one long, and a terminal PD:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>P3 <span class="ot">&lt;-</span> P <span class="sc">%*%</span> P <span class="sc">%*%</span> P</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dimnames</span>(P3) <span class="ot">&lt;-</span> <span class="fu">dimnames</span>(P)</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>spacing_table <span class="ot">&lt;-</span> <span class="cf">function</span>(y) {</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>  runs <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">P once each hop</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">list</span>(P, P, P, P),</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">P^3 on the long hop</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">list</span>(P, P, P, P3),</span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">exp(Q dt)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">list</span>(P4, P4, P4, P12)</span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">map</span>(runs, \(rl) <span class="fu">viterbi_tv</span>(y, rl, pi0, emission_hard))</span>
+<span id="cb52-11"><a href="#cb52-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb52-12"><a href="#cb52-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">kernel =</span> <span class="fu">names</span>(runs),</span>
+<span id="cb52-13"><a href="#cb52-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">path =</span> <span class="fu">map_chr</span>(out, \(o) <span class="fu">paste0</span>(o<span class="sc">$</span>path, <span class="at">collapse =</span> <span class="st">" "</span>)),</span>
+<span id="cb52-14"><a href="#cb52-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">feasible =</span> <span class="fu">map_lgl</span>(out, \(o) o<span class="sc">$</span>feasible),</span>
+<span id="cb52-15"><a href="#cb52-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_prob =</span> <span class="fu">map_dbl</span>(out, \(o) o<span class="sc">$</span>log_prob)</span>
+<span id="cb52-16"><a href="#cb52-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb52-17"><a href="#cb52-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb52-18"><a href="#cb52-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-19"><a href="#cb52-19" aria-hidden="true" tabindex="-1"></a><span class="fu">spacing_table</span>(y001)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 4
+  kernel              path           feasible log_prob
+  &lt;chr&gt;               &lt;chr&gt;          &lt;lgl&gt;       &lt;dbl&gt;
+1 P once each hop     SD PR PR PR CR TRUE        -4.99
+2 P^3 on the long hop SD PR PR PR CR TRUE        -4.66
+3 exp(Q dt)           SD PR PR PR CR TRUE        -5.06</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="fu">spacing_table</span>(<span class="fu">c</span>(<span class="st">"SD"</span>, <span class="st">"PR"</span>, <span class="cn">NA_character_</span>, <span class="cn">NA_character_</span>, <span class="st">"PD"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 4
+  kernel              path           feasible log_prob
+  &lt;chr&gt;               &lt;chr&gt;          &lt;lgl&gt;       &lt;dbl&gt;
+1 P once each hop     SD PR PD PD PD TRUE        -5.07
+2 P^3 on the long hop SD PR PR PR PD TRUE        -4.95
+3 exp(Q dt)           SD PR PR PR PD TRUE        -4.75</code></pre>
+</div>
+</div>
+<p>Two things fall out of the second chain. <span class="math inline">\(P\)</span>-once says <em>progression already by Week 8</em> (<code>SD PR PD PD PD</code>); <span class="math inline">\(P^3\)</span> and <span class="math inline">\(P(\Delta t)\)</span> say <em>stable, then PD at 24</em> — the naive kernel, which cannot move much per hop, pushes the move earlier and calls it done. And on the first chain the log-likelihoods separate: the same path is <span class="math inline">\(-4.99\)</span> under <span class="math inline">\(P\)</span>-once but <span class="math inline">\(-4.66\)</span> under <span class="math inline">\(P^3\)</span>, so the shortcuts disagree about plausibility even when they agree about the path — which matters as soon as you score or compare chains.</p>
+<p>The starkest disagreement is on <code>CR, --, --, --, PD</code>: <span class="math inline">\(P\)</span>-once decodes it as <code>CR PD PD PD PD</code> (log-prob <span class="math inline">\(-6.91\)</span>) — progression forced all the way by Week 4 — while <span class="math inline">\(P(\Delta t)\)</span> decodes it as <code>CR CR CR CR PD</code> (<span class="math inline">\(-5.99\)</span>): hold CR across the short hops and let the long gap do the moving. The single-4-week kernel, marched across a 12-week gap hop by hop, cannot say “the state is unknown <em>because the interval was long</em>”; it has to over-explain the movement somewhere. On irregular real calendars <span class="math inline">\(P(\Delta t)\)</span> is the honest discrete skeleton of a continuous-time chain; <code>msm</code> fits that model from panel data (Jackson, 2011).</p>
+</section>
+</section>
+<section id="noisy-emissions" class="level1">
+<h1>Noisy emissions</h1>
+<p>Independent review and local investigators disagree. A recorded PR can be a true CR or SD. Jackson et al.&nbsp;(2003) put that misclassification in the emission; Jackson and Sharples (2002) is the clinical HMM cousin (staged decline, noisy marker).</p>
+<p>Let <span class="math inline">\(C_{s,k} = P(y = k \mid s)\)</span>, rows = true status, columns = recorded category:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>C <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.88</span>, <span class="fl">0.09</span>, <span class="fl">0.02</span>, <span class="fl">0.01</span>,</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.06</span>, <span class="fl">0.82</span>, <span class="fl">0.10</span>, <span class="fl">0.02</span>,</span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.02</span>, <span class="fl">0.08</span>, <span class="fl">0.82</span>, <span class="fl">0.08</span>,</span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.01</span>, <span class="fl">0.03</span>, <span class="fl">0.08</span>, <span class="fl">0.88</span></span>
+<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="dv">4</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">dimnames =</span> <span class="fu">list</span>(<span class="at">true =</span> states, <span class="at">obs =</span> states)</span>
+<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a><span class="fu">rowSums</span>(C)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CR PR SD PD 
+ 1  1  1  1 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>emission_noisy <span class="ot">&lt;-</span> <span class="cf">function</span>(y) {</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>  e <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(states)), states)</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.na</span>(y) <span class="sc">||</span> y <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"NE"</span>, <span class="st">"MISSING"</span>)) {</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>    e[] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (<span class="sc">!</span>y <span class="sc">%in%</span> states) {</span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"unknown category: "</span>, y)</span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>    e[] <span class="ot">&lt;-</span> C[, y]</span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>  e</span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a><span class="fu">emission_noisy</span>(<span class="st">"PR"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  CR   PR   SD   PD 
+0.09 0.82 0.08 0.03 </code></pre>
+</div>
+</div>
+<section id="when-the-hard-path-is-impossible" class="level2">
+<h2 class="anchored" data-anchor-id="when-the-hard-path-is-impossible">When the hard path is impossible</h2>
+<p><code>SD, PD, CR, CR, CR</code> cannot occur if PD is absorbing and emissions are indicators: <span class="math inline">\(P(\mathrm{CR} \mid \mathrm{PD}) = 0\)</span> and <span class="math inline">\(e(\mathrm{CR})\)</span> kills every other state.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>y_bad <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"SD"</span>, <span class="st">"PD"</span>, <span class="st">"CR"</span>, <span class="st">"CR"</span>, <span class="st">"CR"</span>)</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>vt_hard <span class="ot">&lt;-</span> <span class="fu">viterbi</span>(y_bad, P, pi0, emission_hard)</span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>vt_hard<span class="sc">$</span>feasible</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] FALSE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>vt_hard<span class="sc">$</span>log_prob</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -Inf</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>vt_hard<span class="sc">$</span>path</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] NA NA NA NA NA</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>vt_soft <span class="ot">&lt;-</span> <span class="fu">viterbi</span>(y_bad, P, pi0, emission_noisy)</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>vt_soft<span class="sc">$</span>feasible</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>vt_soft<span class="sc">$</span>log_prob</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -8.446402</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>vt_soft<span class="sc">$</span>path</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "SD" "SD" "CR" "CR" "CR"</code></pre>
+</div>
+</div>
+<p>The noisy decoder does not walk through absorbing PD into CR. It treats the isolated PD as a likely misrecord of SD (or PR) and keeps a chain that can legally reach the later CRs. The opposite reading — trust PD and treat the CRs as false — is possible only because <span class="math inline">\(C_{\mathrm{PD},\mathrm{CR}} &gt; 0\)</span>; here that path loses.</p>
+<p>A small <span class="math inline">\(\varepsilon\)</span> floor on a hard emission, <span class="math inline">\(e_t(s) = 1\{s=y_t\}(1-\varepsilon) + \varepsilon/(|S|-1)\)</span>, is the same idea with a less interpretable <span class="math inline">\(C\)</span>.</p>
+</section>
+</section>
+<section id="software-in-r" class="level1">
+<h1>Software in R</h1>
+<p>The decoder above is the teaching object. Production HMM fitting lives elsewhere:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Tool</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>depmixS4</code> (Visser and Speekenbrink, 2010)</td>
+<td>discrete-time HMM / dependent mixtures, EM</td>
+</tr>
+<tr class="even">
+<td><code>seqHMM</code> (Helske and Helske, 2019)</td>
+<td>categorical sequences, multi-channel, Viterbi helpers</td>
+</tr>
+<tr class="odd">
+<td><code>msm</code> (Jackson, 2011)</td>
+<td>continuous-time Markov and HMM on irregular visits</td>
+</tr>
+<tr class="even">
+<td>Zucchini, MacDonald, and Langrock (2016)</td>
+<td>textbook discrete-time HMM in R</td>
+</tr>
+</tbody>
+</table>
+<p>None of these is a RECIST engine. They estimate and decode; the clinical kernel is still yours.</p>
+</section>
+<section id="when-not-to-use-viterbi-here" class="level1">
+<h1>When not to use Viterbi here</h1>
+<ul>
+<li><strong>Primary BOR / ORR / PFS.</strong> RECIST 1.1 defines confirmation of CR/PR, nadir, target versus non-target, and PD as 20% + 5 mm (Eisenhauer et al., 2009). Viterbi on a four-state calendar does none of that.</li>
+<li><strong>Immunotherapy.</strong> iRECIST distinguishes iUPD from iCPD; PD is <strong>not</strong> absorbing (Seymour et al., 2017). The teaching <span class="math inline">\(P\)</span> above is wrong for IO trials.</li>
+<li><strong>Feeding the path into the primary estimator as if observed.</strong> Filled-in statuses are not data (National Research Council, 2010; Little et al., 2012). ICH E9(R1) treats progression and dropout as intercurrent events, not as licence to overwrite <span class="math inline">\(y_t\)</span>.</li>
+<li><strong>MNAR after silent PD.</strong> A missed Week 8 because the subject progressed and left is not a flat emission (Rubin, 1976). The missingness mechanism then carries information that <span class="math inline">\(e_t \equiv 1\)</span> discards.</li>
+<li><strong>Estimating <span class="math inline">\(P\)</span> from the same small trial you then complete.</strong> Baum–Welch on <span class="math inline">\(n=80\)</span> with <span class="math inline">\(T=5\)</span> overfits; the completed chains echo the MLE’s prejudices. Keep <span class="math inline">\(\pi\)</span> and <span class="math inline">\(P\)</span> external (historical, SAP-specified) if the decoder is a QC check.</li>
+<li><strong>Visit-wise reporting of “the” state.</strong> Report the path, or report forward–backward posteriors, but do not mix them without saying which estimand you mean (Rabiner, 1989).</li>
+</ul>
+</section>
+<section id="closing" class="level1">
+<h1>Closing</h1>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>What it maximises / assumes</th>
+<th>Typical failure</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LOCF / last non-missing</td>
+<td>persistence of the last seen label</td>
+<td>PD then CR; ignores <span class="math inline">\(P\)</span></td>
+</tr>
+<tr class="even">
+<td>Independent imputation</td>
+<td>visit-wise margins</td>
+<td>incoherent chains</td>
+</tr>
+<tr class="odd">
+<td>Forward–backward modes</td>
+<td><span class="math inline">\(\arg\max_s P(S_t=s \mid y)\)</span> at each <span class="math inline">\(t\)</span></td>
+<td>modes need not form a legal path</td>
+</tr>
+<tr class="even">
+<td>Multiple imputation</td>
+<td>posterior of a scientific estimand</td>
+<td>right for means / ORR; not a single chain</td>
+</tr>
+<tr class="odd">
+<td><strong>Viterbi</strong></td>
+<td><span class="math inline">\(\arg\max_{s_{1:T}} P(s_{1:T} \mid y)\)</span></td>
+<td>wrong <span class="math inline">\(P\)</span> or wrong <span class="math inline">\(e_t\)</span>; not a BOR</td>
+</tr>
+</tbody>
+</table>
+<p>Use Viterbi when the scientific sentence is “the most probable course of statuses, given this kernel and these recordings.” Use RECIST machinery for the endpoint; use MMRM / MI / ICH E9(R1) for the treatment-effect estimand; use a confusion-matrix emission when the recording itself is on trial.</p>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<section id="algorithm-and-hmm-theory" class="level2">
+<h2 class="anchored" data-anchor-id="algorithm-and-hmm-theory">Algorithm and HMM theory</h2>
+<ul>
+<li>Viterbi, A. J. (1967). Error bounds for convolutional codes and an asymptotically optimum decoding algorithm. <em>IEEE Transactions on Information Theory</em>, 13(2), 260–269. <a href="https://doi.org/10.1109/TIT.1967.1054010" class="uri">https://doi.org/10.1109/TIT.1967.1054010</a></li>
+<li>Forney, G. D., Jr.&nbsp;(1973). The Viterbi algorithm. <em>Proceedings of the IEEE</em>, 61(3), 268–278. <a href="https://doi.org/10.1109/PROC.1973.9030" class="uri">https://doi.org/10.1109/PROC.1973.9030</a></li>
+<li>Baum, L. E., and Petrie, T. (1966). Statistical inference for probabilistic functions of finite state Markov chains. <em>Annals of Mathematical Statistics</em>, 37(6), 1554–1563. <a href="https://doi.org/10.1214/aoms/1177699147" class="uri">https://doi.org/10.1214/aoms/1177699147</a></li>
+<li>Baum, L. E., Petrie, T., Soules, G., and Weiss, N. (1970). A maximization technique occurring in the statistical analysis of probabilistic functions of Markov chains. <em>Annals of Mathematical Statistics</em>, 41(1), 164–171. <a href="https://doi.org/10.1214/aoms/1177697196" class="uri">https://doi.org/10.1214/aoms/1177697196</a></li>
+<li>Rabiner, L. R. (1989). A tutorial on hidden Markov models and selected applications in speech recognition. <em>Proceedings of the IEEE</em>, 77(2), 257–286. <a href="https://doi.org/10.1109/5.18626" class="uri">https://doi.org/10.1109/5.18626</a></li>
+<li>Durbin, R., Eddy, S. R., Krogh, A., and Mitchison, G. (1998). <em>Biological Sequence Analysis: Probabilistic Models of Proteins and Nucleic Acids</em>. Cambridge University Press.</li>
+<li>Cappé, O., Moulines, E., and Rydén, T. (2005). <em>Inference in Hidden Markov Models</em>. Springer.</li>
+<li>Zucchini, W., MacDonald, I. L., and Langrock, R. (2016). <em>Hidden Markov Models for Time Series: An Introduction Using R</em>. 2nd ed. Chapman and Hall/CRC.</li>
+</ul>
+</section>
+<section id="continuous-time-and-unequal-visit-spacing" class="level2">
+<h2 class="anchored" data-anchor-id="continuous-time-and-unequal-visit-spacing">Continuous time and unequal visit spacing</h2>
+<ul>
+<li>Kalbfleisch, J. D., and Lawless, J. F. (1985). The analysis of panel data under a Markov assumption. <em>Journal of the American Statistical Association</em>, 80(392), 863–871. <a href="https://doi.org/10.1080/01621459.1985.10478195" class="uri">https://doi.org/10.1080/01621459.1985.10478195</a></li>
+<li>Moler, C., and Van Loan, C. (2003). Nineteen dubious ways to compute the exponential of a matrix, twenty-five years later. <em>SIAM Review</em>, 45(1), 3–49. <a href="https://doi.org/10.1137/S00361445024180" class="uri">https://doi.org/10.1137/S00361445024180</a></li>
+</ul>
+</section>
+<section id="clinical-multi-state-models-and-misclassification" class="level2">
+<h2 class="anchored" data-anchor-id="clinical-multi-state-models-and-misclassification">Clinical multi-state models and misclassification</h2>
+<ul>
+<li>Jackson, C. H., and Sharples, L. D. (2002). Hidden Markov models for the onset and progression of bronchiolitis obliterans syndrome in lung transplant recipients. <em>Statistics in Medicine</em>, 21(1), 113–128. <a href="https://doi.org/10.1002/sim.886" class="uri">https://doi.org/10.1002/sim.886</a></li>
+<li>Jackson, C. H., Sharples, L. D., Thompson, S. G., Duffy, S. W., and Couto, E. (2003). Multistate Markov models for disease progression with classification error. <em>Journal of the Royal Statistical Society: Series D (The Statistician)</em>, 52(2), 193–209. <a href="https://doi.org/10.1111/1467-9884.00351" class="uri">https://doi.org/10.1111/1467-9884.00351</a></li>
+<li>Jackson, C. H. (2011). Multi-state models for panel data: the msm package for R. <em>Journal of Statistical Software</em>, 38(8), 1–29. <a href="https://doi.org/10.18637/jss.v038.i08" class="uri">https://doi.org/10.18637/jss.v038.i08</a></li>
+<li>Bartolucci, F., Farcomeni, A., and Pennoni, F. (2013). <em>Latent Markov Models for Longitudinal Data</em>. Chapman and Hall/CRC.</li>
+</ul>
+</section>
+<section id="oncology-response-criteria" class="level2">
+<h2 class="anchored" data-anchor-id="oncology-response-criteria">Oncology response criteria</h2>
+<ul>
+<li>Therasse, P., Arbuck, S. G., Eisenhauer, E. A., Wanders, J., Kaplan, R. S., Rubinstein, L., Verweij, J., Van Glabbeke, M., van Oosterom, A. T., Christian, M. C., and Gwyther, S. G. (2000). New guidelines to evaluate the response to treatment in solid tumors. <em>Journal of the National Cancer Institute</em>, 92(3), 205–216. <a href="https://doi.org/10.1093/jnci/92.3.205" class="uri">https://doi.org/10.1093/jnci/92.3.205</a></li>
+<li>Eisenhauer, E. A., Therasse, P., Bogaerts, J., Schwartz, L. H., Sargent, D., Ford, R., Dancey, J., Arbuck, S., Gwyther, S., Mooney, M., Rubinstein, L., Shankar, L., Dodd, L., Kaplan, R., Lacombe, D., and Verweij, J. (2009). New response evaluation criteria in solid tumours: revised RECIST guideline (version 1.1). <em>European Journal of Cancer</em>, 45(2), 228–247. <a href="https://doi.org/10.1016/j.ejca.2008.10.026" class="uri">https://doi.org/10.1016/j.ejca.2008.10.026</a></li>
+<li>Schwartz, L. H., Litière, S., de Vries, E., Ford, R., Gwyther, S., Mandrekar, S., Shankar, L., Bogaerts, J., Chen, A., Dancey, J., Hayes, W., Hodi, F. S., Hoekstra, O. S., Huang, E. P., Lin, N., Liu, Y., Mu, R., Rubinstein, L., Therasse, P., … Seymour, L. (2016). RECIST 1.1 — update and clarification: from the RECIST committee. <em>European Journal of Cancer</em>, 62, 132–137. <a href="https://doi.org/10.1016/j.ejca.2016.03.081" class="uri">https://doi.org/10.1016/j.ejca.2016.03.081</a></li>
+<li>Seymour, L., Bogaerts, J., Perrone, A., Ford, R., Schwartz, L. H., Mandrekar, S., Lin, N. U., Litière, S., Dancey, J., Chen, A., Hodi, F. S., Therasse, P., Hoekstra, O. S., Shankar, L. K., Wolchok, J. D., Ballinger, M., Caron, T. G., and de Vries, E. G. E. (2017). iRECIST: guidelines for response criteria for use in trials testing immunotherapeutics. <em>The Lancet Oncology</em>, 18(3), e143–e152. <a href="https://doi.org/10.1016/S1470-2045(17)30074-8" class="uri">https://doi.org/10.1016/S1470-2045(17)30074-8</a></li>
+</ul>
+</section>
+<section id="missing-data-locf-and-estimands" class="level2">
+<h2 class="anchored" data-anchor-id="missing-data-locf-and-estimands">Missing data, LOCF, and estimands</h2>
+<ul>
+<li>Rubin, D. B. (1976). Inference and missing data. <em>Biometrika</em>, 63(3), 581–592. <a href="https://doi.org/10.1093/biomet/63.3.581" class="uri">https://doi.org/10.1093/biomet/63.3.581</a></li>
+<li>National Research Council (2010). <em>The Prevention and Treatment of Missing Data in Clinical Trials</em>. National Academies Press. <a href="https://doi.org/10.17226/12955" class="uri">https://doi.org/10.17226/12955</a></li>
+<li>Little, R. J., D’Agostino, R., Cohen, M. L., Dickersin, K., Emerson, S. S., Farrar, J. T., Frangakis, C., Hogan, J. W., Molenberghs, G., Murphy, S. A., Neaton, J. D., Rotnitzky, A., Scharfstein, D., Shih, W. J., Siegel, J. P., and Stern, H. (2012). The prevention and treatment of missing data in clinical trials. <em>New England Journal of Medicine</em>, 367(14), 1355–1360. <a href="https://doi.org/10.1056/NEJMsr1203730" class="uri">https://doi.org/10.1056/NEJMsr1203730</a></li>
+<li>Siddiqui, O., Hung, H. M. J., and O’Neill, R. (2009). MMRM vs. LOCF: a comprehensive comparison based on simulation study and 25 NDA datasets. <em>Journal of Biopharmaceutical Statistics</em>, 19(2), 227–246. <a href="https://doi.org/10.1080/10543400802609723" class="uri">https://doi.org/10.1080/10543400802609723</a></li>
+<li>ICH (2019). <em>ICH E9(R1) Addendum on Estimands and Sensitivity Analysis in Clinical Trials</em>. International Council for Harmonisation.</li>
+</ul>
+</section>
+<section id="software" class="level2">
+<h2 class="anchored" data-anchor-id="software">Software</h2>
+<ul>
+<li>Visser, I., and Speekenbrink, M. (2010). depmixS4: an R package for hidden Markov models. <em>Journal of Statistical Software</em>, 36(7), 1–21. <a href="https://doi.org/10.18637/jss.v036.i07" class="uri">https://doi.org/10.18637/jss.v036.i07</a></li>
+<li>Helske, S., and Helske, J. (2019). Mixture hidden Markov models for sequence data: the seqHMM package in R. <em>Journal of Statistical Software</em>, 88(3), 1–32. <a href="https://doi.org/10.18637/jss.v088.i03" class="uri">https://doi.org/10.18637/jss.v088.i03</a></li>
+<li>Goulet, V., Dutang, C., Maechler, M., Firth, D., Shapira, M., and Stadelmann, M. (2021). <em>expm: Matrix Exponential, Log, ‘etc’</em>. R package. <a href="https://CRAN.R-project.org/package=expm" class="uri">https://CRAN.R-project.org/package=expm</a></li>
+</ul>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Complete Response, Partial Response, Stable Disease, Progressive Disease (Eisenhauer et al., 2009).<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Not evaluable.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Maximum a posteriori.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/al-garik\.github\.io\/ks-blog\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 KeyStat Solutions. All rights reserved.</p>
+</div>   
+    <div class="nav-footer-center">
+<p>Powered by <a href="https://quarto.org/">Quarto</a></p>
+</div>
+    <div class="nav-footer-right">
+<p>Made with ❤️ for the R community</p>
+</div>
+  </div>
+</footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
+
+
+
+
+</body></html>
