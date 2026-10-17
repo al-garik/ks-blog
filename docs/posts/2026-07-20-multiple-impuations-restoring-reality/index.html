@@ -84,7 +84,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-c672f35ec3ee5bb941416062db0068ad.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-ac4490294952d3d7dd1df9180f294d82.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -188,6 +188,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     toc.removeChild(ul);
     det.appendChild(ul);
     toc.appendChild(det);
+    // place the fold right after the post title block — only on article pages;
+    // the index archive keeps its card at the end of the page
+    var hdr = null;
+    if (document.querySelector('#quarto-content.page-layout-article')) {
+      hdr = document.querySelector('#quarto-document-content #title-block-header') ||
+            document.querySelector('#quarto-document-content .quarto-title');
+    }
+    if (hdr && hdr.parentElement) {
+      var sb = document.querySelector('#quarto-margin-sidebar');
+      hdr.insertAdjacentElement('afterend', sb);
+      sb.style.marginTop = '0';
+    }
+    // choosing a section closes the accordion so the article is immediately visible
+    ul.addEventListener('click', function (e) {
+      if (e.target.closest('a')) det.open = false;
+    });
   }
   document.addEventListener('DOMContentLoaded', function () {
     wireToc(document.querySelector('#quarto-margin-sidebar #TOC'));

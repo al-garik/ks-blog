@@ -83,7 +83,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-c672f35ec3ee5bb941416062db0068ad.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-ac4490294952d3d7dd1df9180f294d82.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -187,6 +187,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     toc.removeChild(ul);
     det.appendChild(ul);
     toc.appendChild(det);
+    // place the fold right after the post title block — only on article pages;
+    // the index archive keeps its card at the end of the page
+    var hdr = null;
+    if (document.querySelector('#quarto-content.page-layout-article')) {
+      hdr = document.querySelector('#quarto-document-content #title-block-header') ||
+            document.querySelector('#quarto-document-content .quarto-title');
+    }
+    if (hdr && hdr.parentElement) {
+      var sb = document.querySelector('#quarto-margin-sidebar');
+      hdr.insertAdjacentElement('afterend', sb);
+      sb.style.marginTop = '0';
+    }
+    // choosing a section closes the accordion so the article is immediately visible
+    ul.addEventListener('click', function (e) {
+      if (e.target.closest('a')) det.open = false;
+    });
   }
   document.addEventListener('DOMContentLoaded', function () {
     wireToc(document.querySelector('#quarto-margin-sidebar #TOC'));
@@ -719,7 +735,7 @@ $r_version
 <span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a><span class="fu">lab_pipeline</span>(demo_labs_wide)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.024 s</code></pre>
+<pre><code>Elapsed: 0.026 s</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 12 × 6
@@ -828,7 +844,7 @@ TRT01PPlacebo 0.3422392  1.408097 0.3956067 0.8650995 0.3869842</code></pre>
 <pre><code>Cache miss — running analysis</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 4.007 s</code></pre>
+<pre><code>Elapsed: 3.988 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>t2 <span class="ot">&lt;-</span> <span class="fu">system.time</span>(r2 <span class="ot">&lt;-</span> <span class="fu">boot_cached</span>(demo_adsl, <span class="at">n_boot =</span> <span class="dv">400</span>L, <span class="at">seed =</span> <span class="dv">1</span>L))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
@@ -844,7 +860,7 @@ TRT01PPlacebo 0.3422392  1.408097 0.3956067 0.8650995 0.3869842</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">first_s =</span> <span class="fu">unname</span>(t1[[<span class="st">"elapsed"</span>]]), <span class="at">second_s =</span> <span class="fu">unname</span>(t2[[<span class="st">"elapsed"</span>]]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> first_s second_s 
-   4.008    0.002 </code></pre>
+   3.989    0.002 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>r1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">

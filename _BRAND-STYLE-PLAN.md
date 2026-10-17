@@ -217,3 +217,12 @@ Footer: compact (padding 1.25/1rem, height 126px desktop vs ~200 before; lockup 
 bg = company site's --navy-900 #071a34 (already identical, now noted), © moved to the RIGHT
 column under "Made by KeyStat for the R community"; left column keeps only the lockup via
 ::before (content &nbsp; to preserve the grid cell).
+
+## 11. Round-6 (mobile fold placement follow-up)
+
+After the order fix the fold sat at the very end of a ~50k-px mobile article = owner read it as
+"disappeared". Now on ARTICLE pages the script relocates the folded card to right after
+#title-block-header (title → byline/chips → "On this page ▾" → body), auto-closes on picking a
+section; index/archive keeps the card at the end. Desktop layout untouched (guard: only
+page-layout-article + matchMedia ≤991). Verified: hdr(79) < toc(463) < first section(850),
+expanded 481px no overlap, index atEnd=true, desktop sticky right sidebar unchanged.

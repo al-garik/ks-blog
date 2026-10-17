@@ -6369,7 +6369,7 @@ font-style: inherit;">with_timing</span>()</span>
 background-color: null;
 font-style: inherit;">lab_pipeline</span>(demo_labs_wide)</span></code></pre></div></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.024 s</code></pre>
+<pre><code>Elapsed: 0.026 s</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 12 × 6
@@ -6837,7 +6837,7 @@ font-style: inherit;">1</span>L))</span></code></pre></div></div>
 <pre><code>Cache miss — running analysis</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 4.007 s</code></pre>
+<pre><code>Elapsed: 3.988 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1">t2 <span class="ot" style="color: #003B4F;
 background-color: null;
@@ -6885,7 +6885,7 @@ background-color: null;
 font-style: inherit;">"elapsed"</span>]]))</span></code></pre></div></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> first_s second_s 
-   4.008    0.002 </code></pre>
+   3.989    0.002 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1">r1</span></code></pre></div></div>
 <div class="cell-output cell-output-stdout">

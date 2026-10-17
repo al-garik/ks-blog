@@ -28,6 +28,22 @@
     toc.removeChild(ul);
     det.appendChild(ul);
     toc.appendChild(det);
+    // place the fold right after the post title block — only on article pages;
+    // the index archive keeps its card at the end of the page
+    var hdr = null;
+    if (document.querySelector('#quarto-content.page-layout-article')) {
+      hdr = document.querySelector('#quarto-document-content #title-block-header') ||
+            document.querySelector('#quarto-document-content .quarto-title');
+    }
+    if (hdr && hdr.parentElement) {
+      var sb = document.querySelector('#quarto-margin-sidebar');
+      hdr.insertAdjacentElement('afterend', sb);
+      sb.style.marginTop = '0';
+    }
+    // choosing a section closes the accordion so the article is immediately visible
+    ul.addEventListener('click', function (e) {
+      if (e.target.closest('a')) det.open = false;
+    });
   }
   document.addEventListener('DOMContentLoaded', function () {
     wireToc(document.querySelector('#quarto-margin-sidebar #TOC'));

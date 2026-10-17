@@ -395,6 +395,12 @@ body #quarto-margin-sidebar #TOC a.active, body #TOC a.active{
   }
   #quarto-content > #quarto-document-content{ order:1; }
   #quarto-content > #quarto-margin-sidebar{ order:2; }
+  // Article pages: the fold belongs at the TOP of the article (a 50k-px mobile post hides
+  // a bottom toc entirely — owner: "оглавление исчезло"). Collapsed strip above the text,
+  // expands in-flow (capped 55vh), never overlays. Archive/index keeps the card at the end.
+  #quarto-content.page-layout-article > #quarto-margin-sidebar{
+    order:0; margin-top:0; margin-bottom:1.5rem;
+  }
   body #quarto-margin-sidebar{ display:block; position:static; max-height:none; overflow:visible; margin-top:1rem; }
   // tame quarto's TOC float layer: the toc used to keep z-index:1020 (and .fixed-top behavior),
   // which let the expanded list paint OVER the article (the "kasha"); on mobile it must be
