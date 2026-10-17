@@ -1,14 +1,22 @@
-# Images Directory
+# Images & brand assets
 
-This folder contains site-wide images such as:
-- `favicon.png` - Site favicon (16x16 or 32x32 px)
-- `logo.png` - Optional site logo
-- Other global assets
+Site-wide visual assets. All of them are derived from the KeyStat brand-package;
+do not hand-draw replacements.
 
-## Adding Images
+- `favicon/` — icon set: `favicon.svg/png` (K+S tile), `favicon.ico` (16/32/48),
+  `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png`.
+- `brand/` — locked SVG lockups with the baked background rectangle stripped
+  (required on colored surfaces):
+  - `logo-navbar-en.svg` — navbar wordmark (white KEY / orange STAT on navy),
+    rendered at 42px height (stem cap ~24px).
+  - `ks-tile-light.svg` — KS tile icon used by the navbar below 576px width.
+  - `logo-footer-en-dark.svg` — full footer lockup (wordmark + descriptor),
+    shown at fixed 200px width via CSS.
 
-- **Favicon**: Place `favicon.png` here (32x32px recommended)
-- **Post-specific images**: Store in each post folder (e.g., `posts/YYYY-MM-DD-title/images/`)
-- **Featured images**: Place in post folder as `featured.png` (600x400px recommended)
+## Rules
+- Never re-typeset the logo; use these files as-is.
+- Never stretch, shadow, gradient or rotate the marks.
+- Keep aspect ratios: size only one dimension per lockup (height for navbar,
+  width for footer).
 
-See README.md for more details on image organization.
+Post-specific images live in each post folder (`posts/YYYY-MM-DD-slug/images/`).
