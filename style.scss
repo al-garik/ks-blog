@@ -1,370 +1,405 @@
 /*-- scss:defaults --*/
 
-// KEYSTAT Solutions Brand Colors
-// Dark blue/teal with orange accents
+// ============================================================
+// KeyStat brand tokens — source of truth: brand-package
+// (skill keystat-brand-book). Off-palette values are forbidden.
+// Navy #02254F + Orange #F06E30 pair IS the identity.
+// ============================================================
 
-// Primary brand colors
-$keystat-primary: #003d5c;      // Dark blue - main color
-$keystat-primary-light: #0d5a7a;// Lighter blue for hover
-$keystat-accent: #FF8C00;       // Orange accent
-$keystat-white: #ffffff;
-$keystat-dark: #1a1a1a;
-$keystat-gray: #f5f5f5;
+// Disable Cosmo's Google Fonts import (Inter is self-hosted below)
+$web-font-path: false;
 
-// Override Cosmo theme variables
-$primary: $keystat-primary;
-$secondary: $keystat-accent;
-$success: $keystat-accent;
-$info: $keystat-primary-light;
-$navbar-bg: $keystat-primary;
-$navbar-fg: $keystat-white;
-$border-color: $keystat-primary;
-$link-color: $keystat-primary;
-$link-hover-color: $keystat-accent;
+// Typography (mirrors keystatsolutions.com: Inter everywhere, same fallbacks)
+$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif;
+$font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+$font-size-base: 1rem;          // body stays 16px (modular scale floor 11px)
+$line-height-base: 1.55;        // body comfort 1.5–1.6 (owner-confirmed)
+$headings-font-family: "Inter", system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif;
+$headings-font-weight: 700;
+$headings-color: #02254f;
+
+// Brand palette → Bootstrap theme colors (no third hue)
+$keystat-navy:   #02254f;
+$keystat-orange: #f06e30;
+$keystat-paper:  #fafaf8;
+$keystat-ink:    #16202e;
+$keystat-muted:  #4d5d70;
+$keystat-info:   #0b6a95;   // Info Blue — links & focus only
+$navy-50: #e6e9ed; $navy-100: #ccd3dc; $navy-200: #9aa8b9; $navy-300: #6c8199; $navy-400: #3a5576;
+$navy-700: #051f41; $navy-900: #071a34;
+$o-300: #f6ab87; $o-400: #f38e5e; $o-600: #cb5f2d; $o-700: #ab522b; $o-800: #8b4629;
+
+$primary:    $keystat-navy;
+$secondary:  $keystat-muted;
+$success:    $navy-400;
+$info:       $navy-300;
+$warning:    $o-700;
+$danger:     $o-800;
+$light:      $navy-50;
+$dark:       $navy-700;
+
+// Bootstrap palette fully collapsed onto the brand ramp (no third hue anywhere,
+// incl. bg-*/text-* utilities and callout tints — off-palette cosmo hexes purged)
+$blue:    $keystat-info;   // Info Blue
+$indigo:  $navy-400;
+$purple:  $navy-300;
+$pink:    #f38e5e;         // Orange 400
+$red:     $o-700;
+$orange:  $keystat-orange; // Orange 500
+$yellow:  $o-300;
+$green:   $keystat-navy;
+$teal:    $keystat-info;
+$cyan:    $navy-400;
+$gray-100: #e6e9ed;  $gray-200: #ccd3dc;  $gray-300: #9aa8b9;
+$gray-400: #6c8199;  $gray-500: $keystat-muted;  $gray-600: $navy-400;
+$gray-700: $navy-700;  $gray-800: #071a34;  $gray-900: #16202e;
+$black:    $keystat-ink;   // pure black banned: darkest ink = Ink #16202E
+
+$body-bg:    $keystat-paper;
+$body-color: $keystat-ink;
+
+$link-color:       $keystat-info;   // 5.6:1, AA body links
+$link-hover-color: $navy-700;
+
+$border-color: $navy-100;
+
+// Navbar chrome: solid Navy, light foreground (N50)
+$navbar-bg: $keystat-navy;
+$navbar-fg: $navy-50;
 
 /*-- scss:rules --*/
 
-// Navbar styling
-.navbar {
-  background: linear-gradient(90deg, $keystat-primary 0%, $keystat-primary-light 100%) !important;
-  box-shadow: 0 4px 15px rgba(0, 61, 92, 0.2);
-  border-bottom: 4px solid $keystat-accent;
-  padding: 0.75rem 1.5rem !important;
+// ------------------------------------------------------------
+// Inter — self-hosted variable font (brand-package fonts/, OFL)
+// ------------------------------------------------------------
+@font-face{font-family:"Inter";font-style:normal;font-weight:400 800;
+  src:url("fonts/inter-variable-latin.woff2") format("woff2");}
+@font-face{font-family:"Inter";font-style:normal;font-weight:400 800;
+  src:url("fonts/inter-variable-cyrillic.woff2") format("woff2");
+  unicode-range:U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+
+// Modular scale + radius tokens (site system: --t-11..--t-30, radius = 18.5% of height)
+:root{
+  --ks-navy:#02254f; --ks-navy-700:#051f41; --ks-navy-900:#071a34;
+  --ks-navy-50:#e6e9ed; --ks-navy-100:#ccd3dc; --ks-navy-200:#9aa8b9; --ks-navy-400:#3a5576;
+  --ks-orange:#f06e30; --ks-orange-300:#f6ab87; --ks-orange-700:#ab522b;
+  --ks-paper:#fafaf8; --ks-ink:#16202e; --ks-muted:#4d5d70; --ks-info:#0b6a95;
+  --accent:var(--ks-orange); --accent-deep:var(--ks-orange-700); --line:var(--ks-navy-100);
+  --t-11:.6875rem; --t-12:.75rem; --t-13:.8125rem; --t-14:.875rem; --t-16:1rem;
+  --t-18:1.125rem; --t-20:1.25rem; --t-24:1.5rem; --t-30:1.875rem; --t-37:2.34375rem;
+  --r-xs:4px; --r-chip:6px; --r-sm:8px;
 }
 
-.navbar-brand {
-  font-weight: 700;
-  font-size: 1.4rem;
-  color: $keystat-white !important;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  text-decoration: none;
-  transition: opacity 0.3s ease;
-  
-  &:hover {
-    opacity: 0.9;
-  }
-}
+body{background:var(--ks-paper); color:var(--ks-ink);}
+::selection{background:var(--ks-navy-100); color:var(--ks-navy);}
 
-.navbar-brand img {
-  height: 45px;
+// ------------------------------------------------------------
+// Navbar — flat Navy plate, locked SVG lockup, no effects
+// (brand misuse NO: no gradients/shadows/glow on marks, never re-scale lockup)
+// ------------------------------------------------------------
+.navbar{
+  background: $keystat-navy !important;
+  box-shadow: none;
+  border-bottom: none;
+  padding: .55rem 1.25rem;
+}
+.navbar-brand-container{flex:none;}
+.navbar-brand{
+  display:flex; align-items:center; gap:.9rem;
+  text-decoration:none; color:#fff;
+  &:hover{color:#fff;}
+}
+.navbar-brand img.navbar-logo{
+  height: 42px;            // stem cap ~24px at lockup box 243 (ratio .576)
+  max-height: none;        // quarto default .navbar-logo{max-height:24px} crushes the lockup
   width: auto;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-  transition: transform 0.3s ease;
-  
-  &:hover {
-    transform: scale(1.05);
+  flex: none;              // never let flex squeeze the lockup
+  filter: none; transform: none;   // no drop-shadow, no hover scale on brand mark
+}
+.navbar-brand .navbar-title{
+  font-family:"Inter",system-ui,sans-serif;
+  font-weight:600; font-size:var(--t-18); letter-spacing:-.01em; color:#fff;
+}
+.navbar-nav .nav-link{
+  color: $navy-50 !important;
+  font-weight:500; font-size:var(--t-14);
+  border-radius: var(--r-chip);
+  transition: color .18s ease;
+  &:hover{ color:#fff !important; }
+}
+.navbar-nav .nav-link.active, .navbar-light .navbar-nav .nav-link.active{
+  color:#fff !important; background:transparent;
+  box-shadow: inset 0 -2px 0 var(--ks-orange-300);   // dark-bg accent O300 (WCAG dark pair)
+  font-weight:600;
+}
+
+// On phones the wordmark + title don't fit: swap the lockup for the KS tile icon
+// (brand-package 401 light tile, white plate + inset frame — legal on dark navbar),
+// the prose title then carries the context again. Min mark size 16px respected (34px).
+@media (max-width: 575.98px){
+  .navbar-brand.navbar-brand-logo{ display:inline-flex; align-items:center; }
+  .navbar-brand.navbar-brand-logo img.navbar-logo{ display:none; }
+  .navbar-brand.navbar-brand-logo::before{
+    content:""; display:block; flex:none; width:34px; height:34px;
+    background:url("images/brand/ks-tile-light.svg") no-repeat center / contain;
+  }
+  .navbar-brand .navbar-title{ display:block; }
+}
+
+// Tables on small screens scroll horizontally instead of crushing the column
+@media (max-width: 767.98px){
+  #quarto-content main table{ display:block; overflow-x:auto; max-width:100%; }
+}
+
+// ------------------------------------------------------------
+// Headings — sentence case (mirror company site), ramp sizes
+// h1 700 -.030em fluid · h2 800 -.018em · h3/h4 700
+// ------------------------------------------------------------
+h1,h2,h3,h4,h5,h6{ text-transform:none; color:var(--ks-navy); }
+h1{
+  font-size: clamp(1.875rem, 4.5vw, 2.34375rem);   // t-30 -> t-37 (clamp min/max on ramp steps)
+  font-weight:700; letter-spacing:-.030em; line-height:1.15;
+  border-bottom:none; padding-bottom:0; margin-bottom:1.25rem;
+}
+h2{ font-size:var(--t-24); font-weight:800; letter-spacing:-.018em; margin-top:2rem; }
+h3{ font-size:var(--t-20); font-weight:700; letter-spacing:-.010em; }
+h4{ font-size:var(--t-18); font-weight:700; }
+h5{ font-size:var(--t-16); font-weight:700; }
+h6{ font-size:var(--t-14); font-weight:700; color:var(--ks-muted); letter-spacing:.01em; }
+
+#quarto-title-banner .title, #quarto-title h1{
+  color:var(--ks-navy);
+}
+.byline, #quarto-author-panel{ color:var(--ks-muted); font-size:var(--t-14); }
+
+// ------------------------------------------------------------
+// Links & emphasis (specificity raised: quarto.css loads AFTER theme css)
+// ------------------------------------------------------------
+a{ color:var(--ks-info); &:hover{ color:var(--ks-navy-700); } }
+#quarto-content main a, #quarto-content .content a{
+  color:var(--ks-info);
+  &:hover{ color:var(--ks-navy-700); }
+}
+.btn-link{ color:var(--ks-info); --bs-btn-color:var(--ks-info); --bs-btn-hover-color:var(--ks-navy-700); }
+// dark-scheme blocks are used only by the navbar/footer here: purge cosmo-blue link vars
+[data-bs-theme="dark"]{
+  --bs-link-color: var(--ks-navy-100);
+  --bs-link-color-rgb: 204, 211, 220;
+  --bs-navbar-active-color: #ffffff;
+  --bs-navbar-brand-hover-color: #ffffff;
+}
+// Orange as TEXT only in O700 (5.1:1) — owner-confirmed inline strong accent
+#quarto-content :is(p,li,td) > strong{ color:var(--accent-deep); }
+
+// ------------------------------------------------------------
+// Lists — brand orange SQUARE bullets (generic marker, ~7px, slight radius)
+// content container on posts: main#quarto-document-content; pages: main
+// ------------------------------------------------------------
+#quarto-content main :is(ul,ol){ list-style:none; padding-left:1.25rem; }
+#quarto-content main ul > li{
+  position:relative; margin-bottom:.35rem;
+  &::before{
+    content:""; position:absolute; left:-1.05rem; top:.52em;
+    width:7px; height:7px; border-radius:1.5px;
+    background:var(--accent);   // square bullet = graphics (3:1 rule, passes)
   }
 }
 
-.navbar-brand-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-  
-  .brand-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+// ------------------------------------------------------------
+// Code — Paper plate, hairline border (no ad-hoc grays)
+// ------------------------------------------------------------
+div.sourceCode, pre{
+  background:var(--ks-paper);
+}
+div.sourceCode{
+  border:1px solid var(--line);
+  border-radius:var(--r-chip);
+}
+pre code{ font-size:var(--t-14); }
+
+// ------------------------------------------------------------
+// Blockquotes — orange rule = graphics accent, muted prose
+// ------------------------------------------------------------
+blockquote{
+  border-left:3px solid var(--accent);
+  color:var(--ks-muted);
+  background:transparent;
+  padding-left:1rem;
+  p:last-child{ margin-bottom:0; }
+}
+
+// ------------------------------------------------------------
+// Tables — Navy50 plate, navy rule under header (site system)
+// ------------------------------------------------------------
+table{
+  border-collapse:collapse; width:100%; margin:2rem 0;
+  caption{ color:var(--ks-muted); font-size:var(--t-13); }
+}
+#quarto-content table{
+  th{
+    background:var(--ks-navy-50);
+    color:var(--ks-navy);
+    font-weight:600; font-size:var(--t-14);
+    text-align:left; padding:.7rem 1rem;
+    border-bottom:2px solid var(--ks-navy);
   }
-  
-  .brand-subtitle {
-    font-size: 0.75rem;
-    font-weight: 400;
-    opacity: 0.95;
-    letter-spacing: 0.3px;
-  }
+  td{ padding:.6rem 1rem; border-bottom:1px solid var(--line); }
+  tr:hover{ background:rgba(2,37,79,.04); }
 }
 
-.navbar-nav .nav-link {
-  color: $keystat-white !important;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  margin: 0 0.5rem;
-  padding: 0.5rem 0.75rem !important;
-  border-radius: 4px;
-  
-  &:hover {
-    color: $keystat-accent !important;
-    background-color: rgba(255, 255, 255, 0.1);
-  }
+// ------------------------------------------------------------
+// Hero — solid Navy plate (company-site hero treatment, retired stock photo)
+// ------------------------------------------------------------
+.hero-section{
+  background:var(--ks-navy);
+  color:#fff;
+  padding: clamp(2.25rem, 6.2vw, 4rem) 1.5rem clamp(2.25rem, 6vw, 3.25rem);
+  text-align:center;
+  border-radius:var(--r-sm);
+  margin-bottom:3rem;
+  box-shadow:none;
 }
-
-.navbar-light .navbar-nav .nav-link.active {
-  color: $keystat-accent !important;
-  background-color: rgba(255, 140, 0, 0.1);
-  border-bottom: 2px solid $keystat-accent;
-  font-weight: 600;
-}
-
-// Buttons and links
-a {
-  color: $keystat-primary;
-  
-  &:hover {
-    color: $keystat-accent;
-  }
-}
-
-.btn-primary {
-  background-color: $keystat-primary;
-  border-color: $keystat-primary;
-  
-  &:hover {
-    background-color: $keystat-accent;
-    border-color: $keystat-accent;
-  }
-}
-
-// Code blocks styling
-.sourceCode {
-  background-color: $keystat-gray;
-  border: 1px solid #e0e0e0;
-  border-left: 4px solid $keystat-accent;
-}
-
-// Header styling
-h1, h2, h3, h4, h5, h6 {
-  color: $keystat-primary;
-  font-weight: 600;
-}
-
-h1 {
-  border-bottom: 3px solid $keystat-accent;
-  padding-bottom: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
-// Footer styling
-footer {
-  background-color: $keystat-primary;
-  color: $keystat-white;
-  border-top: 3px solid $keystat-accent;
-}
-
-// Card styling for posts
-.card {
-  border: 1px solid #e0e0e0;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 61, 92, 0.15);
-    border-color: $keystat-accent;
+.hero-title{
+  color:#fff; font-weight:700; letter-spacing:-.030em;
+  font-size:clamp(1.875rem, 4.5vw, 2.34375rem);   // t-30 -> t-37
+  border:none; margin-bottom:1rem;
+  &::after{
+    content:""; display:block; width:100px; height:4px;
+    background-color:var(--accent);               // orange graphic rule on dark: OK (>=3:1)
+    margin:1rem auto 0; border-radius:2px;
   }
 }
-
-// Listing grid styling
-.quarto-listing-item {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1.5rem;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 61, 92, 0.15);
-    border-color: $keystat-accent;
-  }
+.hero-subtitle{
+  color:var(--ks-navy-100);                       // N100 on Navy (site .hero .lead pair)
+  background:none; backdrop-filter:none;
+  font-size:var(--t-18); font-weight:500;
+  display:block;
 }
 
-// Listing card images (Quarto grid) - show full image without crop
+// Legacy doc-page blocks kept on-palette (guides reference them)
+.about-hero{
+  background:var(--ks-navy);
+  padding: clamp(2.25rem, 6.2vw, 4rem) 1.5rem;
+  text-align:center; border-radius:var(--r-sm); margin-bottom:3rem;
+  box-shadow:none;
+  h1{ color:#fff; border:none; }
+  p{ color:var(--ks-navy-100); font-size:var(--t-18); }
+}
+.featured-grid{ margin:2rem 0; }
+.featured-card{
+  background:var(--ks-navy-50);
+  border:1px solid var(--line);
+  border-radius:var(--r-sm);
+  padding:2rem; transition:all .2s ease;
+  text-align:left;
+  &:hover{ border-color:var(--accent); box-shadow:0 4px 12px rgba(2,37,79,.12); }
+  strong{ color:var(--ks-navy); display:block; font-size:var(--t-18); margin-bottom:.5rem; }
+}
+
+// ------------------------------------------------------------
+// Cards / listings
+// ------------------------------------------------------------
+.card{
+  border:1px solid var(--line);
+  border-radius:var(--r-sm);
+  background:#fff;
+  box-shadow:none;
+  transition:box-shadow .2s ease, border-color .2s ease;
+  &:hover{ box-shadow:0 4px 12px rgba(2,37,79,.12); border-color:var(--accent); }
+}
+.quarto-listing-item{
+  border:1px solid var(--line);
+  border-radius:var(--r-sm);
+  padding:1.5rem;
+  transition:box-shadow .2s ease, border-color .2s ease;
+  &:hover{ box-shadow:0 4px 12px rgba(2,37,79,.12); border-color:var(--accent); }
+}
 .quarto-listing-container-grid .card-img-top img,
-.quarto-listing-container-grid img.thumbnail-image {
-  width: 100% !important;
-  height: auto !important;
-  max-height: none !important;
-  object-fit: contain !important;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  transition: transform 0.3s ease;
+.quarto-listing-container-grid img.thumbnail-image{
+  width:100% !important; height:auto !important; max-height:none !important;
+  object-fit:contain !important;      // never crop featured images
+  border-radius:var(--r-chip);
+  margin-bottom:1rem;
+}
+.card-title, .quarto-listing-title, .listing-title{ color:var(--ks-navy); font-weight:700; letter-spacing:-.010em; }
+.quarto-listing-subtitle, .listing-subtitle{ color:var(--ks-muted); }
+.badge{
+  background:var(--ks-navy-50); color:var(--ks-navy);
+  font-weight:600; font-size:var(--t-11); letter-spacing:.02em;
+  border-radius:var(--r-chip);
+}
+// listing category chips (quarto renders div.listing-category, NOT .badge): compact size
+.listing-category{
+  display:inline-block; margin:.15rem .3rem .15rem 0; padding:.12rem .5rem;
+  font-size:var(--t-11); font-weight:600; letter-spacing:.02em; text-transform:none;
+  color:var(--ks-navy); background:var(--ks-navy-50);
+  border:1px solid transparent; border-radius:var(--r-chip); cursor:pointer;
+  transition:border-color .15s ease, background-color .15s ease;
+  &:hover{ border-color:var(--ks-navy-100); background:#fff; }
+}
+// grid card: featured image inset from card edges (was flush/bleeding to border)
+.quarto-grid-item.card{ padding:0; }
+.quarto-grid-item .card-img-top{ margin:0; padding:.85rem .85rem 0; }
+.quarto-grid-item .card-body{ padding:.9rem 1.1rem 1.1rem; }
+.quarto-post img, main img{
+  max-width:100%; height:auto;
+  border-radius:var(--r-chip);
+  box-shadow:0 1px 4px rgba(22,32,46,.10);
+  margin:1.5rem 0;
+}
 
-  &:hover {
-    transform: scale(1.02);
+// ------------------------------------------------------------
+// TOC & search
+// ------------------------------------------------------------
+nav.toc, nav#TOC, .toc-content{
+  font-size:var(--t-13);
+  a{ color:var(--ks-navy); }
+  a.active, .active > a{ color:var(--accent-deep); border-left:2px solid var(--accent); font-weight:600; }
+}
+// index/archive TOC: quarto hides nested lists until scrollspy marks ancestors active —
+// on the archive page that never happens for months/posts; keep the full tree visible
+// (nav#TOC beats quarto.css '#TOC ul ul' on specificity: 1,0,3 > 1,0,2)
+nav#TOC ul{ list-style:none; padding-left:.35rem; margin-bottom:0; }
+nav#TOC ul ul{ display:block; margin-left:.15rem; border-left:1px solid var(--line); padding-left:.7rem; }
+nav#TOC a.nav-link{ padding:.16rem 0; }
+// keep the sidebar pinned on long pages (it scrolled off screen on index)
+#quarto-margin-sidebar{
+  position:sticky; top:70px;
+  max-height:calc(100vh - 85px); overflow-y:auto;
+}
+.aa-Item[aria-selected="true"]{
+  background-color:var(--ks-navy-50) !important;
+  .aa-ItemLink{ background-color:transparent; }
+}
+
+// Page header (legacy hook used by about-style pages)
+.page-header{
+  border-bottom:1px solid var(--line);
+  padding-bottom:1rem;
+}
+
+// ------------------------------------------------------------
+// Footer — Navy-900 plate, N100 text, O300 hover (WCAG dark pairs)
+// ------------------------------------------------------------
+footer.footer, .page-footer{
+  background:var(--ks-navy-900);
+  color:var(--ks-navy-100);
+  border-top:none;
+  font-size:var(--t-13);
+  a{ color:var(--ks-navy-100); &:hover{ color:var(--ks-orange-300); } }
+}
+.nav-footer{
+  padding-top:2rem; padding-bottom:1.5rem;
+  align-items:flex-start;
+}
+.nav-footer-left{
+  // brand footer lockup injected via CSS: url() resolves relative to the compiled
+  // bootstrap css (always 2 levels under site root) => depth-proof on all pages
+  p{ font-size:var(--t-12); color:var(--ks-navy-100); }
+  &::before{
+    content:""; display:block; width:250px; height:74px; margin-bottom:1rem;
+    background:url("images/brand/logo-footer-en-dark.svg") no-repeat left center;
+    background-size:250px auto;   // footer lockup: fixed width, never squeeze
   }
 }
-
-// Post content images - responsive and styled
-.quarto-post img,
-main img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin: 1.5rem 0;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 61, 92, 0.2);
-  }
-}
-
-// Search styling
-.aa-Item[aria-selected="true"] {
-  background-color: rgba(0, 61, 92, 0.1) !important;
-  
-  .aa-ItemLink {
-    background-color: rgba(0, 61, 92, 0.05);
-  }
-}
-
-// TOC (Table of Contents) styling
-nav.toc {
-  
-  a {
-    color: $keystat-primary;
-    
-    &.active {
-      color: $keystat-accent;
-      border-left: 3px solid $keystat-accent;
-      font-weight: 600;
-    }
-  }
-}
-
-// Page title styling
-.page-header {
-  border-bottom: 3px solid $keystat-accent;
-  padding-bottom: 1rem;
-}
-
-// Blockquote styling
-blockquote {
-  border-left: 4px solid $keystat-accent;
-  color: $keystat-primary;
-}
-
-// Hero section styling
-.hero-section {
-  background: url("images/background.png") center center / cover no-repeat;
-  padding: 4rem 2rem;
-  text-align: center;
-  border-radius: 8px;
-  margin-bottom: 3rem;
-  box-shadow: 0 4px 15px rgba(0, 61, 92, 0.2);
-}
-
-.hero-title {
-  color: $keystat-white;
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  border: none;
-  
-  &::after {
-    content: "";
-    display: block;
-    width: 100px;
-    height: 4px;
-    background-color: $keystat-accent;
-    margin: 1rem auto 0;
-  }
-}
-
-.hero-subtitle {
-  display: inline-block;
-  padding: .5rem 1rem;
-  color: white;
-
-  backdrop-filter: blur(8px);
-  background: rgba(255,255,255,.12);
-  border-radius: 8px;
-}
-//.hero-subtitle {
-//  color: rgba($keystat-dark, 0.9);
-//  font-size: 1.2rem;
-//  margin: 0;
-//  font-weight: 300;
-//}
-
-// Featured cards styling
-.featured-grid {
-  margin: 2rem 0;
-}
-
-.featured-card {
-  background: linear-gradient(135deg, rgba(0, 61, 92, 0.05) 0%, rgba(255, 140, 0, 0.05) 100%);
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 2rem;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  text-align: left;
-  
-  &:hover {
-    border-color: $keystat-accent;
-    box-shadow: 0 6px 20px rgba(0, 61, 92, 0.15);
-    transform: translateY(-4px);
-    background: linear-gradient(135deg, rgba(0, 61, 92, 0.08) 0%, rgba(255, 140, 0, 0.08) 100%);
-  }
-  
-  strong {
-    color: $keystat-primary;
-    display: block;
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-  }
-}
-
-// About page hero section
-.about-hero {
-  background: linear-gradient(135deg, $keystat-primary 0%, $keystat-primary-light 100%);
-  padding: 4rem 2rem;
-  text-align: center;
-  border-radius: 8px;
-  margin-bottom: 3rem;
-  box-shadow: 0 4px 15px rgba(0, 61, 92, 0.2);
-  
-  h1 {
-    color: $keystat-white;
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    border: none;
-    
-    &::after {
-      content: "";
-      display: block;
-      width: 100px;
-      height: 4px;
-      background-color: $keystat-accent;
-      margin: 1rem auto 0;
-    }
-  }
-  
-  p {
-    color: rgba($keystat-white, 0.9);
-    font-size: 1.2rem;
-    margin: 0;
-    font-weight: 300;
-  }
-}
-
-// Table styling for about page
-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 2rem 0;
-  
-  th {
-    background-color: rgba(0, 61, 92, 0.1);
-    color: $keystat-primary;
-    font-weight: 600;
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 3px solid $keystat-accent;
-  }
-  
-  td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  
-  tr:hover {
-    background-color: rgba(255, 140, 0, 0.02);
-  }
-}
-
-// Badge/checkmark styling
-strong:has(+ em) {
-  color: $keystat-accent;
-}
+.nav-footer-center p, .nav-footer-right p{ font-size:var(--t-12); color:var(--ks-navy-200); }

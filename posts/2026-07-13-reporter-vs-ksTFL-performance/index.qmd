@@ -1,7 +1,7 @@
 ---
 title: "How Long Are You Ready to Wait for Your Clinical Tables?"
 description: "Performance comparison of `Reporter` and `ksTFL` R-packages"
-author: "Igor Aleschenkov (KeyStat Solutions)"
+author: "Igor Aleschenkov (KeyStat)"
 date: 2026-07-13
 categories: [R, ksTFL, clinical trial, r-package, Clinical Reporting]
 image: images/post-logo.png
@@ -302,4 +302,3 @@ Aleschenkov I, Larchenko V (2026). _ksTFL: Framework for Clinical Tables,
   <https://crow16384.github.io/ksTFL/,https://crow16384.r-universe.dev/ksTFL>
 ```
 
-*This post was originally published on the KeyStat Solutions R Technical Blog. [Visit R-Bloggers](https://www.r-bloggers.com) to discover more R content.*

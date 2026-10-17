@@ -1,7 +1,7 @@
 ---
 title: "Post Template - Copy and Use"
 description: "Template for creating new blog posts"
-author: "KeyStat Solutions"
+author: "KeyStat"
 date: 2026-07-08
 categories: [R, Meta, Template]
 draft: true
@@ -19,7 +19,7 @@ Every post must have these fields in the header:
 - **author**: Author name (required)
 - **date**: Publication date in YYYY-MM-DD format (required)
 - **categories**: List of tags for organization (required)
-  - **IMPORTANT**: Always include **"R"** if the post is R-related (needed for R-Bloggers syndication)
+  - **IMPORTANT**: Include **"R"** if the post is R-related (keeps it in the R category of the RSS feed)
   - Other categories: ksTFL, Clinical Programming, Statistics, Data Analysis, etc.
 - **image**: Featured image filename (optional)
   - Place image file in the post folder: `posts/YYYY-MM-DD-post-slug/featured.png`
@@ -68,38 +68,6 @@ posts/2026-07-15-my-post/
 └── screenshot.jpg      (more inline images)
 ```
 
-### For R-Bloggers Syndication
-
-This blog is syndicated on [R-Bloggers](https://www.r-bloggers.com). To ensure your post is picked up:
-
-1. **Include "R" in categories** - This tags it for R-Bloggers RSS feed:
-   ```yaml
-   categories: [R, ksTFL, Clinical Programming]
-   ```
-
-2. **Add R-Bloggers footer** - Include this at the end of your post:
-   ```markdown
-   ---
-   
-   *This post was originally published on the KeyStat Solutions R Technical Blog. 
-   [Visit R-Bloggers](https://www.r-bloggers.com) to discover more R content.*
-   ```
-
-3. **Ensure R relevance** - Posts should contain:
-   - R code examples
-   - Discussion of R packages or tools
-   - R implementation of statistical methods
-   - R community topics
-
-### Post Naming Convention
-
-Folder name format: `YYYY-MM-DD-post-slug`
-
-Example:
-```
-posts/2026-07-15-getting-started-with-ks-tfl/
-└── index.qmd
-```
 
 ## Content Structure
 
@@ -110,8 +78,7 @@ Follow this recommended structure:
 3. **Code Examples** - Working R examples with explanation
 4. **Visuals** - Images, charts, diagrams
 5. **Conclusion** - Summary and key takeaways
-6. **R-Bloggers Attribution** - Link back to R-Bloggers (see above)
-7. **Resources** - Links to related materials
+6. **Resources** - Links to related materials
 
 ## Writing Tips
 

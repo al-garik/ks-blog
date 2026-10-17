@@ -1,4 +1,4 @@
-# KeyStat Solutions Technical Blog
+# KeyStat Technical Blog
 
 Quarto blog featuring articles about R programming, clinical data analysis, and more.
 

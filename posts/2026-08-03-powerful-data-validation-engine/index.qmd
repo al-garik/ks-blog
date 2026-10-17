@@ -1,7 +1,7 @@
 ---
 title: "Powerful Data Validation Engine"
 description: "Explore a validation framework centered around single simple function"
-author: "Vladimir Larchenko (KeyStat Solutions)"
+author: "Vladimir Larchenko (KeyStat)"
 date: 2026-08-03
 categories: [R, QC, Clinical Trials, Data analysis, Data Management]
 image: images/post-logo.png

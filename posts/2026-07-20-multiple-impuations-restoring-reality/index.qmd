@@ -1,12 +1,11 @@
 ---
 title: "Multiple Imputation Analysis with `mianalyze()`"
 description: "Rubin's Rules and Barnard-Rubin Degrees of Freedom"
-author: "Vladimir Larchenko (KeyStat Solutions)"
+author: "Vladimir Larchenko (KeyStat)"
 date: 2026-07-20
 categories: [R, Meta, Clinical Trials, Data analysis, Multiple Imputation, Rubin]
 image: images/post-logo.png
 ---
-
 
 ![](images/post-logo-big.png){fig-align="center"}
 
@@ -38,7 +37,6 @@ rules and supports the Barnard-Rubin (1999) small-sample
 degrees-of-freedom adjustment, equivalent to the `EDF=` option in SAS
 `PROC MIANALYZE`. The exported alias `ks_mianalyze()` provides the same
 interface.
-
 
 ```{r}
 library(kstools)
@@ -238,7 +236,6 @@ ks_mianalyze <- function(est, err, alpha = 0.05, theta0 = 0, edf = Inf, v0) {
   res
 }
 
-
 #' @rdname ks_mianalyze
 #' @export
 mianalyze <- function(est, err, alpha = 0.05, theta0 = 0, edf = Inf, v0) {
@@ -250,7 +247,6 @@ mianalyze <- function(est, err, alpha = 0.05, theta0 = 0, edf = Inf, v0) {
     ks_mianalyze(est = est, err = err, alpha = alpha, theta0 = theta0, edf = edf)
   }
 }
-
 
 #' @rdname ks_mianalyze
 #' @export
@@ -302,7 +298,6 @@ summary.ks_mianalyze <- function(object, ...) {
   )
 }
 
-
 #' @export
 print.ks_mianalyze <- function(x, ...) {
   s <- summary(x)
@@ -339,7 +334,6 @@ print.ks_mianalyze <- function(x, ...) {
 
   invisible(x)
 }
-
 
 #' @rdname ks_mianalyze
 #' @importFrom knitr knit_print kable
@@ -514,7 +508,6 @@ $$v_m^* = \left(\frac{1}{v_m} + \frac{1}{\hat{v}_{obs}}\right)^{-1}$$
 
 This is the method used by SAS `PROC MIANALYZE` when `EDF=` is specified,
 and by `mianalyze(edf = ...)`.
-
 
 # Basic Example
 
@@ -832,9 +825,4 @@ MIANALYZE Procedure. Cary, NC: SAS Institute Inc.
 
 Van Buuren, S. (2018). *Flexible Imputation of Missing Data*. Second
 Edition. Chapman & Hall/CRC.
-
----
-   *This post was originally published on the KeyStat Solutions R Technical Blog. 
-   [Visit R-Bloggers](https://www.r-bloggers.com) to discover more R content.*
-
 

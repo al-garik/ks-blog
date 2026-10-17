@@ -1,6 +1,6 @@
 # Blog Writing Guide
 
-This guide provides best practices for writing posts on the KeyStat Solutions blog.
+This guide provides best practices for writing posts on the KeyStat blog.
 
 ## Voice and Tone
 

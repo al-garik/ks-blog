@@ -1,7 +1,7 @@
 ---
 title: "Non-standard Applications of `ksformat` R-Package in Clinical Trials and Other Tasks"
 description: "This post covers some unusual and interesting application of the ksformat package in clinical trials"
-author: "Vladimir Larchenko (KeyStat Solutions)"
+author: "Vladimir Larchenko (KeyStat)"
 date: 2026-07-09
 categories: [R, ksformat, clinical trial, r-package, SAS-format]
 image: images/post-logo.png
@@ -377,4 +377,3 @@ fclear()
 Larchenko V, Aleschenkov I (2026). _ksformat: 'SAS'-Style 'PROC FORMAT'   for R_. R package version 0.8.3, <https://github.com/crow16384/ksformat>.
 ```
 
-*This post was originally published on the KeyStat Solutions R Technical Blog. [Visit R-Bloggers](https://www.r-bloggers.com) to discover more R content.*

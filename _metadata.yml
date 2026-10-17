@@ -3,7 +3,7 @@
 
 # Feed configuration
 feed:
-  title: "KeyStat Solutions R Technical Blog"
+  title: "KeyStat R Technical Blog"
   description: "Articles about R programming, clinical data analysis, and statistical methods"
   categories: [R, Programming, Statistics, Clinical Research, CDISC, Data Analysis, Reporting]
   language: en

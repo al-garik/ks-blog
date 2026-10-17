@@ -1,12 +1,11 @@
 ---
 title: "Getting Current R-script name in R automatically"
 description: "How to obtain the currently sourced script name in R without hardcoding it"
-author: "Igor Aleschenkov (KeyStat Solutions)"
+author: "Igor Aleschenkov (KeyStat)"
 date: 2026-07-09
 categories: [R, Tips, Scripts, Clinical Programming]
 image: images/post-logo.png
 ---
-
 
 When generating clinical reports, it's often useful to know **which analysis script produced the output**. The script name can be included in report headers, footers, log files, or metadata to improve traceability and simplify debugging.
 
@@ -24,8 +23,6 @@ The function below detects the currently executing script in the two most common
 
 * when the script is executed via `source()`;
 * when the script is executed with `Rscript` (or `R --file`).
-
-
 
 ```{r}
 #| message: false
@@ -151,7 +148,6 @@ current_script_name <- function()
 }
 ```
 
-
 Internally, it first inspects the call stack looking for a `source()` frame, where R stores the filename. If no such frame exists, it falls back to examining the command-line arguments supplied to the R process.
 
 This makes the function suitable for both interactive development and automated production workflows.
@@ -168,7 +164,6 @@ For example:
 source(file.path(getwd(), 'output', 'the_test_script.R'))
 ```
 
-
 In a clinical reporting environment, the returned filename can be used in several places:
 
 * document headers and footers;
@@ -181,6 +176,3 @@ Because the program name is obtained automatically, there is no risk of document
 
 Although the implementation is compact, it provides a convenient building block for reproducible clinical reporting, where every generated output should clearly identify the program that created it.
 
-------------------------------------------------------------------------
-
-*This post was originally published on the KeyStat Solutions R Technical Blog. [Visit R-Bloggers](https://www.r-bloggers.com) to discover more R content.*

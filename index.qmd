@@ -1,5 +1,5 @@
 ---
-title: "KeyStat Solutions Technical Blog"
+title: "KeyStat Technical Blog"
 subtitle: "Exploring R programming, clinical data analysis, and statistical computing"
 page-layout: full
 
@@ -22,7 +22,7 @@ listing:
 <p class="hero-subtitle">Professional insights on clinical programming and statistical computing</p>
 :::
 
-## Welcome to KeyStat Solutions
+## Welcome to KeyStat
 
 Our technical blog provides **practical, production-ready** guidance on R programming, clinical trial data analysis, and statistical methods. We share real-world applications and best practices from our work in clinical researches.
 

@@ -5,19 +5,21 @@ project:
     - "posts/**/*.png"
     - "posts/**/*.jpg"
     - "images/**/*"
+    - "fonts/**/*"
 
 website:
-  title: "Technical Blog"
-  description: "Articles about R programming, and clinical data analysis and reporting"
+  title: "KeyStat Technical Blog"
+  description: "Articles about R programming, clinical data processing and analysis, and statistical reporting"
   site-url: "https://al-garik.github.io/ks-blog/"
-  favicon: "images/favicon.png"
+  favicon: "images/favicon/favicon.png"
   
   navbar:
     background: primary
     foreground: light
+    title: "Technical Blog"
     search: true
-    logo: "images/keystat-logo.svg"
-    logo-alt: "KeyStat Solutions"    
+    logo: "images/brand/logo-navbar-en.svg"
+    logo-alt: "KeyStat"    
     logo-href: "https://keystatsolutions.com"    
     left:
       - href: index.qmd
@@ -27,18 +29,14 @@ website:
         href: "https://al-garik.github.io/ks-blog/"
       - icon: rss
         href: index.xml
-      - text: "R-Bloggers"
-        href: "https://www.r-bloggers.com"
-        aria-label: "R-Bloggers Community"
-  
   page-footer:
     background: dark
     left: |
-      © 2026 KeyStat Solutions. All rights reserved.
+      © 2026 KeyStat. All rights reserved.
     center: |
       Powered by [Quarto](https://quarto.org/)
     right: |
-      Made with ❤️ for the R community
+      Made by KeyStat for the R community
 
 format:
   html:

@@ -1,4 +1,4 @@
-# KeyStat Solutions Blog - Setup Summary
+# KeyStat Blog - Setup Summary
 
 ## ✅ What's Been Configured
 
@@ -131,7 +131,7 @@ GitHub Actions automatically:
 ---
 title: "Your Post Title"
 description: "Short 60-char summary for RSS"
-author: "KeyStat Solutions"
+author: "KeyStat"
 date: 2026-07-15
 categories: [R, ksTFL, Tutorial]
 image: featured.png
@@ -146,7 +146,7 @@ image: featured.png
 Edit in `_quarto.yml`:
 ```yaml
 website:
-  title: "KeyStat Solutions - R Technical Blog"
+  title: "KeyStat R Technical Blog"
   description: "Articles about R programming..."
 ```
 
