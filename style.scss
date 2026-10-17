@@ -389,16 +389,26 @@ body #quarto-margin-sidebar #TOC a.active, body #TOC a.active{
 // bring it back as a bordered card after the article ("On this page" accessible on phones)
 @media (max-width: 991.98px){
   body #quarto-content.page-columns{
-    display:block;                       // single column; margin track otherwise crushes the toc
+    display:flex; flex-direction:column;   // DOM order is [toc, article] — flex order fixes it
     padding-left: clamp(1rem, 4vw, 1.75rem);
     padding-right: clamp(1rem, 4vw, 1.75rem);
   }
+  #quarto-content > #quarto-document-content{ order:1; }
+  #quarto-content > #quarto-margin-sidebar{ order:2; }
   body #quarto-margin-sidebar{ display:block; position:static; max-height:none; overflow:visible; margin-top:1rem; }
-  body #quarto-margin-sidebar #TOC{ display:block; }   // '#TOC,.nav-page{display:none}' hide rule
+  // tame quarto's TOC float layer: the toc used to keep z-index:1020 (and .fixed-top behavior),
+  // which let the expanded list paint OVER the article (the "kasha"); on mobile it must be
+  // plain flow content with its own capped scroll region, never an overlay
+  body #quarto-margin-sidebar #TOC{
+    display:block; position:static; z-index:auto; float:none; top:auto;
+    max-height:55vh; overflow-y:auto;
+    scrollbar-width:thin; scrollbar-color:var(--ks-navy-100) transparent;
+  }
   #quarto-margin-sidebar #TOC{
     border:1px solid var(--line); background:#fff;
     border-radius:var(--r-sm); padding:1rem 1.1rem;
   }
+  body #quarto-margin-sidebar .toc-content{ position:static; z-index:auto; float:none; max-height:none; overflow:visible; }
 }
 // mobile fold (script/_includes/toc-fold.html wraps the list into <details>)
 #quarto-margin-sidebar #TOC.toc-mfolded #toc-title{ display:none; }
@@ -430,7 +440,9 @@ pre{ overflow-x:auto; max-width:100%; }
 }
 
 // ------------------------------------------------------------
-// Footer — Navy-900 plate, N100 text, O300 hover (WCAG dark pairs)
+// Footer — Navy-900 plate (= company site --navy-900 #071a34), N100 text,
+// O300 hover (WCAG dark pairs). Compact ramp: tight padding, small type,
+// lockup 200px, © lives under the tagline in the right column.
 // ------------------------------------------------------------
 footer.footer, .page-footer{
   background:var(--ks-navy-900);
@@ -440,17 +452,19 @@ footer.footer, .page-footer{
   a{ color:var(--ks-navy-100); &:hover{ color:var(--ks-orange-300); } }
 }
 .nav-footer{
-  padding-top:2rem; padding-bottom:1.5rem;
+  padding-top:1.25rem; padding-bottom:1rem; row-gap:.5rem;
   align-items:flex-start;
 }
 .nav-footer-left{
   // brand footer lockup injected via CSS: url() resolves relative to the compiled
   // bootstrap css (always 2 levels under site root) => depth-proof on all pages
-  p{ font-size:var(--t-12); color:var(--ks-navy-100); }
+  p{ font-size:var(--t-12); color:var(--ks-navy-100); margin-bottom:.15rem; }
   &::before{
-    content:""; display:block; width:250px; height:74px; margin-bottom:1rem;
+    content:""; display:block; width:200px; height:59px; margin-bottom:.5rem;
     background:url("images/brand/logo-footer-en-dark.svg") no-repeat left center;
-    background-size:250px auto;   // footer lockup: fixed width, never squeeze
+    background-size:200px auto;   // footer lockup: fixed width, never squeeze
   }
 }
-.nav-footer-center p, .nav-footer-right p{ font-size:var(--t-12); color:var(--ks-navy-200); }
+.nav-footer-center p, .nav-footer-right p{
+  font-size:var(--t-12); color:var(--ks-navy-200); margin-bottom:.2rem;
+}

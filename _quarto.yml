@@ -32,11 +32,13 @@ website:
   page-footer:
     background: dark
     left: |
-      © 2026 KeyStat. All rights reserved.
+      &nbsp;
     center: |
       Powered by [Quarto](https://quarto.org/)
     right: |
       Made by KeyStat for the R community
+
+      © 2026 KeyStat. All rights reserved.
 
 format:
   html:

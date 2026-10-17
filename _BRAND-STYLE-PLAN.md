@@ -200,6 +200,20 @@ visible rails = 1 (active), gap = 11px.
 Sidebar scrollbar styled slim-brand (6px navy-100) — the raw OS bar read as another stripe.
 Mobile gutters: the ≤991px `display:block` had killed quarto's grid gutters (content l=0) →
 restored `padding-inline: clamp(1rem,4vw,1.75rem)` (measured 17px both sides, no overflow).
-Deploy-safety: 0 root-absolute asset refs in all built pages (all relative, quarto rebase by
+deploy-safety: 0 root-absolute asset refs in all built pages (all relative, quarto rebase by
 depth; site-url /ks-blog/ == Pages basepath). file:// preview differs only because browsers
 forbid fetch(search.json) there — layout/assets fine.
+
+## 10. Round-5 (mobile toc overlay root-cause + compact footer)
+
+The mobile "kasha": in DOM, `#quarto-margin-sidebar` comes BEFORE `#quarto-document-content`
+(grid areas hid this on desktop; block layout exposed it) — the TOC card sat at the top of the
+article at z-index:1020, and expanding it covered/pushed the article start. Fix: mobile container
+becomes `display:flex; flex-direction:column` with `order:1` article / `order:2` toc; toc forced
+`position:static; z-index:auto`, capped at 55vh with its own thin scrollbar. Verified: post and
+index mobile — tocTop ≥ articleBottom (overlap 0), no h-scroll; desktop sticky sidebar unchanged.
+
+Footer: compact (padding 1.25/1rem, height 126px desktop vs ~200 before; lockup 250→200px),
+bg = company site's --navy-900 #071a34 (already identical, now noted), © moved to the RIGHT
+column under "Made by KeyStat for the R community"; left column keeps only the lockup via
+::before (content &nbsp; to preserve the grid cell).
