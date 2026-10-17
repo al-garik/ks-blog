@@ -352,35 +352,47 @@ table{
 // ------------------------------------------------------------
 // TOC & search
 // ------------------------------------------------------------
-nav.toc, nav#TOC, .toc-content{
-  font-size:var(--t-13);
-  a{ color:var(--ks-navy); }
-  a.active, .active > a{ color:var(--accent-deep); border-left:2px solid var(--accent); font-weight:600; }
-}
+nav.toc, nav#TOC, .toc-content{ font-size:var(--t-13); }
 // index/archive TOC: quarto hides nested lists until scrollspy marks ancestors active —
-// on the archive page that never happens for months/posts; keep the full tree visible
+// on the archive page that never happens for months/posts; keep the tree to years+months open
 // (nav#TOC beats quarto.css '#TOC ul ul' on specificity: 1,0,3 > 1,0,2)
 nav#TOC ul{ list-style:none; padding-left:.35rem; margin-bottom:0; }
-nav#TOC ul ul{ display:block; margin-left:.35rem; padding-left:.7rem; }   // indent only — no vertical rails
-// Archive tree: keep years+months open by default, posts under a month hidden until clicked
-// (4th nesting level = post lists under month lists)
+nav#TOC ul ul{ display:block; margin-left:.35rem; padding-left:.7rem; }   // indent only
+// Archive tree default depth = years+months; posts under a month hidden until clicked
 nav#TOC ul ul ul ul{ display:none; }
 nav#TOC li.toc-open > ul{ display:block !important; }
-nav#TOC a.nav-link{ padding:.16rem 0; }
-// determinism: quarto.css re-colors toc links via its own --bs-link-color (#2761e3 cosmo
-// residue) with rules we can't outvote by order — brand compliance needs hard anchoring
-body #quarto-margin-sidebar #TOC a{ color:var(--ks-navy) !important; }
-body #quarto-margin-sidebar #TOC a:hover{ color:var(--ks-navy-700) !important; }
-body #quarto-margin-sidebar #TOC a.active{ color:var(--accent-deep) !important; }
-// keep the sidebar pinned on long pages (it scrolled off screen on index)
+// quarto puts a 1px gray LEFT BORDER on EVERY toc link (the 'vertical stripes' complaint) and
+// zero padding (active marker glued to letters). One slot design: transparent 2px rail reserved
+// on all items + .65rem breathing room; only the active item paints it orange — text never shifts.
+body #quarto-margin-sidebar #TOC a, body #TOC a{
+  color:var(--ks-navy) !important;
+  border-left:2px solid transparent !important;
+  padding:.16rem 0 .16rem .65rem;
+}
+body #quarto-margin-sidebar #TOC a:hover, body #TOC a:hover{ color:var(--ks-navy-700) !important; }
+body #quarto-margin-sidebar #TOC a.active, body #TOC a.active{
+  color:var(--accent-deep) !important; font-weight:600;
+  border-left-color:var(--accent) !important;
+}
+// keep the sidebar pinned on long pages (it scrolled off screen on index);
+// slim branded scrollbar — the default OS bar read as another 'vertical stripe'
 #quarto-margin-sidebar{
   position:sticky; top:70px;
   max-height:calc(100vh - 85px); overflow-y:auto;
+  padding-right:6px;
+  scrollbar-width:thin; scrollbar-color:var(--ks-navy-100) transparent;
 }
+#quarto-margin-sidebar::-webkit-scrollbar{ width:6px; }
+#quarto-margin-sidebar::-webkit-scrollbar-thumb{ background:var(--ks-navy-100); border-radius:3px; }
+#quarto-margin-sidebar::-webkit-scrollbar-track{ background:transparent; }
 // mobile: quarto hides the margin sidebar (display:none in a media block) —
 // bring it back as a bordered card after the article ("On this page" accessible on phones)
 @media (max-width: 991.98px){
-  body #quarto-content.page-columns{ display:block; }   // single column; margin track otherwise crushes the toc
+  body #quarto-content.page-columns{
+    display:block;                       // single column; margin track otherwise crushes the toc
+    padding-left: clamp(1rem, 4vw, 1.75rem);
+    padding-right: clamp(1rem, 4vw, 1.75rem);
+  }
   body #quarto-margin-sidebar{ display:block; position:static; max-height:none; overflow:visible; margin-top:1rem; }
   body #quarto-margin-sidebar #TOC{ display:block; }   // '#TOC,.nav-page{display:none}' hide rule
   #quarto-margin-sidebar #TOC{

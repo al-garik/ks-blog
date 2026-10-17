@@ -187,3 +187,19 @@ pre-brand artwork.
    (390px: 23px tall closed card, opens in place).
 4. Card hierarchy: listing title t-18 700 vs category chips t-11 with tight padding
    (19.1px vs 11.05px measured); image inset kept.
+
+## 9. Round-4 (TOC rails root-cause + mobile gutters)
+
+ROOT CAUSE of "vertical stripes": quarto.css puts `border-left:1px solid` (translucent gray)
+on EVERY `#TOC a.nav-link` with zero left padding — the stripes were per-LINK, not per-list
+(earlier rail removal only killed MY ul borders; scan of all `#TOC a` found 40 gray rails).
+Fix: transparent 2px rail reserved on all toc links + .65rem text gap; only the active item
+paints its rail orange → no stripes when inactive, marker never glued to letters, text never
+shifts on scrollspy. Verified: 41 links, distinct borders = {2px transparent, 2px orange},
+visible rails = 1 (active), gap = 11px.
+Sidebar scrollbar styled slim-brand (6px navy-100) — the raw OS bar read as another stripe.
+Mobile gutters: the ≤991px `display:block` had killed quarto's grid gutters (content l=0) →
+restored `padding-inline: clamp(1rem,4vw,1.75rem)` (measured 17px both sides, no overflow).
+Deploy-safety: 0 root-absolute asset refs in all built pages (all relative, quarto rebase by
+depth; site-url /ks-blog/ == Pages basepath). file:// preview differs only because browsers
+forbid fetch(search.json) there — layout/assets fine.
