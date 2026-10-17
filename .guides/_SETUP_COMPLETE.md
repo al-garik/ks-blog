@@ -38,7 +38,7 @@
 ## 📁 File Structure
 
 ```
-z:\develop\ks-blog/
+ks-blog/
 ├── _quarto.yml                    ← Main configuration
 ├── _metadata.yml                  ← RSS feed config
 ├── index.qmd                       ← Homepage
@@ -71,7 +71,7 @@ z:\develop\ks-blog/
 
 ### 1. Preview Locally
 ```bash
-cd z:\develop\ks-blog
+cd ks-blog
 quarto preview
 ```
 Visit http://localhost:3456 in your browser
