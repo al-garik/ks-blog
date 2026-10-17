@@ -174,3 +174,16 @@ pre-brand artwork.
    Build note: kstools 0.5.7 (+mice/expm/ksCompare) now installed in zorin site-library; zorin
    renders the FULL project in place (rc=0 incl. MI post + mianalyze subpage). docs/ regenerated
    in place, committed locally; still NO push until owner finalizes.
+
+## 8. Round-3 owner feedback (17.10, implemented + verified)
+
+1. TOC vertical rails removed (indent only). Active/inactive toc colors anchored with
+   !important — quarto re-colors toc links through its own `--bs-link-color` (#2761e3 cosmo
+   residue) at specificity we cannot outvote by order. Palette now: links Navy, hover Navy700,
+   active O700.
+2. Archive tree default depth = years+months (4th-level post lists hidden); clicking a month
+   (or year) row toggles its subtree (`.toc-open`, wired in `_includes/toc-fold.html`).
+3. Mobile TOC: no giant section — JS wraps the list into `<details>` "On this page ▾"
+   (390px: 23px tall closed card, opens in place).
+4. Card hierarchy: listing title t-18 700 vs category chips t-11 with tight padding
+   (19.1px vs 11.05px measured); image inset kept.

@@ -322,6 +322,7 @@ table{
   margin-bottom:1rem;
 }
 .card-title, .quarto-listing-title, .listing-title{ color:var(--ks-navy); font-weight:700; letter-spacing:-.010em; }
+.quarto-grid-item .card-title{ font-size:var(--t-18); }   // title must dominate the chips
 .quarto-listing-subtitle, .listing-subtitle{ color:var(--ks-muted); }
 .badge{
   background:var(--ks-navy-50); color:var(--ks-navy);
@@ -330,8 +331,8 @@ table{
 }
 // listing category chips (quarto renders div.listing-category, NOT .badge): compact size
 .listing-category{
-  display:inline-block; margin:.15rem .3rem .15rem 0; padding:.12rem .5rem;
-  font-size:var(--t-11); font-weight:600; letter-spacing:.02em; text-transform:none;
+  display:inline-block; margin:.1rem .28rem .1rem 0; padding:.06rem .42rem;
+  font-size:var(--t-11); font-weight:600; letter-spacing:.03em; text-transform:none;
   color:var(--ks-navy); background:var(--ks-navy-50);
   border:1px solid transparent; border-radius:var(--r-chip); cursor:pointer;
   transition:border-color .15s ease, background-color .15s ease;
@@ -360,8 +361,17 @@ nav.toc, nav#TOC, .toc-content{
 // on the archive page that never happens for months/posts; keep the full tree visible
 // (nav#TOC beats quarto.css '#TOC ul ul' on specificity: 1,0,3 > 1,0,2)
 nav#TOC ul{ list-style:none; padding-left:.35rem; margin-bottom:0; }
-nav#TOC ul ul{ display:block; margin-left:.15rem; border-left:1px solid var(--line); padding-left:.7rem; }
+nav#TOC ul ul{ display:block; margin-left:.35rem; padding-left:.7rem; }   // indent only — no vertical rails
+// Archive tree: keep years+months open by default, posts under a month hidden until clicked
+// (4th nesting level = post lists under month lists)
+nav#TOC ul ul ul ul{ display:none; }
+nav#TOC li.toc-open > ul{ display:block !important; }
 nav#TOC a.nav-link{ padding:.16rem 0; }
+// determinism: quarto.css re-colors toc links via its own --bs-link-color (#2761e3 cosmo
+// residue) with rules we can't outvote by order — brand compliance needs hard anchoring
+body #quarto-margin-sidebar #TOC a{ color:var(--ks-navy) !important; }
+body #quarto-margin-sidebar #TOC a:hover{ color:var(--ks-navy-700) !important; }
+body #quarto-margin-sidebar #TOC a.active{ color:var(--accent-deep) !important; }
 // keep the sidebar pinned on long pages (it scrolled off screen on index)
 #quarto-margin-sidebar{
   position:sticky; top:70px;
@@ -378,6 +388,18 @@ nav#TOC a.nav-link{ padding:.16rem 0; }
     border-radius:var(--r-sm); padding:1rem 1.1rem;
   }
 }
+// mobile fold (script/_includes/toc-fold.html wraps the list into <details>)
+#quarto-margin-sidebar #TOC.toc-mfolded #toc-title{ display:none; }
+.toc-fold summary{
+  cursor:pointer; list-style:none; font-weight:700; font-size:var(--t-14); color:var(--ks-navy);
+}
+.toc-fold summary::-webkit-details-marker{ display:none; }
+.toc-fold summary::after{
+  content:""; width:.45rem; height:.45rem;
+  border-right:2px solid var(--accent-deep); border-bottom:2px solid var(--accent-deep);
+  transform:rotate(45deg); display:inline-block; margin-left:.55rem; vertical-align:2px;
+}
+.toc-fold[open] summary::after{ transform:rotate(-135deg); vertical-align:-2px; }
 // long code lines must scroll inside their block, never widen the page
 pre{ overflow-x:auto; max-width:100%; }
 // MathJax display equations (wide matrices) get the same treatment on narrow screens

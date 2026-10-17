@@ -1,0 +1,42 @@
+<script>
+(function () {
+  // TOC interactions for ks-blog (brand restyle):
+  // 1) month/year rows with a hidden child list expand on click (toggle)
+  // 2) on phones the "On this page" block folds into a compact <details> card
+  function wireToc(toc) {
+    if (toc.dataset.ksWired) return;
+    toc.dataset.ksWired = '1';
+    toc.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      var li = a.parentElement;
+      if (li && li.querySelector(':scope > ul')) li.classList.toggle('toc-open');
+    });
+  }
+  function mobileFold() {
+    var toc = document.querySelector('#quarto-margin-sidebar #TOC');
+    if (!toc || toc.dataset.mfold || !window.matchMedia('(max-width: 991.98px)').matches) return;
+    toc.dataset.mfold = '1';
+    var ul = toc.querySelector(':scope > ul');
+    if (!ul) return;
+    toc.classList.add('toc-mfolded');
+    var det = document.createElement('details');
+    det.className = 'toc-fold';
+    var sum = document.createElement('summary');
+    sum.textContent = toc.querySelector('#toc-title') ? toc.querySelector('#toc-title').textContent.trim() : 'On this page';
+    det.appendChild(sum);
+    toc.removeChild(ul);
+    det.appendChild(ul);
+    toc.appendChild(det);
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    wireToc(document.querySelector('#quarto-margin-sidebar #TOC'));
+    mobileFold();
+  });
+  // scrollspy can re-render active states; keep wiring idempotent per TOC element
+  window.setInterval(function () {
+    var toc = document.querySelector('#quarto-margin-sidebar #TOC');
+    if (toc) wireToc(toc);
+  }, 1500);
+})();
+</script>

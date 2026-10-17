@@ -83,7 +83,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-6211e1826a3c7e9c1c067064fd5ea300.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-99a06811f5c6ba11209040eb1b5afed7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -155,6 +155,48 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     if (root) observer.observe(root, { childList: true, subtree: true });
     attempt();
   });
+})();
+</script>
+<script>
+(function () {
+  // TOC interactions for ks-blog (brand restyle):
+  // 1) month/year rows with a hidden child list expand on click (toggle)
+  // 2) on phones the "On this page" block folds into a compact <details> card
+  function wireToc(toc) {
+    if (toc.dataset.ksWired) return;
+    toc.dataset.ksWired = '1';
+    toc.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      var li = a.parentElement;
+      if (li && li.querySelector(':scope > ul')) li.classList.toggle('toc-open');
+    });
+  }
+  function mobileFold() {
+    var toc = document.querySelector('#quarto-margin-sidebar #TOC');
+    if (!toc || toc.dataset.mfold || !window.matchMedia('(max-width: 991.98px)').matches) return;
+    toc.dataset.mfold = '1';
+    var ul = toc.querySelector(':scope > ul');
+    if (!ul) return;
+    toc.classList.add('toc-mfolded');
+    var det = document.createElement('details');
+    det.className = 'toc-fold';
+    var sum = document.createElement('summary');
+    sum.textContent = toc.querySelector('#toc-title') ? toc.querySelector('#toc-title').textContent.trim() : 'On this page';
+    det.appendChild(sum);
+    toc.removeChild(ul);
+    det.appendChild(ul);
+    toc.appendChild(det);
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    wireToc(document.querySelector('#quarto-margin-sidebar #TOC'));
+    mobileFold();
+  });
+  // scrollspy can re-render active states; keep wiring idempotent per TOC element
+  window.setInterval(function () {
+    var toc = document.querySelector('#quarto-margin-sidebar #TOC');
+    if (toc) wireToc(toc);
+  }, 1500);
 })();
 </script>
 <script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>

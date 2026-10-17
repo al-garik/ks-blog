@@ -48,7 +48,9 @@ format:
     code-fold: false
     code-tools: false
     lightbox: true
-    include-in-header: _includes/navbar-fix.html
+    include-in-header:
+      - _includes/navbar-fix.html
+      - _includes/toc-fold.html
     grid:
       sidebar-width: 300px
       body-width: 900px
