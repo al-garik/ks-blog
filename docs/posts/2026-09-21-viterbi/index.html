@@ -9,7 +9,7 @@
 <meta name="author" content="Vladimir Larchenko">
 <meta name="dcterms.date" content="2026-09-21">
 
-<title>Viterbi Decoding for Clinical Response Chains – Technical Blog</title>
+<title>Viterbi Decoding for Clinical Response Chains – KeyStat Technical Blog</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -73,7 +73,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../images/favicon.png" rel="icon" type="image/png">
+<link href="../../images/favicon/favicon.png" rel="icon" type="image/png">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -83,7 +83,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-030b739f9d5739cb2296ef50509d8e93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6211e1826a3c7e9c1c067064fd5ea300.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -201,8 +201,8 @@ window.Quarto = {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a href="https://keystatsolutions.com" class="navbar-brand navbar-brand-logo">
-    <img src="../../images/keystat-logo.svg" alt="KeyStat Solutions" class="navbar-logo light-content">
-    <img src="../../images/keystat-logo.svg" alt="KeyStat Solutions" class="navbar-logo dark-content">
+    <img src="../../images/brand/logo-navbar-en.svg" alt="KeyStat" class="navbar-logo light-content">
+    <img src="../../images/brand/logo-navbar-en.svg" alt="KeyStat" class="navbar-logo dark-content">
     </a>
     <a class="navbar-brand" href="https://keystatsolutions.com">
     <span class="navbar-title">Technical Blog</span>
@@ -229,10 +229,6 @@ window.Quarto = {
     <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
 </i> 
 <span class="menu-text"></span></a>
-  </li>  
-  <li class="nav-item">
-    <a class="nav-link" href="https://www.r-bloggers.com"> 
-<span class="menu-text">R-Bloggers</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -996,7 +992,7 @@ P(\Delta t) = \exp(Q\,\Delta t)
 <span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a><span class="fu">rowSums</span>(Q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          CR           PR           SD           PD 
-1.734723e-18 1.040834e-17 0.000000e+00 0.000000e+00 </code></pre>
+1.734723e-18 3.469447e-18 2.602085e-18 0.000000e+00 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">max</span>(<span class="fu">abs</span>(P <span class="sc">-</span> <span class="fu">as.matrix</span>(<span class="fu">expm</span>(Q <span class="sc">*</span> <span class="dv">4</span>))))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1725,13 +1721,13 @@ from    CR    PR    SD    PD
 <footer class="footer">
   <div class="nav-footer">
     <div class="nav-footer-left">
-<p>© 2026 KeyStat Solutions. All rights reserved.</p>
+<p>© 2026 KeyStat. All rights reserved.</p>
 </div>   
     <div class="nav-footer-center">
 <p>Powered by <a href="https://quarto.org/">Quarto</a></p>
 </div>
     <div class="nav-footer-right">
-<p>Made with ❤️ for the R community</p>
+<p>Made by KeyStat for the R community</p>
 </div>
   </div>
 </footer>

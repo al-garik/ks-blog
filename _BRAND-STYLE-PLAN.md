@@ -155,3 +155,22 @@ approval: regenerate docs/ on the build-of-record machine that has ALL deps (Win
 kstools? multiple-imputations post was built there) → commit sources+docs → push main (Pages).
 Follow-up (optional, not style-breaking): old featured post-logo PNGs inside posts still carry
 pre-brand artwork.
+
+## 7. Round-2 owner feedback (17.10, all implemented + verified)
+
+1. Grid cards: featured image inset via `.card-img-top` padding; category chips are
+   `div.listing-category` (NOT .badge) → compact 11px chips with hover border.
+2. Index/archive TOC: quarto hides `#TOC ul ul` until scrollspy activates ancestors (never on
+   the archive) → force visible; sidebar pinned `sticky + max-height calc(100vh-85px) +
+   overflow auto` (was scrolling off screen).
+3. R-Bloggers fully removed: navbar item, r-bloggers.qmd, _R_BLOGGERS_GUIDE.md, per-post
+   "originally published / Visit R-Bloggers" footers, template section; RSS kept as plain RSS
+   (navbar rss icon, feed in _metadata.yml). Verified: 0 occurrences in rendered pages.
+4. Mobile: <576px navbar swaps wordmark→KS tile icon (401 light, 34px) + title fits;
+   ≤991px the page-columns grid crushes the margin track (TOC was 39px wide!) →
+   `body #quarto-content.page-columns{display:block}` + TOC returns as bordered card after the
+   article (41 links measured at 390px); wide MathJax matrices & long code scroll inside their
+   blocks (`pre{overflow-x:auto}`, mjx-container rule) — docWidth==innerWidth, no page overflow.
+   Build note: kstools 0.5.7 (+mice/expm/ksCompare) now installed in zorin site-library; zorin
+   renders the FULL project in place (rc=0 incl. MI post + mianalyze subpage). docs/ regenerated
+   in place, committed locally; still NO push until owner finalizes.

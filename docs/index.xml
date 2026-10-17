@@ -5,10 +5,10 @@
       xmlns:dc="http://purl.org/dc/elements/1.1/" 
       version="2.0">
 <channel>
-<title>Technical Blog</title>
+<title>KeyStat Technical Blog</title>
 <link>https://al-garik.github.io/ks-blog/</link>
 <atom:link href="https://al-garik.github.io/ks-blog/index.xml" rel="self" type="application/rss+xml"/>
-<description>Articles about R programming, and clinical data analysis and reporting</description>
+<description>Articles about R programming, clinical data processing and analysis, and statistical reporting</description>
 <generator>quarto-1.10.18</generator>
 <lastBuildDate>Sun, 20 Sep 2026 21:00:00 GMT</lastBuildDate>
 <item>
@@ -1790,7 +1790,7 @@ background-color: null;
 font-style: inherit;">rowSums</span>(Q)</span></code></pre></div></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          CR           PR           SD           PD 
-1.734723e-18 1.040834e-17 0.000000e+00 0.000000e+00 </code></pre>
+1.734723e-18 3.469447e-18 2.602085e-18 0.000000e+00 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -5989,7 +5989,7 @@ font-style: inherit;">analysis_demo</span>(demo_adsl)</span></code></pre></div><
 <pre><code>[mean_sd_by_trt] finished</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.006 s</code></pre>
+<pre><code>Elapsed: 0.019 s</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 4
@@ -6063,7 +6063,7 @@ font-style: inherit;">demog_pipeline</span>(demo_adsl)</span></code></pre></div>
 <pre><code>[demog] finished</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.007 s</code></pre>
+<pre><code>Elapsed: 0.026 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1">demog_out<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -6369,7 +6369,7 @@ font-style: inherit;">with_timing</span>()</span>
 background-color: null;
 font-style: inherit;">lab_pipeline</span>(demo_labs_wide)</span></code></pre></div></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.005 s</code></pre>
+<pre><code>Elapsed: 0.024 s</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 12 × 6
@@ -6568,7 +6568,7 @@ font-style: inherit;">cox_pipeline</span>(demo_adtte)</span></code></pre></div><
 <pre><code>[cox_trt] finished</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.004 s</code></pre>
+<pre><code>Elapsed: 0.013 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -6837,7 +6837,7 @@ font-style: inherit;">1</span>L))</span></code></pre></div></div>
 <pre><code>Cache miss — running analysis</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.589 s</code></pre>
+<pre><code>Elapsed: 4.078 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1">t2 <span class="ot" style="color: #003B4F;
 background-color: null;
@@ -6860,7 +6860,7 @@ font-style: inherit;">1</span>L))</span></code></pre></div></div>
 <pre><code>Cache hit: boot-age-c138e65fdd9ef0caa8c65e8777f063c8.rds</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.000 s</code></pre>
+<pre><code>Elapsed: 0.002 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -6885,7 +6885,7 @@ background-color: null;
 font-style: inherit;">"elapsed"</span>]]))</span></code></pre></div></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> first_s second_s 
-   0.589    0.000 </code></pre>
+   4.079    0.002 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1">r1</span></code></pre></div></div>
 <div class="cell-output cell-output-stdout">
@@ -7446,7 +7446,7 @@ flowchart LR
 </item>
 <item>
   <title>Powerful Data Validation Engine</title>
-  <dc:creator>Vladimir Larchenko (KeyStat Solutions)</dc:creator>
+  <dc:creator>Vladimir Larchenko (KeyStat)</dc:creator>
   <link>https://al-garik.github.io/ks-blog/posts/2026-08-03-powerful-data-validation-engine/</link>
   <description><![CDATA[ 
 
@@ -9576,7 +9576,7 @@ font-style: inherit;">ungroup</span>()</span></code></pre></div></div>
 </item>
 <item>
   <title>Multiple Imputation Analysis with mianalyze()</title>
-  <dc:creator>Vladimir Larchenko (KeyStat Solutions)</dc:creator>
+  <dc:creator>Vladimir Larchenko (KeyStat)</dc:creator>
   <link>https://al-garik.github.io/ks-blog/posts/2026-07-20-multiple-impuations-restoring-reality/</link>
   <description><![CDATA[ 
 
@@ -10628,14 +10628,13 @@ font-style: inherit;">"list"</span>)</span>
 <span id="cb2-187">  res</span>
 <span id="cb2-188">}</span>
 <span id="cb2-189"></span>
-<span id="cb2-190"></span>
-<span id="cb2-191"><span class="co" style="color: #5E5E5E;
+<span id="cb2-190"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @rdname ks_mianalyze</span></span>
-<span id="cb2-192"><span class="co" style="color: #5E5E5E;
+<span id="cb2-191"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @export</span></span>
-<span id="cb2-193">mianalyze <span class="ot" style="color: #003B4F;
+<span id="cb2-192">mianalyze <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
@@ -10653,7 +10652,7 @@ background-color: null;
 font-style: inherit;">edf =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">Inf</span>, v0) {</span>
-<span id="cb2-194">  <span class="cf" style="color: #003B4F;
+<span id="cb2-193">  <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
@@ -10675,14 +10674,14 @@ background-color: null;
 font-style: inherit;">identical</span>(edf, <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">Inf</span>))</span>
-<span id="cb2-195">    cli<span class="sc" style="color: #5E5E5E;
+<span id="cb2-194">    cli<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cli_abort</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Specify either {.arg edf} or {.arg v0}, not both."</span>)</span>
-<span id="cb2-196">  <span class="cf" style="color: #003B4F;
+<span id="cb2-195">  <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
@@ -10694,7 +10693,7 @@ background-color: null;
 font-style: inherit;">&amp;&amp;</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">missing</span>(edf)) {</span>
-<span id="cb2-197">    <span class="fu" style="color: #4758AB;
+<span id="cb2-196">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">ks_mianalyze</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -10707,11 +10706,11 @@ background-color: null;
 font-style: inherit;">theta0 =</span> theta0, <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">v0 =</span> v0)</span>
-<span id="cb2-198">  } <span class="cf" style="color: #003B4F;
+<span id="cb2-197">  } <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">else</span> {</span>
-<span id="cb2-199">    <span class="fu" style="color: #4758AB;
+<span id="cb2-198">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">ks_mianalyze</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -10724,60 +10723,59 @@ background-color: null;
 font-style: inherit;">theta0 =</span> theta0, <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">edf =</span> edf)</span>
-<span id="cb2-200">  }</span>
-<span id="cb2-201">}</span>
-<span id="cb2-202"></span>
-<span id="cb2-203"></span>
-<span id="cb2-204"><span class="co" style="color: #5E5E5E;
+<span id="cb2-199">  }</span>
+<span id="cb2-200">}</span>
+<span id="cb2-201"></span>
+<span id="cb2-202"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @rdname ks_mianalyze</span></span>
-<span id="cb2-205"><span class="co" style="color: #5E5E5E;
+<span id="cb2-203"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @export</span></span>
-<span id="cb2-206">summary.ks_mianalyze <span class="ot" style="color: #003B4F;
+<span id="cb2-204">summary.ks_mianalyze <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(object, ...) {</span>
-<span id="cb2-207">  variance_tbl <span class="ot" style="color: #003B4F;
+<span id="cb2-205">  variance_tbl <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">data.frame</span>(</span>
-<span id="cb2-208">    <span class="at" style="color: #657422;
+<span id="cb2-206">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Between =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>Vb,</span>
-<span id="cb2-209">    <span class="at" style="color: #657422;
+<span id="cb2-207">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Within  =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>Vw,</span>
-<span id="cb2-210">    <span class="at" style="color: #657422;
+<span id="cb2-208">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Total   =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>Vt,</span>
-<span id="cb2-211">    <span class="at" style="color: #657422;
+<span id="cb2-209">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">DF      =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>df,</span>
-<span id="cb2-212">    <span class="at" style="color: #657422;
+<span id="cb2-210">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">check.names =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">FALSE</span></span>
-<span id="cb2-213">  )</span>
-<span id="cb2-214"></span>
-<span id="cb2-215">  diagnostics_tbl <span class="ot" style="color: #003B4F;
+<span id="cb2-211">  )</span>
+<span id="cb2-212"></span>
+<span id="cb2-213">  diagnostics_tbl <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">data.frame</span>(</span>
-<span id="cb2-216">    <span class="st" style="color: #20794D;
+<span id="cb2-214">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span><span class="at" style="color: #657422;
 background-color: null;
@@ -10788,7 +10786,7 @@ background-color: null;
 font-style: inherit;">=</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>r,</span>
-<span id="cb2-217">    <span class="st" style="color: #20794D;
+<span id="cb2-215">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span><span class="at" style="color: #657422;
 background-color: null;
@@ -10799,7 +10797,7 @@ background-color: null;
 font-style: inherit;">=</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>lambda,</span>
-<span id="cb2-218">    <span class="st" style="color: #20794D;
+<span id="cb2-216">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span><span class="at" style="color: #657422;
 background-color: null;
@@ -10810,24 +10808,24 @@ background-color: null;
 font-style: inherit;">=</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>re,</span>
-<span id="cb2-219">    <span class="at" style="color: #657422;
+<span id="cb2-217">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">check.names =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">FALSE</span></span>
-<span id="cb2-220">  )</span>
-<span id="cb2-221"></span>
-<span id="cb2-222">  estimates_tbl <span class="ot" style="color: #003B4F;
+<span id="cb2-218">  )</span>
+<span id="cb2-219"></span>
+<span id="cb2-220">  estimates_tbl <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">data.frame</span>(</span>
-<span id="cb2-223">    <span class="at" style="color: #657422;
+<span id="cb2-221">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Estimate =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>Estimate,</span>
-<span id="cb2-224">    <span class="st" style="color: #20794D;
+<span id="cb2-222">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span><span class="at" style="color: #657422;
 background-color: null;
@@ -10838,123 +10836,122 @@ background-color: null;
 font-style: inherit;">=</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>StdErr,</span>
-<span id="cb2-225">    <span class="at" style="color: #657422;
+<span id="cb2-223">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">LCL =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>lcl,</span>
-<span id="cb2-226">    <span class="at" style="color: #657422;
+<span id="cb2-224">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">UCL =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>ucl,</span>
-<span id="cb2-227">    <span class="at" style="color: #657422;
+<span id="cb2-225">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">DF =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>df,</span>
-<span id="cb2-228">    <span class="at" style="color: #657422;
+<span id="cb2-226">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">check.names =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">FALSE</span></span>
-<span id="cb2-229">  )</span>
-<span id="cb2-230"></span>
-<span id="cb2-231">  tests_tbl <span class="ot" style="color: #003B4F;
+<span id="cb2-227">  )</span>
+<span id="cb2-228"></span>
+<span id="cb2-229">  tests_tbl <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">data.frame</span>(</span>
-<span id="cb2-232">    <span class="at" style="color: #657422;
+<span id="cb2-230">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Minimum =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>minim,</span>
-<span id="cb2-233">    <span class="at" style="color: #657422;
+<span id="cb2-231">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Maximum =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>maxim,</span>
-<span id="cb2-234">    <span class="at" style="color: #657422;
+<span id="cb2-232">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Theta0  =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>theta0,</span>
-<span id="cb2-235">    <span class="at" style="color: #657422;
+<span id="cb2-233">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Statistic =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>t,</span>
-<span id="cb2-236">    <span class="at" style="color: #657422;
+<span id="cb2-234">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">PValue =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>pval,</span>
-<span id="cb2-237">    <span class="at" style="color: #657422;
+<span id="cb2-235">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">check.names =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">FALSE</span></span>
-<span id="cb2-238">  )</span>
-<span id="cb2-239"></span>
-<span id="cb2-240">  <span class="fu" style="color: #4758AB;
+<span id="cb2-236">  )</span>
+<span id="cb2-237"></span>
+<span id="cb2-238">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">structure</span>(</span>
-<span id="cb2-241">    <span class="fu" style="color: #4758AB;
+<span id="cb2-239">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">list</span>(</span>
-<span id="cb2-242">      <span class="at" style="color: #657422;
+<span id="cb2-240">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">variance =</span> variance_tbl,</span>
-<span id="cb2-243">      <span class="at" style="color: #657422;
+<span id="cb2-241">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">diagnostics =</span> diagnostics_tbl,</span>
-<span id="cb2-244">      <span class="at" style="color: #657422;
+<span id="cb2-242">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">estimates =</span> estimates_tbl,</span>
-<span id="cb2-245">      <span class="at" style="color: #657422;
+<span id="cb2-243">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">tests =</span> tests_tbl,</span>
-<span id="cb2-246">      <span class="at" style="color: #657422;
+<span id="cb2-244">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">m =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>m,</span>
-<span id="cb2-247">      <span class="at" style="color: #657422;
+<span id="cb2-245">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">alpha =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>alpha,</span>
-<span id="cb2-248">      <span class="at" style="color: #657422;
+<span id="cb2-246">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">edf =</span> object<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>edf</span>
-<span id="cb2-249">    ),</span>
-<span id="cb2-250">    <span class="at" style="color: #657422;
+<span id="cb2-247">    ),</span>
+<span id="cb2-248">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">class =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"summary.ks_mianalyze"</span></span>
-<span id="cb2-251">  )</span>
-<span id="cb2-252">}</span>
-<span id="cb2-253"></span>
-<span id="cb2-254"></span>
-<span id="cb2-255"><span class="co" style="color: #5E5E5E;
+<span id="cb2-249">  )</span>
+<span id="cb2-250">}</span>
+<span id="cb2-251"></span>
+<span id="cb2-252"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @export</span></span>
-<span id="cb2-256">print.ks_mianalyze <span class="ot" style="color: #003B4F;
+<span id="cb2-253">print.ks_mianalyze <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(x, ...) {</span>
-<span id="cb2-257">  s <span class="ot" style="color: #003B4F;
+<span id="cb2-254">  s <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">summary</span>(x)</span>
-<span id="cb2-258">  adj <span class="ot" style="color: #003B4F;
+<span id="cb2-255">  adj <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
@@ -10971,8 +10968,8 @@ font-weight: bold;
 font-style: inherit;">else</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">""</span></span>
-<span id="cb2-259">  </span>
-<span id="cb2-260">  <span class="fu" style="color: #4758AB;
+<span id="cb2-256">  </span>
+<span id="cb2-257">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -10989,7 +10986,7 @@ background-color: null;
 font-style: inherit;">"</span>, s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>m))</span>
-<span id="cb2-261">  <span class="fu" style="color: #4758AB;
+<span id="cb2-258">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11016,7 +11013,7 @@ background-color: null;
 font-style: inherit;">sep =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">""</span>)</span>
-<span id="cb2-262">  <span class="fu" style="color: #4758AB;
+<span id="cb2-259">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11037,7 +11034,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-263">  <span class="fu" style="color: #4758AB;
+<span id="cb2-260">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11060,7 +11057,7 @@ background-color: null;
 font-style: inherit;">\n\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>, </span>
-<span id="cb2-264">      s<span class="sc" style="color: #5E5E5E;
+<span id="cb2-261">      s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>variance<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -11077,8 +11074,8 @@ background-color: null;
 font-style: inherit;">$</span>variance<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>DF))</span>
-<span id="cb2-265"></span>
-<span id="cb2-266">  <span class="fu" style="color: #4758AB;
+<span id="cb2-262"></span>
+<span id="cb2-263">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11091,7 +11088,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-267">  <span class="fu" style="color: #4758AB;
+<span id="cb2-264">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11108,7 +11105,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-268">  <span class="fu" style="color: #4758AB;
+<span id="cb2-265">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11125,7 +11122,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-269">  <span class="fu" style="color: #4758AB;
+<span id="cb2-266">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11142,7 +11139,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-270">  <span class="fu" style="color: #4758AB;
+<span id="cb2-267">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11161,7 +11158,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>, </span>
-<span id="cb2-271">      s<span class="sc" style="color: #5E5E5E;
+<span id="cb2-268">      s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>diagnostics<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -11172,7 +11169,7 @@ background-color: null;
 font-style: inherit;">Relative Increase in Variance</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span>,</span>
-<span id="cb2-272">      s<span class="sc" style="color: #5E5E5E;
+<span id="cb2-269">      s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>diagnostics<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -11183,7 +11180,7 @@ background-color: null;
 font-style: inherit;">Fraction Missing Information</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span>,</span>
-<span id="cb2-273">      s<span class="sc" style="color: #5E5E5E;
+<span id="cb2-270">      s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>diagnostics<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -11194,8 +11191,8 @@ background-color: null;
 font-style: inherit;">Relative Efficiency</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span>))</span>
-<span id="cb2-274"></span>
-<span id="cb2-275">  <span class="fu" style="color: #4758AB;
+<span id="cb2-271"></span>
+<span id="cb2-272">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11212,7 +11209,7 @@ background-color: null;
 font-style: inherit;">"</span>, s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>m))</span>
-<span id="cb2-276">  <span class="fu" style="color: #4758AB;
+<span id="cb2-273">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11245,7 +11242,7 @@ background-color: null;
 font-style: inherit;">-</span> s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>alpha)))</span>
-<span id="cb2-277">  <span class="fu" style="color: #4758AB;
+<span id="cb2-274">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11266,7 +11263,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-278">  <span class="fu" style="color: #4758AB;
+<span id="cb2-275">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11293,7 +11290,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>, </span>
-<span id="cb2-279">      s<span class="sc" style="color: #5E5E5E;
+<span id="cb2-276">      s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>estimates<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -11308,7 +11305,7 @@ background-color: null;
 font-style: inherit;">Std Error</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">`</span>,</span>
-<span id="cb2-280">      s<span class="sc" style="color: #5E5E5E;
+<span id="cb2-277">      s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>estimates<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -11321,8 +11318,8 @@ background-color: null;
 font-style: inherit;">$</span>estimates<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>DF))</span>
-<span id="cb2-281"></span>
-<span id="cb2-282">  <span class="fu" style="color: #4758AB;
+<span id="cb2-278"></span>
+<span id="cb2-279">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11335,7 +11332,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-283">  <span class="fu" style="color: #4758AB;
+<span id="cb2-280">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11360,7 +11357,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-284">  <span class="fu" style="color: #4758AB;
+<span id="cb2-281">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11385,7 +11382,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb2-285">  <span class="fu" style="color: #4758AB;
+<span id="cb2-282">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">cat</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11412,7 +11409,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>, </span>
-<span id="cb2-286">      s<span class="sc" style="color: #5E5E5E;
+<span id="cb2-283">      s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>tests<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -11425,7 +11422,7 @@ background-color: null;
 font-style: inherit;">$</span>tests<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>Theta0,</span>
-<span id="cb2-287">      s<span class="sc" style="color: #5E5E5E;
+<span id="cb2-284">      s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>tests<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -11434,40 +11431,39 @@ background-color: null;
 font-style: inherit;">$</span>tests<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>PValue))</span>
-<span id="cb2-288"></span>
-<span id="cb2-289">  <span class="fu" style="color: #4758AB;
+<span id="cb2-285"></span>
+<span id="cb2-286">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">invisible</span>(x)</span>
-<span id="cb2-290">}</span>
-<span id="cb2-291"></span>
-<span id="cb2-292"></span>
-<span id="cb2-293"><span class="co" style="color: #5E5E5E;
+<span id="cb2-287">}</span>
+<span id="cb2-288"></span>
+<span id="cb2-289"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @rdname ks_mianalyze</span></span>
-<span id="cb2-294"><span class="co" style="color: #5E5E5E;
+<span id="cb2-290"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @importFrom knitr knit_print kable</span></span>
-<span id="cb2-295"><span class="co" style="color: #5E5E5E;
+<span id="cb2-291"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#' @exportS3Method knitr::knit_print</span></span>
-<span id="cb2-296">knit_print.ks_mianalyze <span class="ot" style="color: #003B4F;
+<span id="cb2-292">knit_print.ks_mianalyze <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(x, ...) {</span>
-<span id="cb2-297">  s <span class="ot" style="color: #003B4F;
+<span id="cb2-293">  s <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">summary</span>(x)</span>
-<span id="cb2-298">  </span>
-<span id="cb2-299">  out <span class="ot" style="color: #003B4F;
+<span id="cb2-294">  </span>
+<span id="cb2-295">  out <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">c</span>(</span>
-<span id="cb2-300">    <span class="fu" style="color: #4758AB;
+<span id="cb2-296">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11478,7 +11474,7 @@ background-color: null;
 font-style: inherit;">"</span>, s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>m),</span>
-<span id="cb2-301">    knitr<span class="sc" style="color: #5E5E5E;
+<span id="cb2-297">    knitr<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11489,23 +11485,23 @@ background-color: null;
 font-style: inherit;">digits =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">6</span>),</span>
-<span id="cb2-302">    </span>
-<span id="cb2-303">    <span class="st" style="color: #20794D;
+<span id="cb2-298">    </span>
+<span id="cb2-299">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">\n\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>,</span>
-<span id="cb2-304">    </span>
-<span id="cb2-305">    <span class="st" style="color: #20794D;
+<span id="cb2-300">    </span>
+<span id="cb2-301">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"## Missing Data Diagnostics</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>,</span>
-<span id="cb2-306">    knitr<span class="sc" style="color: #5E5E5E;
+<span id="cb2-302">    knitr<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11516,16 +11512,16 @@ background-color: null;
 font-style: inherit;">digits =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">6</span>),</span>
-<span id="cb2-307">    </span>
-<span id="cb2-308">    <span class="st" style="color: #20794D;
+<span id="cb2-303">    </span>
+<span id="cb2-304">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">\n\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>,</span>
-<span id="cb2-309">    </span>
-<span id="cb2-310">    <span class="fu" style="color: #4758AB;
+<span id="cb2-305">    </span>
+<span id="cb2-306">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -11536,7 +11532,7 @@ background-color: null;
 font-style: inherit;">"</span>, s<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>m),</span>
-<span id="cb2-311">    knitr<span class="sc" style="color: #5E5E5E;
+<span id="cb2-307">    knitr<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11547,23 +11543,23 @@ background-color: null;
 font-style: inherit;">digits =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">6</span>),</span>
-<span id="cb2-312">    </span>
-<span id="cb2-313">    <span class="st" style="color: #20794D;
+<span id="cb2-308">    </span>
+<span id="cb2-309">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">\n\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>,</span>
-<span id="cb2-314">    </span>
-<span id="cb2-315">    <span class="st" style="color: #20794D;
+<span id="cb2-310">    </span>
+<span id="cb2-311">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"## Hypothesis Test</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>,</span>
-<span id="cb2-316">    knitr<span class="sc" style="color: #5E5E5E;
+<span id="cb2-312">    knitr<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11574,9 +11570,9 @@ background-color: null;
 font-style: inherit;">digits =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">6</span>)</span>
-<span id="cb2-317">  )</span>
-<span id="cb2-318"></span>
-<span id="cb2-319">  knitr<span class="sc" style="color: #5E5E5E;
+<span id="cb2-313">  )</span>
+<span id="cb2-314"></span>
+<span id="cb2-315">  knitr<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -11591,7 +11587,7 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>))</span>
-<span id="cb2-320">}</span></code></pre></div></div>
+<span id="cb2-316">}</span></code></pre></div></div>
 </details>
 </div>
 </section>
@@ -13543,8 +13539,6 @@ font-style: inherit;">5</span>))</span></code></pre></div></div>
 <p>Rubin, D.B. (1987). <em>Multiple Imputation for Nonresponse in Surveys</em>. Wiley.</p>
 <p>SAS Institute Inc.&nbsp;(2013). <em>SAS/STAT 12.3 User’s Guide</em>. Chapter 58, The MIANALYZE Procedure. Cary, NC: SAS Institute Inc.</p>
 <p>Van Buuren, S. (2018). <em>Flexible Imputation of Missing Data</em>. Second Edition. Chapman &amp; Hall/CRC.</p>
-<hr>
-<p><em>This post was originally published on the KeyStat Solutions R Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>
 
 
 </section>
@@ -13562,7 +13556,7 @@ font-style: inherit;">5</span>))</span></code></pre></div></div>
 </item>
 <item>
   <title>How Long Are You Ready to Wait for Your Clinical Tables?</title>
-  <dc:creator>Igor Aleschenkov (KeyStat Solutions)</dc:creator>
+  <dc:creator>Igor Aleschenkov (KeyStat)</dc:creator>
   <link>https://al-garik.github.io/ks-blog/posts/2026-07-13-reporter-vs-ksTFL-performance/</link>
   <description><![CDATA[ 
 
@@ -14036,7 +14030,6 @@ font-style: inherit;">&lt;-</span> n</span>
 <pre><code>Aleschenkov I, Larchenko V (2026). _ksTFL: Framework for Clinical Tables,
   Figures, and Listings_. R package version 0.11.9,
   &lt;https://crow16384.github.io/ksTFL/,https://crow16384.r-universe.dev/ksTFL&gt;</code></pre>
-<p><em>This post was originally published on the KeyStat Solutions R Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>
 
 
 </section>
@@ -14053,7 +14046,7 @@ font-style: inherit;">&lt;-</span> n</span>
 </item>
 <item>
   <title>Getting Current R-script name in R automatically</title>
-  <dc:creator>Igor Aleschenkov (KeyStat Solutions)</dc:creator>
+  <dc:creator>Igor Aleschenkov (KeyStat)</dc:creator>
   <link>https://al-garik.github.io/ks-blog/posts/2026-07-09-getting-current-script-name-in-r/</link>
   <description><![CDATA[ 
 
@@ -14512,8 +14505,6 @@ font-style: inherit;">'the_test_script.R'</span>))</span></code></pre></div></di
 </ul>
 <p>Because the program name is obtained automatically, there is no risk of documentation becoming inconsistent after a script is renamed. It is one less manual step to remember, making reporting workflows slightly more robust and easier to maintain.</p>
 <p>Although the implementation is compact, it provides a convenient building block for reproducible clinical reporting, where every generated output should clearly identify the program that created it.</p>
-<hr>
-<p><em>This post was originally published on the KeyStat Solutions R Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>
 
 
 
@@ -14528,7 +14519,7 @@ font-style: inherit;">'the_test_script.R'</span>))</span></code></pre></div></di
 </item>
 <item>
   <title>Non-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks</title>
-  <dc:creator>Vladimir Larchenko (KeyStat Solutions)</dc:creator>
+  <dc:creator>Vladimir Larchenko (KeyStat)</dc:creator>
   <link>https://al-garik.github.io/ks-blog/posts/2026-07-09-non-standard-applications-of-ksformat/</link>
   <description><![CDATA[ 
 
@@ -15728,7 +15719,6 @@ font-style: inherit;">fclear</span>()</span></code></pre></div></div>
 </div>
 <hr>
 <pre><code>Larchenko V, Aleschenkov I (2026). _ksformat: 'SAS'-Style 'PROC FORMAT'   for R_. R package version 0.8.3, &lt;https://github.com/crow16384/ksformat&gt;.</code></pre>
-<p><em>This post was originally published on the KeyStat Solutions R Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>
 
 
 </section>
@@ -15745,7 +15735,7 @@ font-style: inherit;">fclear</span>()</span></code></pre></div></div>
 </item>
 <item>
   <title>Getting Started with ksTFL: Creating Your First Clinical Table</title>
-  <dc:creator>Igor Aleschenkov (KeyStat Solutions)</dc:creator>
+  <dc:creator>Igor Aleschenkov (KeyStat)</dc:creator>
   <link>https://al-garik.github.io/ks-blog/posts/2026-07-06-getting-started-ks-tfl/</link>
   <description><![CDATA[ 
 
@@ -16608,7 +16598,6 @@ font-style: inherit;">"output"</span>)</span></code></pre></div></div>
 <p>- A LinkedIn Post <a href="https://www.linkedin.com/feed/update/urn:li:activity:7479853700828811264/?utm_source=share&amp;utm_medium=member_desktop&amp;rcm=ACoAAAUzuu4BEDY7577xOkwgYzheanx_vKn89pk">here</a> gives some additional context and background on the ksTFL package.</p>
 <hr>
 <p>Aleschenkov I, Larchenko V (2026). <em>ksTFL: Framework for Clinical Tables, Figures, and Listings</em>. R package version 0.11.9, <a href="https://crow16384.github.io/ksTFL/" class="uri">https://crow16384.github.io/ksTFL/</a> <a href="https://crow16384.r-universe.dev/ksTFL" class="uri">https://crow16384.r-universe.dev/ksTFL</a>.</p>
-<p><em>This post was originally published on the KeyStat Solutions Technical Blog. <a href="https://www.r-bloggers.com">Visit R-Bloggers</a> to discover more R content.</em></p>
 
 
 </section>

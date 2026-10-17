@@ -9,7 +9,7 @@
 <meta name="author" content="Vladimir Larchenko">
 <meta name="dcterms.date" content="2026-08-17">
 
-<title>Decorator Pattern in R for Clinical Statistics – Technical Blog</title>
+<title>Decorator Pattern in R for Clinical Statistics – KeyStat Technical Blog</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -73,7 +73,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../images/favicon.png" rel="icon" type="image/png">
+<link href="../../images/favicon/favicon.png" rel="icon" type="image/png">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -83,7 +83,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-030b739f9d5739cb2296ef50509d8e93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-6211e1826a3c7e9c1c067064fd5ea300.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -201,8 +201,8 @@ window.Quarto = {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a href="https://keystatsolutions.com" class="navbar-brand navbar-brand-logo">
-    <img src="../../images/keystat-logo.svg" alt="KeyStat Solutions" class="navbar-logo light-content">
-    <img src="../../images/keystat-logo.svg" alt="KeyStat Solutions" class="navbar-logo dark-content">
+    <img src="../../images/brand/logo-navbar-en.svg" alt="KeyStat" class="navbar-logo light-content">
+    <img src="../../images/brand/logo-navbar-en.svg" alt="KeyStat" class="navbar-logo dark-content">
     </a>
     <a class="navbar-brand" href="https://keystatsolutions.com">
     <span class="navbar-title">Technical Blog</span>
@@ -229,10 +229,6 @@ window.Quarto = {
     <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
 </i> 
 <span class="menu-text"></span></a>
-  </li>  
-  <li class="nav-item">
-    <a class="nav-link" href="https://www.r-bloggers.com"> 
-<span class="menu-text">R-Bloggers</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -567,7 +563,7 @@ flowchart LR
 <pre><code>[mean_sd_by_trt] finished</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.006 s</code></pre>
+<pre><code>Elapsed: 0.019 s</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 4
@@ -599,7 +595,7 @@ flowchart LR
 <pre><code>[demog] finished</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.007 s</code></pre>
+<pre><code>Elapsed: 0.026 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>demog_out<span class="sc">$</span>result<span class="sc">$</span>result</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -681,7 +677,7 @@ $r_version
 <span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a><span class="fu">lab_pipeline</span>(demo_labs_wide)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.005 s</code></pre>
+<pre><code>Elapsed: 0.024 s</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 12 × 6
@@ -737,7 +733,7 @@ $r_version
 <pre><code>[cox_trt] finished</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.004 s</code></pre>
+<pre><code>Elapsed: 0.013 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(cox_out<span class="sc">$</span>result)<span class="sc">$</span>coefficients</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -790,14 +786,14 @@ TRT01PPlacebo 0.3422392  1.408097 0.3956067 0.8650995 0.3869842</code></pre>
 <pre><code>Cache miss — running analysis</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.589 s</code></pre>
+<pre><code>Elapsed: 4.078 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>t2 <span class="ot">&lt;-</span> <span class="fu">system.time</span>(r2 <span class="ot">&lt;-</span> <span class="fu">boot_cached</span>(demo_adsl, <span class="at">n_boot =</span> <span class="dv">400</span>L, <span class="at">seed =</span> <span class="dv">1</span>L))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Cache hit: boot-age-c138e65fdd9ef0caa8c65e8777f063c8.rds</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.000 s</code></pre>
+<pre><code>Elapsed: 0.002 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">identical</span>(r1, r2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -806,7 +802,7 @@ TRT01PPlacebo 0.3422392  1.408097 0.3956067 0.8650995 0.3869842</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">first_s =</span> <span class="fu">unname</span>(t1[[<span class="st">"elapsed"</span>]]), <span class="at">second_s =</span> <span class="fu">unname</span>(t2[[<span class="st">"elapsed"</span>]]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> first_s second_s 
-   0.589    0.000 </code></pre>
+   4.079    0.002 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>r1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1500,13 +1496,13 @@ flowchart LR
 <footer class="footer">
   <div class="nav-footer">
     <div class="nav-footer-left">
-<p>© 2026 KeyStat Solutions. All rights reserved.</p>
+<p>© 2026 KeyStat. All rights reserved.</p>
 </div>   
     <div class="nav-footer-center">
 <p>Powered by <a href="https://quarto.org/">Quarto</a></p>
 </div>
     <div class="nav-footer-right">
-<p>Made with ❤️ for the R community</p>
+<p>Made by KeyStat for the R community</p>
 </div>
   </div>
 </footer>

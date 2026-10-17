@@ -367,6 +367,23 @@ nav#TOC a.nav-link{ padding:.16rem 0; }
   position:sticky; top:70px;
   max-height:calc(100vh - 85px); overflow-y:auto;
 }
+// mobile: quarto hides the margin sidebar (display:none in a media block) —
+// bring it back as a bordered card after the article ("On this page" accessible on phones)
+@media (max-width: 991.98px){
+  body #quarto-content.page-columns{ display:block; }   // single column; margin track otherwise crushes the toc
+  body #quarto-margin-sidebar{ display:block; position:static; max-height:none; overflow:visible; margin-top:1rem; }
+  body #quarto-margin-sidebar #TOC{ display:block; }   // '#TOC,.nav-page{display:none}' hide rule
+  #quarto-margin-sidebar #TOC{
+    border:1px solid var(--line); background:#fff;
+    border-radius:var(--r-sm); padding:1rem 1.1rem;
+  }
+}
+// long code lines must scroll inside their block, never widen the page
+pre{ overflow-x:auto; max-width:100%; }
+// MathJax display equations (wide matrices) get the same treatment on narrow screens
+#quarto-content mjx-container[display="true"], #quarto-content .MathJax_Display, #quarto-content .math.display{
+  overflow-x:auto; overflow-y:hidden; max-width:100%;
+}
 .aa-Item[aria-selected="true"]{
   background-color:var(--ks-navy-50) !important;
   .aa-ItemLink{ background-color:transparent; }
