@@ -61,6 +61,11 @@ $body-color: $keystat-ink;
 $link-color:       $keystat-info;   // 5.6:1, AA body links
 $link-hover-color: $navy-700;
 
+// TOC via vendor variables (kills the cosmo #2761e3 rail/active leakage at the source)
+$toc-color:           $keystat-navy;
+$toc-active-border:   $keystat-orange;
+$toc-inactive-border: transparent;
+
 $border-color: $navy-100;
 
 // Navbar chrome: solid Navy, light foreground (N50)
@@ -350,84 +355,69 @@ table{
 }
 
 // ------------------------------------------------------------
-// TOC & search
+// TOC — via VENDOR SCSS variables (quarto's _bootstrap-rules reads these):
+//   .sidebar nav[role=doc-toc]>ul a{border-left:$toc-inactive-border}
+//   ...a.active{border-left/color:$toc-active-border}, links use $toc-color.
+// No !important chains needed; rails are brand tokens by construction.
 // ------------------------------------------------------------
-nav.toc, nav#TOC, .toc-content{ font-size:var(--t-13); }
-// index/archive TOC: quarto hides nested lists until scrollspy marks ancestors active —
-// on the archive page that never happens for months/posts; keep the tree to years+months open
-// (nav#TOC beats quarto.css '#TOC ul ul' on specificity: 1,0,3 > 1,0,2)
-nav#TOC ul{ list-style:none; padding-left:.35rem; margin-bottom:0; }
-nav#TOC ul ul{ display:block; margin-left:.35rem; padding-left:.7rem; }   // indent only
-// Archive tree default depth = years+months; posts under a month hidden until clicked
-nav#TOC ul ul ul ul{ display:none; }
-nav#TOC li.toc-open > ul{ display:block !important; }
-// quarto puts a 1px gray LEFT BORDER on EVERY toc link (the 'vertical stripes' complaint) and
-// zero padding (active marker glued to letters). One slot design: transparent 2px rail reserved
-// on all items + .65rem breathing room; only the active item paints it orange — text never shifts.
-body #quarto-margin-sidebar #TOC a, body #TOC a{
-  color:var(--ks-navy) !important;
-  border-left:2px solid transparent !important;
-  padding:.16rem 0 .16rem .65rem;
+body #quarto-margin-sidebar #TOC a.active,
+.sidebar nav[role="doc-toc"] ul > li > a.active,
+.sidebar nav[role="doc-toc"] ul > li > ul > li > a.active,
+.toc-content a.active {
+  font-weight:600;   // color/border come from $toc-active-border
 }
-body #quarto-margin-sidebar #TOC a:hover, body #TOC a:hover{ color:var(--ks-navy-700) !important; }
-body #quarto-margin-sidebar #TOC a.active, body #TOC a.active{
-  color:var(--accent-deep) !important; font-weight:600;
-  border-left-color:var(--accent) !important;
-}
-// keep the sidebar pinned on long pages (it scrolled off screen on index);
-// slim branded scrollbar — the default OS bar read as another 'vertical stripe'
-#quarto-margin-sidebar{
-  position:sticky; top:70px;
-  max-height:calc(100vh - 85px); overflow-y:auto;
-  padding-right:6px;
-  scrollbar-width:thin; scrollbar-color:var(--ks-navy-100) transparent;
-}
-#quarto-margin-sidebar::-webkit-scrollbar{ width:6px; }
-#quarto-margin-sidebar::-webkit-scrollbar-thumb{ background:var(--ks-navy-100); border-radius:3px; }
-#quarto-margin-sidebar::-webkit-scrollbar-track{ background:transparent; }
-// mobile: quarto hides the margin sidebar (display:none in a media block) —
-// bring it back as a bordered card after the article ("On this page" accessible on phones)
-@media (max-width: 991.98px){
-  body #quarto-content.page-columns{
-    display:flex; flex-direction:column;   // DOM order is [toc, article] — flex order fixes it
-    padding-left: clamp(1rem, 4vw, 1.75rem);
-    padding-right: clamp(1rem, 4vw, 1.75rem);
-  }
-  #quarto-content > #quarto-document-content{ order:1; }
-  #quarto-content > #quarto-margin-sidebar{ order:2; }
-  // Article pages: the fold belongs at the TOP of the article (a 50k-px mobile post hides
-  // a bottom toc entirely — owner: "оглавление исчезло"). Collapsed strip above the text,
-  // expands in-flow (capped 55vh), never overlays. Archive/index keeps the card at the end.
-  #quarto-content.page-layout-article > #quarto-margin-sidebar{
-    order:0; margin-top:0; margin-bottom:1.5rem;
-  }
-  body #quarto-margin-sidebar{ display:block; position:static; max-height:none; overflow:visible; margin-top:1rem; }
-  // tame quarto's TOC float layer: the toc used to keep z-index:1020 (and .fixed-top behavior),
-  // which let the expanded list paint OVER the article (the "kasha"); on mobile it must be
-  // plain flow content with its own capped scroll region, never an overlay
-  body #quarto-margin-sidebar #TOC{
-    display:block; position:static; z-index:auto; float:none; top:auto;
-    max-height:55vh; overflow-y:auto;
+nav#TOC ul{ list-style:none; margin-bottom:0; }
+nav#TOC ul ul{ display:block; }   // quarto hides nested lists until ancestors activate —
+                                   // on archive pages that never happens; keep years+months open
+nav#TOC ul ul ul ul{ display:none; }        // posts under a month: collapsed by default
+nav#TOC li.toc-open > ul{ display:block; }  // toggled by _includes/toc-fold.html
+// sticky pinned column on long pages (desktop only — below 992px quarto hides the sidebar
+// and the mobile fold (toc-fold.js) owns presentation)
+@media (min-width: 992px){
+  #quarto-margin-sidebar{
+    position:sticky; top:70px;
+    max-height:calc(100vh - 85px); overflow-y:auto;
+    padding-right:6px;
     scrollbar-width:thin; scrollbar-color:var(--ks-navy-100) transparent;
   }
-  #quarto-margin-sidebar #TOC{
-    border:1px solid var(--line); background:#fff;
-    border-radius:var(--r-sm); padding:1rem 1.1rem;
+  #quarto-margin-sidebar::-webkit-scrollbar{ width:6px; }
+  #quarto-margin-sidebar::-webkit-scrollbar-thumb{ background:var(--ks-navy-100); border-radius:3px; }
+  #quarto-margin-sidebar::-webkit-scrollbar-track{ background:transparent; }
+}
+// mobile fold (clone of the toc list at the top of the article, built by toc-fold.html).
+// NOTE: vendor rule nav[role=doc-toc]{display:none} hides it — the clone drops role/aria,
+// so show explicitly; visible only at the exact breakpoint where quarto hides the sidebar.
+.mobile-toc{ display:none; }
+@media (max-width: 991.98px){
+  .mobile-toc{
+    display:block; position:static; z-index:auto; float:none;
+    margin:1.1rem 0 1.6rem;
   }
-  body #quarto-margin-sidebar .toc-content{ position:static; z-index:auto; float:none; max-height:none; overflow:visible; }
+  .mobile-toc nav{
+    border:1px solid var(--line); background:#fff; border-radius:var(--r-sm); padding:.85rem 1rem;
+  }
+  .mobile-toc > summary, .mobile-toc summary{
+    cursor:pointer; list-style:none; font-weight:700; font-size:var(--t-14); color:var(--ks-navy);
+  }
+  .mobile-toc summary::-webkit-details-marker{ display:none; }
+  .mobile-toc summary::after{
+    content:""; width:.45rem; height:.45rem;
+    border-right:2px solid var(--accent-deep); border-bottom:2px solid var(--accent-deep);
+    transform:rotate(45deg); display:inline-block; margin-left:.55rem; vertical-align:2px;
+  }
+  .mobile-toc[open] summary::after{ transform:rotate(-135deg); vertical-align:-2px; }
+  .mobile-toc ul{ list-style:none; max-height:55vh; overflow-y:auto; margin:.6rem 0 0;
+    padding-left:0; scrollbar-width:thin; scrollbar-color:var(--ks-navy-100) transparent; }
+  .mobile-toc ul ul{ padding-left:1rem; margin:0; }
+  .mobile-toc ul ul ul{ padding-left:1rem; }
+  .mobile-toc ul ul ul ul{ display:none; }          // archive: posts collapsed under months
+  .mobile-toc li.toc-open > ul{ display:block; }    // click-to-expand (wired by toc-fold.html)
+  .mobile-toc a{ display:block; padding:.22rem 0; color:var(--ks-navy); font-size:var(--t-13); }
+  .mobile-toc a:hover{ color:var(--ks-navy-700); }
+  // content square bullets must not leak into the toc (desktop sidebar toc has none — parity)
+  #quarto-content .mobile-toc ul > li::before{ content:none; }
+  #quarto-content .mobile-toc ul > li{ position:static; margin-bottom:0; }
 }
-// mobile fold (script/_includes/toc-fold.html wraps the list into <details>)
-#quarto-margin-sidebar #TOC.toc-mfolded #toc-title{ display:none; }
-.toc-fold summary{
-  cursor:pointer; list-style:none; font-weight:700; font-size:var(--t-14); color:var(--ks-navy);
-}
-.toc-fold summary::-webkit-details-marker{ display:none; }
-.toc-fold summary::after{
-  content:""; width:.45rem; height:.45rem;
-  border-right:2px solid var(--accent-deep); border-bottom:2px solid var(--accent-deep);
-  transform:rotate(45deg); display:inline-block; margin-left:.55rem; vertical-align:2px;
-}
-.toc-fold[open] summary::after{ transform:rotate(-135deg); vertical-align:-2px; }
 // long code lines must scroll inside their block, never widen the page
 pre{ overflow-x:auto; max-width:100%; }
 // MathJax display equations (wide matrices) get the same treatment on narrow screens

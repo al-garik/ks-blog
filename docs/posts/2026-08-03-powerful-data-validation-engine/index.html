@@ -84,7 +84,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-ac4490294952d3d7dd1df9180f294d82.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-b34c3158b89b285bb72525d5308f9a4e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -160,11 +160,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </script>
 <script>
 (function () {
-  // TOC interactions for ks-blog (brand restyle):
-  // 1) month/year rows with a hidden child list expand on click (toggle)
-  // 2) on phones the "On this page" block folds into a compact <details> card
+  // ks-blog TOC behavior (brand restyle), two clean mechanisms:
+  // 1. Desktop sidebar: archive rows (year/month) toggle their nested list on click.
+  // 2. Narrow screens (<992px, where Quarto display:none's the margin sidebar): build a
+  //    CLONE of the toc list as a <details class="mobile-toc"> inserted right after the
+  //    post title block. Cloning (not moving) leaves the original sidebar DOM untouched, so
+  //    scrollspy/desktop styles keep working; the clone drops role="doc-toc" because the
+  //    vendor rule `nav[role=doc-toc]{display:none}` (mobile media) would hide it.
+  //    IDs are stripped from the clone (no duplicate ids); anchor hrefs stay valid.
+  var NARROW = '(max-width: 991.98px)';
+
   function wireToc(toc) {
-    if (toc.dataset.ksWired) return;
+    if (!toc || toc.dataset.ksWired) return;
     toc.dataset.ksWired = '1';
     toc.addEventListener('click', function (e) {
       var a = e.target.closest('a');
@@ -173,47 +180,57 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       if (li && li.querySelector(':scope > ul')) li.classList.toggle('toc-open');
     });
   }
-  function mobileFold() {
-    var toc = document.querySelector('#quarto-margin-sidebar #TOC');
-    if (!toc || toc.dataset.mfold || !window.matchMedia('(max-width: 991.98px)').matches) return;
-    toc.dataset.mfold = '1';
-    var ul = toc.querySelector(':scope > ul');
-    if (!ul) return;
-    toc.classList.add('toc-mfolded');
+
+  function stripIds(node) {
+    if (node.removeAttribute) node.removeAttribute('id');
+    node.querySelectorAll && node.querySelectorAll('[id]').forEach(function (n) { n.removeAttribute('id'); });
+  }
+
+  function buildMobileToc() {
+    if (!window.matchMedia(NARROW).matches) return;
+    if (document.querySelector('.mobile-toc')) return;
+    var src = document.querySelector('#quarto-margin-sidebar #TOC > ul');
+    var main = document.querySelector('#quarto-document-content');
+    if (!src || !main) return;
     var det = document.createElement('details');
-    det.className = 'toc-fold';
+    det.className = 'mobile-toc';
     var sum = document.createElement('summary');
-    sum.textContent = toc.querySelector('#toc-title') ? toc.querySelector('#toc-title').textContent.trim() : 'On this page';
+    var t = document.querySelector('#quarto-margin-sidebar #toc-title');
+    sum.textContent = t ? t.textContent.trim() : 'On this page';
+    var nav = document.createElement('nav');
+    nav.setAttribute('aria-label', 'Table of contents');
+    var clone = src.cloneNode(true);
+    stripIds(clone);
+    // the source list is a bootstrap .collapse wrapper (hidden by CSS unless .show);
+    // the clone is our own <details> accordion — drop collapse state from every list level
+    clone.classList.remove('collapse', 'collapsing', 'show');
+    clone.querySelectorAll('ul.collapse, ul.collapsing').forEach(function (u) {
+      u.classList.remove('collapse', 'collapsing');
+    });
+    nav.appendChild(clone);
     det.appendChild(sum);
-    toc.removeChild(ul);
-    det.appendChild(ul);
-    toc.appendChild(det);
-    // place the fold right after the post title block — only on article pages;
-    // the index archive keeps its card at the end of the page
-    var hdr = null;
-    if (document.querySelector('#quarto-content.page-layout-article')) {
-      hdr = document.querySelector('#quarto-document-content #title-block-header') ||
-            document.querySelector('#quarto-document-content .quarto-title');
-    }
-    if (hdr && hdr.parentElement) {
-      var sb = document.querySelector('#quarto-margin-sidebar');
-      hdr.insertAdjacentElement('afterend', sb);
-      sb.style.marginTop = '0';
-    }
-    // choosing a section closes the accordion so the article is immediately visible
-    ul.addEventListener('click', function (e) {
-      if (e.target.closest('a')) det.open = false;
+    det.appendChild(nav);
+    var hdr = main.querySelector('#title-block-header') || main.querySelector('.quarto-title');
+    if (hdr) hdr.insertAdjacentElement('afterend', det);
+    else main.insertBefore(det, main.firstChild);
+    // archive rows in the clone toggle months, and a picked section closes the accordion
+    clone.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      var li = a.parentElement;
+      if (li && li.querySelector(':scope > ul')) li.classList.toggle('toc-open');
+      if (e.target.tagName !== 'A' || !e.target.getAttribute('href') || e.target.getAttribute('href').length < 2) return;
+      det.open = false;
     });
   }
+
   document.addEventListener('DOMContentLoaded', function () {
     wireToc(document.querySelector('#quarto-margin-sidebar #TOC'));
-    mobileFold();
+    buildMobileToc();
   });
-  // scrollspy can re-render active states; keep wiring idempotent per TOC element
-  window.setInterval(function () {
-    var toc = document.querySelector('#quarto-margin-sidebar #TOC');
-    if (toc) wireToc(toc);
-  }, 1500);
+  window.addEventListener('resize', function () {
+    if (window.matchMedia(NARROW).matches) buildMobileToc();
+  });
 })();
 </script>
 

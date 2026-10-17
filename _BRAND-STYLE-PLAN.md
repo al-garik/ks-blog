@@ -226,3 +226,25 @@ After the order fix the fold sat at the very end of a ~50k-px mobile article = o
 section; index/archive keeps the card at the end. Desktop layout untouched (guard: only
 page-layout-article + matchMedia ≤991). Verified: hdr(79) < toc(463) < first section(850),
 expanded 481px no overlap, index atEnd=true, desktop sticky right sidebar unchanged.
+
+## 12. Round-7 (rebuilt on vendor terms — no more patches over patches)
+
+Owner called out the accumulating JS/CSS crutches. Root-work replaced:
+1. TOC rails & colors: not our !important chains anymore — Quarto's own SCSS variables
+   `$toc-color: #02254f`, `$toc-active-border: #f06e30`, `$toc-inactive-border: transparent`
+   compile into vendor rules (verified in built CSS: rails = 1px transparent, active = orange
+   rail + navy bold). The old cosmo #2761e3 leak path (--bs-link-color in .sidebar toc rules)
+   is now variable-fed and brand-colored at compile time.
+2. toc-float: probed the "native" option — legacy, does nothing in website format (no toggle
+   element below 992px; quarto.js toggle = reader-mode/overlap only). Dropped the option.
+3. Mobile TOC: architecture = CLONE, not relocation. _includes/toc-fold.html clones
+   #TOC>ul into <details class="mobile-toc"> placed after #title-block-header in main;
+   original sidebar untouched (hidden by vendor). Clone hygiene: no role=doc-toc (vendor
+   mobile hide), ids stripped, bootstrap .collapse class stripped from cloned top ul
+   (this was the 'empty card' bug), auto-closes on section pick, month-toggle wired,
+   content bullets suppressed for parity with desktop. Breakpoint = exactly quarto's 991.98.
+4. Verified (emulated 390 + real numbers): post fold 23px closed / 528px open (55vh cap,
+   inner scroll), after title before body (79→465→803), overlap false, closes on select;
+   index archive fold: months visible, September click expands its 2 posts (none→block);
+   desktop unchanged (rails none, active orange rail + navy 600, sticky sidebar, no fold).
+   Commits: 5a24270 (sources+docs), tree clean, still unpushed.
