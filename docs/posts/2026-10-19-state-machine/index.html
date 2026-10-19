@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Vladimir Larchenko">
+<meta name="dcterms.date" content="2026-10-19">
+
+<title>State Machines in R for Clinical Studies – KeyStat Technical Blog</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<link href="../../images/favicon/favicon.png" rel="icon" type="image/png">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-b0095bd0b73652745a7da634ade0457b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>
+(function(){
+  // Robustly ensure the navbar title links to the site Home (same as the Home menu link).
+  function setTitleToHome() {
+    try {
+      var brandContainer = document.querySelector('.navbar-brand-container');
+      if (!brandContainer) return false;
+      var titleAnchor = brandContainer.querySelector('a.navbar-brand:not(.navbar-brand-logo)');
+      var homeLink = document.querySelector('a.nav-link[href$="index.html"]') || document.querySelector('a.nav-link');
+      if (!titleAnchor || !homeLink) return false;
+      var homeHref = homeLink.getAttribute('href');
+      var resolved = new URL(homeHref, window.location.href).href;
+      titleAnchor.setAttribute('href', resolved);
+      return true;
+    } catch (err) {
+      console && console.warn && console.warn('navbar-fix error', err);
+      return false;
+    }
+  }
+
+  // Try a few strategies: immediate attempt, repeated attempts, and a MutationObserver.
+  var tried = false;
+  function attempt() {
+    if (setTitleToHome()) {
+      tried = true;
+      if (interval) clearInterval(interval);
+      if (observer) observer.disconnect();
+    }
+  }
+
+  var interval = setInterval(attempt, 200);
+
+  var observer = new MutationObserver(function() {
+    if (!tried) attempt();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var root = document.querySelector('body');
+    if (root) observer.observe(root, { childList: true, subtree: true });
+    attempt();
+  });
+})();
+</script>
+<script>
+(function () {
+  // ks-blog TOC behavior (brand restyle), two clean mechanisms:
+  // 1. Desktop sidebar: archive rows (year/month) toggle their nested list on click.
+  // 2. Narrow screens (<992px, where Quarto display:none's the margin sidebar): build a
+  //    CLONE of the toc list as a <details class="mobile-toc"> inserted right after the
+  //    post title block. Cloning (not moving) leaves the original sidebar DOM untouched, so
+  //    scrollspy/desktop styles keep working; the clone drops role="doc-toc" because the
+  //    vendor rule `nav[role=doc-toc]{display:none}` (mobile media) would hide it.
+  //    IDs are stripped from the clone (no duplicate ids); anchor hrefs stay valid.
+  var NARROW = '(max-width: 991.98px)';
+
+  function wireToc(toc) {
+    if (!toc || toc.dataset.ksWired) return;
+    toc.dataset.ksWired = '1';
+    toc.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      var li = a.parentElement;
+      if (li && li.querySelector(':scope > ul')) li.classList.toggle('toc-open');
+    });
+  }
+
+  function stripIds(node) {
+    if (node.removeAttribute) node.removeAttribute('id');
+    node.querySelectorAll && node.querySelectorAll('[id]').forEach(function (n) { n.removeAttribute('id'); });
+  }
+
+  function buildMobileToc() {
+    if (!window.matchMedia(NARROW).matches) return;
+    if (document.querySelector('.mobile-toc')) return;
+    var src = document.querySelector('#quarto-margin-sidebar #TOC > ul');
+    var main = document.querySelector('#quarto-document-content');
+    if (!src || !main) return;
+    var det = document.createElement('details');
+    det.className = 'mobile-toc';
+    var sum = document.createElement('summary');
+    var t = document.querySelector('#quarto-margin-sidebar #toc-title');
+    sum.textContent = t ? t.textContent.trim() : 'On this page';
+    var nav = document.createElement('nav');
+    nav.setAttribute('aria-label', 'Table of contents');
+    var clone = src.cloneNode(true);
+    stripIds(clone);
+    // the source list is a bootstrap .collapse wrapper (hidden by CSS unless .show);
+    // the clone is our own <details> accordion — drop collapse state from every list level
+    clone.classList.remove('collapse', 'collapsing', 'show');
+    clone.querySelectorAll('ul.collapse, ul.collapsing').forEach(function (u) {
+      u.classList.remove('collapse', 'collapsing');
+    });
+    nav.appendChild(clone);
+    det.appendChild(sum);
+    det.appendChild(nav);
+    var hdr = main.querySelector('#title-block-header') || main.querySelector('.quarto-title');
+    if (hdr) hdr.insertAdjacentElement('afterend', det);
+    else main.insertBefore(det, main.firstChild);
+    // archive rows in the clone toggle months, and a picked section closes the accordion
+    clone.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      var li = a.parentElement;
+      if (li && li.querySelector(':scope > ul')) li.classList.toggle('toc-open');
+      if (e.target.tagName !== 'A' || !e.target.getAttribute('href') || e.target.getAttribute('href').length < 2) return;
+      det.open = false;
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    wireToc(document.querySelector('#quarto-margin-sidebar #TOC'));
+    buildMobileToc();
+  });
+  window.addEventListener('resize', function () {
+    if (window.matchMedia(NARROW).matches) buildMobileToc();
+  });
+})();
+</script>
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="https://keystatsolutions.com" class="navbar-brand navbar-brand-logo">
+    <img src="../../images/brand/logo-navbar-en.svg" alt="KeyStat" class="navbar-logo light-content">
+    <img src="../../images/brand/logo-navbar-en.svg" alt="KeyStat" class="navbar-logo dark-content">
+    </a>
+    <a class="navbar-brand" href="https://keystatsolutions.com">
+    <span class="navbar-title">Technical Blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://al-garik.github.io/ks-blog/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#motivation" id="toc-motivation" class="nav-link" data-scroll-target="#motivation">Motivation</a>
+  <ul class="collapse">
+  <li><a href="#nested-disposition-logic" id="toc-nested-disposition-logic" class="nav-link" data-scroll-target="#nested-disposition-logic">Nested disposition logic</a></li>
+  <li><a href="#dose-modification-with-memory" id="toc-dose-modification-with-memory" class="nav-link" data-scroll-target="#dose-modification-with-memory">Dose modification with memory</a></li>
+  </ul></li>
+  <li><a href="#mechanics-in-r" id="toc-mechanics-in-r" class="nav-link" data-scroll-target="#mechanics-in-r">Mechanics in R</a>
+  <ul class="collapse">
+  <li><a href="#transition-table-and-engine" id="toc-transition-table-and-engine" class="nav-link" data-scroll-target="#transition-table-and-engine">Transition table and engine</a></li>
+  </ul></li>
+  <li><a href="#example-a-subject-disposition" id="toc-example-a-subject-disposition" class="nav-link" data-scroll-target="#example-a-subject-disposition">Example A: subject disposition</a>
+  <ul class="collapse">
+  <li><a href="#allowed-graph" id="toc-allowed-graph" class="nav-link" data-scroll-target="#allowed-graph">Allowed graph</a></li>
+  <li><a href="#same-paths-as-the-nested-function-as-data" id="toc-same-paths-as-the-nested-function-as-data" class="nav-link" data-scroll-target="#same-paths-as-the-nested-function-as-data">Same paths as the nested function — as data</a></li>
+  <li><a href="#many-subjects-one-machine" id="toc-many-subjects-one-machine" class="nav-link" data-scroll-target="#many-subjects-one-machine">Many subjects, one machine</a></li>
+  </ul></li>
+  <li><a href="#example-b-dose-modification-as-decision-making" id="toc-example-b-dose-modification-as-decision-making" class="nav-link" data-scroll-target="#example-b-dose-modification-as-decision-making">Example B: dose modification as decision-making</a>
+  <ul class="collapse">
+  <li><a href="#walk-a-toxicity-timeline" id="toc-walk-a-toxicity-timeline" class="nav-link" data-scroll-target="#walk-a-toxicity-timeline">Walk a toxicity timeline</a></li>
+  <li><a href="#audit-trail-for-a-subject" id="toc-audit-trail-for-a-subject" class="nav-link" data-scroll-target="#audit-trail-for-a-subject">Audit trail for a subject</a></li>
+  </ul></li>
+  <li><a href="#example-c-visit-readiness" id="toc-example-c-visit-readiness" class="nav-link" data-scroll-target="#example-c-visit-readiness">Example C: visit readiness</a></li>
+  <li><a href="#pattern-shape-in-clinical-code" id="toc-pattern-shape-in-clinical-code" class="nav-link" data-scroll-target="#pattern-shape-in-clinical-code">Pattern shape in clinical code</a></li>
+  <li><a href="#when-not-to-use-a-state-machine" id="toc-when-not-to-use-a-state-machine" class="nav-link" data-scroll-target="#when-not-to-use-a-state-machine">When not to use a state machine</a></li>
+  <li><a href="#closing" id="toc-closing" class="nav-link" data-scroll-target="#closing">Closing</a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">State Machines in R for Clinical Studies</h1>
+<p class="subtitle lead">Replacing tangled decision branches with explicit states, events, and transitions</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">R</div>
+    <div class="quarto-category">Clinical Trials</div>
+    <div class="quarto-category">Data analysis</div>
+    <div class="quarto-category">Dose modification</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Vladimir Larchenko </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 19, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/post-logo.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="A fairy-tale path of clinical states"><img src="images/post-logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img" alt="A fairy-tale path of clinical states"></a></p>
+</figure>
+</div>
+<figcaption>A fairy-tale path of clinical states</figcaption>
+</figure>
+</div>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Clinical programs are full of <strong>process rules with memory</strong>. A subject is screening, then eligible, then randomized, then on treatment — or screen-failed. A dose continues, reduces, holds, or stops depending on toxicity <em>and</em> how many holds already happened. A visit is scheduled, open in window, completed, or missed.</p>
+<p>Those rules are often written as nested <code>if</code> / <code>else</code> (or a giant <code>dplyr::case_when</code>). That works for a one-shot classification of a static row. It ages badly once the <em>current state</em> matters, illegal paths must be rejected, and auditors ask which transitions fired.</p>
+<p>A <strong>finite-state machine</strong> (FSM) makes the process explicit:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Piece</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>State</strong></td>
+<td>Where the subject / dose / visit is now</td>
+</tr>
+<tr class="even">
+<td><strong>Event</strong></td>
+<td>What happened (pass screen, grade 3 AE, window day)</td>
+</tr>
+<tr class="odd">
+<td><strong>Transition</strong></td>
+<td>Legal move <code>from + event → to</code></td>
+</tr>
+<tr class="even">
+<td><strong>Guard</strong></td>
+<td>Optional predicate on context (grade, labs, counters)</td>
+</tr>
+<tr class="odd">
+<td><strong>Action</strong></td>
+<td>Optional side effect (log, set next dose, raise QC flag)</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="blockquote">
+<p>Encode <em>allowed</em> clinical paths as data. Drive decisions by looking up <code>(state, event)</code> — do not re-walk a decision tree on every call.</p>
+</blockquote>
+<p>This article builds a small table-driven FSM in R, rewrites a nested disposition script and a dose-modification policy, and shows a short visit-readiness machine. The focus is <strong>deterministic</strong> protocol logic.</p>
+<p><strong>Not the same as Viterbi / HMM.</strong> Reconstructing a <em>latent</em> RECIST-like path under missing visits is a probabilistic decoding problem — see the companion post on Viterbi decoding. An FSM here is a <strong>protocol decision engine</strong>: given the current official state and an event, what is the next official state? Illegal transitions fail loudly.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="motivation" class="level1">
+<h1>Motivation</h1>
+<section id="nested-disposition-logic" class="level2">
+<h2 class="anchored" data-anchor-id="nested-disposition-logic">Nested disposition logic</h2>
+<p>A common first draft for subject disposition looks like this:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>update_disposition <span class="ot">&lt;-</span> <span class="cf">function</span>(status, event) {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (status <span class="sc">==</span> <span class="st">"Screening"</span>) {</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (event <span class="sc">==</span> <span class="st">"pass_screen"</span>) {</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Eligible"</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (event <span class="sc">==</span> <span class="st">"fail_screen"</span>) {</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      <span class="st">"ScreenFail"</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"illegal"</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (status <span class="sc">==</span> <span class="st">"Eligible"</span>) {</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (event <span class="sc">==</span> <span class="st">"randomize"</span>) {</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Randomized"</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (event <span class="sc">==</span> <span class="st">"fail_screen"</span>) {</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>      <span class="st">"ScreenFail"</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"illegal"</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (status <span class="sc">==</span> <span class="st">"Randomized"</span>) {</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (event <span class="sc">==</span> <span class="st">"start_tx"</span>) {</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>      <span class="st">"OnTreatment"</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (event <span class="sc">==</span> <span class="st">"discontinue"</span>) {</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Discontinued"</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"illegal"</span>)</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (status <span class="sc">==</span> <span class="st">"OnTreatment"</span>) {</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (event <span class="sc">==</span> <span class="st">"complete"</span>) {</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Completed"</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (event <span class="sc">==</span> <span class="st">"discontinue"</span>) {</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Discontinued"</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"illegal"</span>)</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"terminal or unknown status"</span>)</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Every new status or event adds another nest. Illegal paths are easy to miss (<code>Randomized</code> + <code>pass_screen</code>). Terminal states are easy to forget. Unit tests must re-encode the same tree. Reviewers cannot <em>see</em> the allowed graph without simulating every branch.</p>
+</section>
+<section id="dose-modification-with-memory" class="level2">
+<h2 class="anchored" data-anchor-id="dose-modification-with-memory">Dose modification with memory</h2>
+<p>Dose rules usually depend on <strong>history</strong>, not only the latest grade:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># grade 1 → continue</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># grade 2 → reduce once, else hold</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># grade 3 → hold; after 2 holds → discontinue</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># grade 4 → discontinue</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># ...plus: no action while already Holding unless resume/discontinue</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Nested conditionals mix <em>state</em> (<code>OnDose</code>, <code>Holding</code>, <code>Reduced</code>, <code>Discontinued</code>), <em>event</em> (new toxicity grade, resume, permanent stop), and <em>context</em> (<code>n_holds</code>, <code>current_dose</code>). The FSM separates those concerns.</p>
+<div class="cell" data-fig-width="6.2" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="ifelse-vs-fsm">
+<div>
+<pre class="mermaid mermaid-js" data-label="ifelse-vs-fsm">%%{init: {"flowchart": {"rankSpacing": 24, "nodeSpacing": 14, "padding": 6}}}%%
+flowchart LR
+  subgraph tangled [NestedIfElse]
+    direction TB
+    s1[status] --&gt; deep[DeepBranches]
+    e1[event] --&gt; deep
+  end
+  subgraph machine [TableDrivenFSM]
+    direction TB
+    st[state] --&gt; tbl[transitionTable]
+    ev[event] --&gt; tbl
+    tbl --&gt; nx[nextState]
+  end
+  tangled ~~~ machine
+</pre>
+</div>
+</div>
+</div>
+</div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Nearby idea</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>case_when</code> on one snapshot</td>
+<td>Fine for ADaM recodes with no process memory</td>
+</tr>
+<tr class="even">
+<td>Nested <code>if</code> / <code>else</code></td>
+<td>Encodes the graph in control flow; hard to audit</td>
+</tr>
+<tr class="odd">
+<td>Deterministic FSM</td>
+<td>Explicit legal graph; rejects illegal moves</td>
+</tr>
+<tr class="even">
+<td>HMM + Viterbi</td>
+<td>Most probable <em>latent</em> path under noise / missingness</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="mechanics-in-r" class="level1">
+<h1>Mechanics in R</h1>
+<section id="transition-table-and-engine" class="level2">
+<h2 class="anchored" data-anchor-id="transition-table-and-engine">Transition table and engine</h2>
+<p>States and events are character labels. Transitions live in a tibble. Guards and actions are ordinary R functions of a <strong>context</strong> list (mutable counters, dose, QC notes).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>new_fsm <span class="ot">&lt;-</span> <span class="cf">function</span>(states, events, transitions, initial) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(initial <span class="sc">%in%</span> states)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  tr <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(transitions)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  need <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"from"</span>, <span class="st">"event"</span>, <span class="st">"to"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="fu">all</span>(need <span class="sc">%in%</span> <span class="fu">names</span>(tr)))</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="st">"guard"</span> <span class="sc">%in%</span> <span class="fu">names</span>(tr)) {</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    tr<span class="sc">$</span>guard <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, <span class="fu">nrow</span>(tr))</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="st">"action"</span> <span class="sc">%in%</span> <span class="fu">names</span>(tr)) {</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    tr<span class="sc">$</span>action <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, <span class="fu">nrow</span>(tr))</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  tr <span class="ot">&lt;-</span> tr <span class="sc">|&gt;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">guard =</span> <span class="fu">map</span>(guard, <span class="sc">~</span> <span class="cf">if</span> (<span class="fu">is.null</span>(.x)) <span class="cf">function</span>(ctx) <span class="cn">TRUE</span> <span class="cf">else</span> .x),</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">action =</span> <span class="fu">map</span>(action, <span class="sc">~</span> <span class="cf">if</span> (<span class="fu">is.null</span>(.x)) <span class="cf">function</span>(ctx) ctx <span class="cf">else</span> .x)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">structure</span>(</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>      <span class="at">states =</span> <span class="fu">unique</span>(states),</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>      <span class="at">events =</span> <span class="fu">unique</span>(events),</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>      <span class="at">transitions =</span> tr,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">initial =</span> initial</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">class =</span> <span class="st">"clinical_fsm"</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>step_fsm <span class="ot">&lt;-</span> <span class="cf">function</span>(machine, state, event, <span class="at">context =</span> <span class="fu">list</span>()) {</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="fu">inherits</span>(machine, <span class="st">"clinical_fsm"</span>))</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>state <span class="sc">%in%</span> machine<span class="sc">$</span>states) {</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">"Unknown state '%s'."</span>, state), <span class="at">call. =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>event <span class="sc">%in%</span> machine<span class="sc">$</span>events) {</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="fu">sprintf</span>(<span class="st">"Unknown event '%s'."</span>, event), <span class="at">call. =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>  <span class="co"># `.env$event` is required: `event` is also a column, so a bare</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>  <span class="co"># `event` on the RHS would compare the column to itself.</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>  cands <span class="ot">&lt;-</span> machine<span class="sc">$</span>transitions <span class="sc">|&gt;</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(.data<span class="sc">$</span>from <span class="sc">==</span> .env<span class="sc">$</span>state, .data<span class="sc">$</span>event <span class="sc">==</span> .env<span class="sc">$</span>event)</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">nrow</span>(cands) <span class="sc">==</span> <span class="dv">0</span>L) {</span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>      <span class="fu">sprintf</span>(<span class="st">"Illegal transition: %s + %s."</span>, state, event),</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>      <span class="at">call. =</span> <span class="cn">FALSE</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(cands))) {</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    row <span class="ot">&lt;-</span> cands[i, ]</span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    guard <span class="ot">&lt;-</span> row<span class="sc">$</span>guard[[<span class="dv">1</span>]]</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">isTRUE</span>(<span class="fu">guard</span>(context))) {</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>      action <span class="ot">&lt;-</span> row<span class="sc">$</span>action[[<span class="dv">1</span>]]</span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>      new_ctx <span class="ot">&lt;-</span> <span class="fu">action</span>(context)</span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="fu">list</span>(</span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>        <span class="at">state =</span> row<span class="sc">$</span>to[[<span class="dv">1</span>]],</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>        <span class="at">context =</span> new_ctx,</span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>        <span class="at">fired =</span> <span class="cn">TRUE</span></span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>      ))</span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(</span>
+<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sprintf</span>(<span class="st">"No guard passed for %s + %s."</span>, state, event),</span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>    <span class="at">call. =</span> <span class="cn">FALSE</span></span>
+<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a>run_fsm <span class="ot">&lt;-</span> <span class="cf">function</span>(machine, events, <span class="at">context =</span> <span class="fu">list</span>(),</span>
+<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a>                    <span class="at">start =</span> machine<span class="sc">$</span>initial) {</span>
+<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a>  state <span class="ot">&lt;-</span> start</span>
+<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a>  history <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a>    <span class="at">step =</span> <span class="fu">integer</span>(),</span>
+<span id="cb4-74"><a href="#cb4-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">from =</span> <span class="fu">character</span>(),</span>
+<span id="cb4-75"><a href="#cb4-75" aria-hidden="true" tabindex="-1"></a>    <span class="at">event =</span> <span class="fu">character</span>(),</span>
+<span id="cb4-76"><a href="#cb4-76" aria-hidden="true" tabindex="-1"></a>    <span class="at">to =</span> <span class="fu">character</span>()</span>
+<span id="cb4-77"><a href="#cb4-77" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-78"><a href="#cb4-78" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_along</span>(events)) {</span>
+<span id="cb4-79"><a href="#cb4-79" aria-hidden="true" tabindex="-1"></a>    ev <span class="ot">&lt;-</span> events[[k]]</span>
+<span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a>    out <span class="ot">&lt;-</span> <span class="fu">step_fsm</span>(machine, state, ev, context)</span>
+<span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a>    history <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb4-82"><a href="#cb4-82" aria-hidden="true" tabindex="-1"></a>      history,</span>
+<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a>      <span class="fu">tibble</span>(<span class="at">step =</span> k, <span class="at">from =</span> state, <span class="at">event =</span> ev, <span class="at">to =</span> out<span class="sc">$</span>state)</span>
+<span id="cb4-84"><a href="#cb4-84" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-85"><a href="#cb4-85" aria-hidden="true" tabindex="-1"></a>    state <span class="ot">&lt;-</span> out<span class="sc">$</span>state</span>
+<span id="cb4-86"><a href="#cb4-86" aria-hidden="true" tabindex="-1"></a>    context <span class="ot">&lt;-</span> out<span class="sc">$</span>context</span>
+<span id="cb4-87"><a href="#cb4-87" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-88"><a href="#cb4-88" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">state =</span> state, <span class="at">context =</span> context, <span class="at">history =</span> history)</span>
+<span id="cb4-89"><a href="#cb4-89" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-90"><a href="#cb4-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-91"><a href="#cb4-91" aria-hidden="true" tabindex="-1"></a>print.clinical_fsm <span class="ot">&lt;-</span> <span class="cf">function</span>(x, ...) {</span>
+<span id="cb4-92"><a href="#cb4-92" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(</span>
+<span id="cb4-93"><a href="#cb4-93" aria-hidden="true" tabindex="-1"></a>    <span class="st">"clinical_fsm: %d states, %d events, %d transitions (start = %s)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb4-94"><a href="#cb4-94" aria-hidden="true" tabindex="-1"></a>    <span class="fu">length</span>(x<span class="sc">$</span>states), <span class="fu">length</span>(x<span class="sc">$</span>events), <span class="fu">nrow</span>(x<span class="sc">$</span>transitions), x<span class="sc">$</span>initial</span>
+<span id="cb4-95"><a href="#cb4-95" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb4-96"><a href="#cb4-96" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(x)</span>
+<span id="cb4-97"><a href="#cb4-97" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The engine is deliberately small: <strong>lookup</strong>, <strong>guard</strong>, <strong>action</strong>, <strong>reject</strong>. Clinical meaning lives in the table, not in a growing <code>if</code> ladder.</p>
+</section>
+</section>
+<section id="example-a-subject-disposition" class="level1">
+<h1>Example A: subject disposition</h1>
+<section id="allowed-graph" class="level2">
+<h2 class="anchored" data-anchor-id="allowed-graph">Allowed graph</h2>
+<div class="cell" data-fig-width="5.8" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="disposition-graph">
+<div>
+<pre class="mermaid mermaid-js" data-label="disposition-graph">stateDiagram-v2
+  [*] --&gt; Screening
+  Screening --&gt; Eligible: pass_screen
+  Screening --&gt; ScreenFail: fail_screen
+  Eligible --&gt; Randomized: randomize
+  Eligible --&gt; ScreenFail: fail_screen
+  Randomized --&gt; OnTreatment: start_tx
+  Randomized --&gt; Discontinued: discontinue
+  OnTreatment --&gt; Completed: complete
+  OnTreatment --&gt; Discontinued: discontinue
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>disp_states <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Screening"</span>, <span class="st">"Eligible"</span>, <span class="st">"Randomized"</span>, <span class="st">"OnTreatment"</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Completed"</span>, <span class="st">"Discontinued"</span>, <span class="st">"ScreenFail"</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>disp_events <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"pass_screen"</span>, <span class="st">"fail_screen"</span>, <span class="st">"randomize"</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"start_tx"</span>, <span class="st">"complete"</span>, <span class="st">"discontinue"</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>disp_tr <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>from,         <span class="sc">~</span>event,         <span class="sc">~</span>to,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Screening"</span>,   <span class="st">"pass_screen"</span>,  <span class="st">"Eligible"</span>,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Screening"</span>,   <span class="st">"fail_screen"</span>,  <span class="st">"ScreenFail"</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Eligible"</span>,    <span class="st">"randomize"</span>,    <span class="st">"Randomized"</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Eligible"</span>,    <span class="st">"fail_screen"</span>,  <span class="st">"ScreenFail"</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Randomized"</span>,  <span class="st">"start_tx"</span>,     <span class="st">"OnTreatment"</span>,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Randomized"</span>,  <span class="st">"discontinue"</span>,  <span class="st">"Discontinued"</span>,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"OnTreatment"</span>, <span class="st">"complete"</span>,     <span class="st">"Completed"</span>,</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"OnTreatment"</span>, <span class="st">"discontinue"</span>,  <span class="st">"Discontinued"</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>disposition_fsm <span class="ot">&lt;-</span> <span class="fu">new_fsm</span>(</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">states =</span> disp_states,</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">events =</span> disp_events,</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">transitions =</span> disp_tr,</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">initial =</span> <span class="st">"Screening"</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>disposition_fsm</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>clinical_fsm: 7 states, 6 events, 8 transitions (start = Screening)</code></pre>
+</div>
+</div>
+</section>
+<section id="same-paths-as-the-nested-function-as-data" class="level2">
+<h2 class="anchored" data-anchor-id="same-paths-as-the-nested-function-as-data">Same paths as the nested function — as data</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>path_ok <span class="ot">&lt;-</span> <span class="fu">run_fsm</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  disposition_fsm,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">"pass_screen"</span>, <span class="st">"randomize"</span>, <span class="st">"start_tx"</span>, <span class="st">"complete"</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>path_ok<span class="sc">$</span>history</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 4
+   step from        event       to         
+  &lt;int&gt; &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;      
+1     1 Screening   pass_screen Eligible   
+2     2 Eligible    randomize   Randomized 
+3     3 Randomized  start_tx    OnTreatment
+4     4 OnTreatment complete    Completed  </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>path_ok<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Completed"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>path_sf <span class="ot">&lt;-</span> <span class="fu">run_fsm</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  disposition_fsm,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">"pass_screen"</span>, <span class="st">"fail_screen"</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>path_sf<span class="sc">$</span>history</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+   step from      event       to        
+  &lt;int&gt; &lt;chr&gt;     &lt;chr&gt;       &lt;chr&gt;     
+1     1 Screening pass_screen Eligible  
+2     2 Eligible  fail_screen ScreenFail</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>path_sf<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "ScreenFail"</code></pre>
+</div>
+</div>
+<p>Illegal moves fail instead of silently falling through an <code>else</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">step_fsm</span>(disposition_fsm, <span class="st">"ScreenFail"</span>, <span class="st">"start_tx"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error:
+! Illegal transition: ScreenFail + start_tx.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">step_fsm</span>(disposition_fsm, <span class="st">"Randomized"</span>, <span class="st">"pass_screen"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error:
+! Illegal transition: Randomized + pass_screen.</code></pre>
+</div>
+</div>
+</section>
+<section id="many-subjects-one-machine" class="level2">
+<h2 class="anchored" data-anchor-id="many-subjects-one-machine">Many subjects, one machine</h2>
+<p>Event logs become ordinary tidy data. The machine is applied per subject:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>event_log <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>USUBJID, <span class="sc">~</span>seq, <span class="sc">~</span>event,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-001"</span>, <span class="dv">1</span>, <span class="st">"pass_screen"</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-001"</span>, <span class="dv">2</span>, <span class="st">"randomize"</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-001"</span>, <span class="dv">3</span>, <span class="st">"start_tx"</span>,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-001"</span>, <span class="dv">4</span>, <span class="st">"complete"</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-002"</span>, <span class="dv">1</span>, <span class="st">"fail_screen"</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-003"</span>, <span class="dv">1</span>, <span class="st">"pass_screen"</span>,</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-003"</span>, <span class="dv">2</span>, <span class="st">"randomize"</span>,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-003"</span>, <span class="dv">3</span>, <span class="st">"discontinue"</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="co"># S-001 Screening → Eligible → Randomized → OnTreatment → Completed</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co"># S-002 Screening → ScreenFail</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="co"># S-003 Screening → Eligible → Randomized → Discontinued</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="co">#       (withdrew after randomization, before first dose)</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>expected <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>USUBJID, <span class="sc">~</span>FINAL_STATUS, <span class="sc">~</span>N_EVENTS,</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-001"</span>,  <span class="st">"Completed"</span>,          <span class="dv">4</span>L,</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-002"</span>,  <span class="st">"ScreenFail"</span>,         <span class="dv">1</span>L,</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"S-003"</span>,  <span class="st">"Discontinued"</span>,       <span class="dv">3</span>L</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>final_disp <span class="ot">&lt;-</span> event_log <span class="sc">|&gt;</span></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(USUBJID, seq) <span class="sc">|&gt;</span></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(USUBJID) <span class="sc">|&gt;</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_modify</span>(<span class="cf">function</span>(df, key) {</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    out <span class="ot">&lt;-</span> <span class="fu">run_fsm</span>(disposition_fsm, df<span class="sc">$</span>event)</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">FINAL_STATUS =</span> out<span class="sc">$</span>state,</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>      <span class="at">N_EVENTS =</span> <span class="fu">nrow</span>(out<span class="sc">$</span>history)</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">|&gt;</span></span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>final_disp</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 3
+  USUBJID FINAL_STATUS N_EVENTS
+  &lt;chr&gt;   &lt;chr&gt;           &lt;int&gt;
+1 S-001   Completed           4
+2 S-002   ScreenFail          1
+3 S-003   Discontinued        3</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">identical</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  final_disp[, <span class="fu">c</span>(<span class="st">"USUBJID"</span>, <span class="st">"FINAL_STATUS"</span>, <span class="st">"N_EVENTS"</span>)],</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  expected</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Compared with nested <code>if</code>s, adding <code>Randomized → ScreenFail</code> (late discovery of eligibility failure) adds <strong>one row</strong> to <code>disp_tr</code>; the engine, the callers, and the replay loop stay untouched.</p>
+</section>
+</section>
+<section id="example-b-dose-modification-as-decision-making" class="level1">
+<h1>Example B: dose modification as decision-making</h1>
+<p>A simplified oncology-style policy (illustrative — not a real SAP):</p>
+<ul>
+<li>States: <code>OnDose</code>, <code>Reduced</code>, <code>Holding</code>, <code>Discontinued</code></li>
+<li>Start at full dose 100</li>
+<li>Toxicity events carry a CTCAE-like <code>grade</code> in context</li>
+<li>Resume from hold returns to the last active dosing state</li>
+<li>Two completed holds → discontinue on the next hold-worthy event</li>
+<li>Grade ≤ 2 while <code>Holding</code> → stay in <code>Holding</code> (no new action)</li>
+</ul>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="st">`</span><span class="at">%||%</span><span class="st">`</span> <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y) <span class="cf">if</span> (<span class="fu">is.null</span>(x)) y <span class="cf">else</span> x</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>always <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) <span class="cn">TRUE</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>grade_le <span class="ot">&lt;-</span> <span class="cf">function</span>(g) <span class="cf">function</span>(ctx) <span class="sc">!</span><span class="fu">is.null</span>(ctx<span class="sc">$</span>grade) <span class="sc">&amp;&amp;</span> ctx<span class="sc">$</span>grade <span class="sc">&lt;=</span> g</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>grade_eq <span class="ot">&lt;-</span> <span class="cf">function</span>(g) <span class="cf">function</span>(ctx) <span class="fu">isTRUE</span>(ctx<span class="sc">$</span>grade <span class="sc">==</span> g)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>grade_ge <span class="ot">&lt;-</span> <span class="cf">function</span>(g) <span class="cf">function</span>(ctx) <span class="sc">!</span><span class="fu">is.null</span>(ctx<span class="sc">$</span>grade) <span class="sc">&amp;&amp;</span> ctx<span class="sc">$</span>grade <span class="sc">&gt;=</span> g</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>continue_dose <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>last_action <span class="ot">&lt;-</span> <span class="st">"continue"</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  ctx</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>reduce_dose <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>dose <span class="ot">&lt;-</span> <span class="fu">max</span>(ctx<span class="sc">$</span>dose <span class="sc">*</span> <span class="fl">0.75</span>, <span class="dv">25</span>)</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>last_action <span class="ot">&lt;-</span> <span class="st">"reduce"</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>active <span class="ot">&lt;-</span> <span class="st">"Reduced"</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  ctx</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>start_hold <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>n_holds <span class="ot">&lt;-</span> ctx<span class="sc">$</span>n_holds <span class="sc">+</span> <span class="dv">1</span>L</span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>last_action <span class="ot">&lt;-</span> <span class="st">"hold"</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>  ctx</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>resume_dose <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>last_action <span class="ot">&lt;-</span> <span class="st">"resume"</span></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>  ctx</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>stop_tx <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>dose <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>last_action <span class="ot">&lt;-</span> <span class="st">"discontinue"</span></span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>  ctx</span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>holds_lt <span class="ot">&lt;-</span> <span class="cf">function</span>(n) <span class="cf">function</span>(ctx) <span class="fu">isTRUE</span>(ctx<span class="sc">$</span>n_holds <span class="sc">&lt;</span> n)</span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>holds_ge <span class="ot">&lt;-</span> <span class="cf">function</span>(n) <span class="cf">function</span>(ctx) <span class="fu">isTRUE</span>(ctx<span class="sc">$</span>n_holds <span class="sc">&gt;=</span> n)</span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>max_holds <span class="ot">&lt;-</span> <span class="dv">2</span>L</span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a>stay_holding <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>last_action <span class="ot">&lt;-</span> <span class="st">"stay"</span></span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a>  ctx</span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>dose_states <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"OnDose"</span>, <span class="st">"Reduced"</span>, <span class="st">"Holding"</span>, <span class="st">"Discontinued"</span>)</span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>dose_events <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"tox"</span>, <span class="st">"resume"</span>, <span class="st">"permanent_stop"</span>)</span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a><span class="co"># Multiple rows per (from, event): first matching guard wins.</span></span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Built with tibble() so guards/actions stay as list-columns of functions.</span></span>
+<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a>dose_tr <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(</span>
+<span id="cb22-54"><a href="#cb22-54" aria-hidden="true" tabindex="-1"></a>    <span class="st">"OnDose"</span>, <span class="st">"OnDose"</span>, <span class="st">"OnDose"</span>, <span class="st">"OnDose"</span>, <span class="st">"OnDose"</span>, <span class="st">"OnDose"</span>,</span>
+<span id="cb22-55"><a href="#cb22-55" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Reduced"</span>, <span class="st">"Reduced"</span>, <span class="st">"Reduced"</span>, <span class="st">"Reduced"</span>, <span class="st">"Reduced"</span>,</span>
+<span id="cb22-56"><a href="#cb22-56" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Holding"</span>, <span class="st">"Holding"</span>, <span class="st">"Holding"</span>, <span class="st">"Holding"</span>, <span class="st">"Holding"</span></span>
+<span id="cb22-57"><a href="#cb22-57" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb22-58"><a href="#cb22-58" aria-hidden="true" tabindex="-1"></a>  <span class="at">event =</span> <span class="fu">c</span>(</span>
+<span id="cb22-59"><a href="#cb22-59" aria-hidden="true" tabindex="-1"></a>    <span class="st">"tox"</span>, <span class="st">"tox"</span>, <span class="st">"tox"</span>, <span class="st">"tox"</span>, <span class="st">"tox"</span>, <span class="st">"permanent_stop"</span>,</span>
+<span id="cb22-60"><a href="#cb22-60" aria-hidden="true" tabindex="-1"></a>    <span class="st">"tox"</span>, <span class="st">"tox"</span>, <span class="st">"tox"</span>, <span class="st">"tox"</span>, <span class="st">"permanent_stop"</span>,</span>
+<span id="cb22-61"><a href="#cb22-61" aria-hidden="true" tabindex="-1"></a>    <span class="st">"resume"</span>, <span class="st">"resume"</span>, <span class="st">"tox"</span>, <span class="st">"tox"</span>, <span class="st">"permanent_stop"</span></span>
+<span id="cb22-62"><a href="#cb22-62" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb22-63"><a href="#cb22-63" aria-hidden="true" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(</span>
+<span id="cb22-64"><a href="#cb22-64" aria-hidden="true" tabindex="-1"></a>    <span class="st">"OnDose"</span>, <span class="st">"Reduced"</span>, <span class="st">"Holding"</span>, <span class="st">"Discontinued"</span>, <span class="st">"Discontinued"</span>,</span>
+<span id="cb22-65"><a href="#cb22-65" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Discontinued"</span>,</span>
+<span id="cb22-66"><a href="#cb22-66" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Reduced"</span>, <span class="st">"Holding"</span>, <span class="st">"Discontinued"</span>, <span class="st">"Discontinued"</span>, <span class="st">"Discontinued"</span>,</span>
+<span id="cb22-67"><a href="#cb22-67" aria-hidden="true" tabindex="-1"></a>    <span class="st">"OnDose"</span>, <span class="st">"Reduced"</span>, <span class="st">"Holding"</span>, <span class="st">"Discontinued"</span>, <span class="st">"Discontinued"</span></span>
+<span id="cb22-68"><a href="#cb22-68" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb22-69"><a href="#cb22-69" aria-hidden="true" tabindex="-1"></a>  <span class="at">guard =</span> <span class="fu">list</span>(</span>
+<span id="cb22-70"><a href="#cb22-70" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grade_le</span>(<span class="dv">1</span>),</span>
+<span id="cb22-71"><a href="#cb22-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grade_eq</span>(<span class="dv">2</span>),</span>
+<span id="cb22-72"><a href="#cb22-72" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(ctx) <span class="fu">grade_eq</span>(<span class="dv">3</span>)(ctx) <span class="sc">&amp;&amp;</span> <span class="fu">holds_lt</span>(max_holds)(ctx),</span>
+<span id="cb22-73"><a href="#cb22-73" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(ctx) <span class="fu">grade_eq</span>(<span class="dv">3</span>)(ctx) <span class="sc">&amp;&amp;</span> <span class="fu">holds_ge</span>(max_holds)(ctx),</span>
+<span id="cb22-74"><a href="#cb22-74" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grade_ge</span>(<span class="dv">4</span>),</span>
+<span id="cb22-75"><a href="#cb22-75" aria-hidden="true" tabindex="-1"></a>    always,</span>
+<span id="cb22-76"><a href="#cb22-76" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grade_le</span>(<span class="dv">1</span>),</span>
+<span id="cb22-77"><a href="#cb22-77" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(ctx) {</span>
+<span id="cb22-78"><a href="#cb22-78" aria-hidden="true" tabindex="-1"></a>      (<span class="fu">grade_eq</span>(<span class="dv">2</span>)(ctx) <span class="sc">||</span> <span class="fu">grade_eq</span>(<span class="dv">3</span>)(ctx)) <span class="sc">&amp;&amp;</span> <span class="fu">holds_lt</span>(max_holds)(ctx)</span>
+<span id="cb22-79"><a href="#cb22-79" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb22-80"><a href="#cb22-80" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(ctx) {</span>
+<span id="cb22-81"><a href="#cb22-81" aria-hidden="true" tabindex="-1"></a>      (<span class="fu">grade_eq</span>(<span class="dv">2</span>)(ctx) <span class="sc">||</span> <span class="fu">grade_eq</span>(<span class="dv">3</span>)(ctx)) <span class="sc">&amp;&amp;</span> <span class="fu">holds_ge</span>(max_holds)(ctx)</span>
+<span id="cb22-82"><a href="#cb22-82" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb22-83"><a href="#cb22-83" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grade_ge</span>(<span class="dv">4</span>),</span>
+<span id="cb22-84"><a href="#cb22-84" aria-hidden="true" tabindex="-1"></a>    always,</span>
+<span id="cb22-85"><a href="#cb22-85" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(ctx) <span class="fu">identical</span>(ctx<span class="sc">$</span>active <span class="sc">%||%</span> <span class="st">"OnDose"</span>, <span class="st">"OnDose"</span>),</span>
+<span id="cb22-86"><a href="#cb22-86" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(ctx) <span class="fu">identical</span>(ctx<span class="sc">$</span>active, <span class="st">"Reduced"</span>),</span>
+<span id="cb22-87"><a href="#cb22-87" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grade_le</span>(<span class="dv">2</span>),</span>
+<span id="cb22-88"><a href="#cb22-88" aria-hidden="true" tabindex="-1"></a>    <span class="fu">grade_ge</span>(<span class="dv">3</span>),</span>
+<span id="cb22-89"><a href="#cb22-89" aria-hidden="true" tabindex="-1"></a>    always</span>
+<span id="cb22-90"><a href="#cb22-90" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb22-91"><a href="#cb22-91" aria-hidden="true" tabindex="-1"></a>  <span class="at">action =</span> <span class="fu">list</span>(</span>
+<span id="cb22-92"><a href="#cb22-92" aria-hidden="true" tabindex="-1"></a>    continue_dose, reduce_dose, start_hold, stop_tx, stop_tx, stop_tx,</span>
+<span id="cb22-93"><a href="#cb22-93" aria-hidden="true" tabindex="-1"></a>    continue_dose, start_hold, stop_tx, stop_tx, stop_tx,</span>
+<span id="cb22-94"><a href="#cb22-94" aria-hidden="true" tabindex="-1"></a>    resume_dose, resume_dose, stay_holding, stop_tx, stop_tx</span>
+<span id="cb22-95"><a href="#cb22-95" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-96"><a href="#cb22-96" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-97"><a href="#cb22-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-98"><a href="#cb22-98" aria-hidden="true" tabindex="-1"></a>dose_fsm <span class="ot">&lt;-</span> <span class="fu">new_fsm</span>(</span>
+<span id="cb22-99"><a href="#cb22-99" aria-hidden="true" tabindex="-1"></a>  <span class="at">states =</span> dose_states,</span>
+<span id="cb22-100"><a href="#cb22-100" aria-hidden="true" tabindex="-1"></a>  <span class="at">events =</span> dose_events,</span>
+<span id="cb22-101"><a href="#cb22-101" aria-hidden="true" tabindex="-1"></a>  <span class="at">transitions =</span> dose_tr,</span>
+<span id="cb22-102"><a href="#cb22-102" aria-hidden="true" tabindex="-1"></a>  <span class="at">initial =</span> <span class="st">"OnDose"</span></span>
+<span id="cb22-103"><a href="#cb22-103" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="walk-a-toxicity-timeline" class="level2">
+<h2 class="anchored" data-anchor-id="walk-a-toxicity-timeline">Walk a toxicity timeline</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>ctx0 <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">dose =</span> <span class="dv">100</span>,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_holds =</span> <span class="dv">0</span>L,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">active =</span> <span class="st">"OnDose"</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">last_action =</span> <span class="cn">NA_character_</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">grade =</span> <span class="cn">NA_integer_</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>apply_tox <span class="ot">&lt;-</span> <span class="cf">function</span>(machine, state, context, grade) {</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  context<span class="sc">$</span>grade <span class="ot">&lt;-</span> grade</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_fsm</span>(machine, state, <span class="st">"tox"</span>, context)</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Grade 1 while on full dose → continue</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>s1 <span class="ot">&lt;-</span> <span class="fu">apply_tox</span>(dose_fsm, <span class="st">"OnDose"</span>, ctx0, <span class="dv">1</span>L)</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>s1<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "OnDose"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>s1<span class="sc">$</span>context<span class="sc">$</span>dose</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>s1<span class="sc">$</span>context<span class="sc">$</span>last_action</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "continue"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Grade 2 → reduce</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>s2 <span class="ot">&lt;-</span> <span class="fu">apply_tox</span>(dose_fsm, s1<span class="sc">$</span>state, s1<span class="sc">$</span>context, <span class="dv">2</span>L)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>s2<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Reduced"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>s2<span class="sc">$</span>context<span class="sc">$</span>dose</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 75</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Grade 3 → first hold</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>s3 <span class="ot">&lt;-</span> <span class="fu">apply_tox</span>(dose_fsm, s2<span class="sc">$</span>state, s2<span class="sc">$</span>context, <span class="dv">3</span>L)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>s3<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Holding"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>s3<span class="sc">$</span>context<span class="sc">$</span>n_holds</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Resume to Reduced (active remembered)</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>s4 <span class="ot">&lt;-</span> <span class="fu">step_fsm</span>(dose_fsm, s3<span class="sc">$</span>state, <span class="st">"resume"</span>, s3<span class="sc">$</span>context)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>s4<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Reduced"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>s4<span class="sc">$</span>context<span class="sc">$</span>dose</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 75</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Another grade 3 → second hold</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>s5 <span class="ot">&lt;-</span> <span class="fu">apply_tox</span>(dose_fsm, s4<span class="sc">$</span>state, s4<span class="sc">$</span>context, <span class="dv">3</span>L)</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>s5<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Holding"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>s5<span class="sc">$</span>context<span class="sc">$</span>n_holds</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Resume again, then grade 3 with n_holds &gt;= 2 → discontinue</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>s6 <span class="ot">&lt;-</span> <span class="fu">step_fsm</span>(dose_fsm, s5<span class="sc">$</span>state, <span class="st">"resume"</span>, s5<span class="sc">$</span>context)</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>s7 <span class="ot">&lt;-</span> <span class="fu">apply_tox</span>(dose_fsm, s6<span class="sc">$</span>state, s6<span class="sc">$</span>context, <span class="dv">3</span>L)</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>s7<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Discontinued"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>s7<span class="sc">$</span>context<span class="sc">$</span>dose</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>s7<span class="sc">$</span>context<span class="sc">$</span>last_action</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "discontinue"</code></pre>
+</div>
+</div>
+<p>The nested <code>if</code> version would bury <code>n_holds</code>, <code>active</code>, and grade thresholds inside each status branch. Here the <strong>policy is the table</strong>: reviewers can read every legal <code>(state, event, guard) → to</code> line. Changing “discontinue after two holds” to three is one edit to <code>max_holds</code>, not surgery inside nested blocks.</p>
+</section>
+<section id="audit-trail-for-a-subject" class="level2">
+<h2 class="anchored" data-anchor-id="audit-trail-for-a-subject">Audit trail for a subject</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>simulate_dose <span class="ot">&lt;-</span> <span class="cf">function</span>(grades) {</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>  state <span class="ot">&lt;-</span> dose_fsm<span class="sc">$</span>initial</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>  context <span class="ot">&lt;-</span> ctx0</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(grades)) {</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>    g <span class="ot">&lt;-</span> grades[[i]]</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">is.na</span>(g)) {</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>      out <span class="ot">&lt;-</span> <span class="fu">step_fsm</span>(dose_fsm, state, <span class="st">"resume"</span>, context)</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>      ev <span class="ot">&lt;-</span> <span class="st">"resume"</span></span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a>      context<span class="sc">$</span>grade <span class="ot">&lt;-</span> g</span>
+<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a>      out <span class="ot">&lt;-</span> <span class="fu">step_fsm</span>(dose_fsm, state, <span class="st">"tox"</span>, context)</span>
+<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a>      ev <span class="ot">&lt;-</span> <span class="st">"tox"</span></span>
+<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a>    rows[[i]] <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb51-16"><a href="#cb51-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">step =</span> i,</span>
+<span id="cb51-17"><a href="#cb51-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">event =</span> ev,</span>
+<span id="cb51-18"><a href="#cb51-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">grade =</span> g,</span>
+<span id="cb51-19"><a href="#cb51-19" aria-hidden="true" tabindex="-1"></a>      <span class="at">from =</span> state,</span>
+<span id="cb51-20"><a href="#cb51-20" aria-hidden="true" tabindex="-1"></a>      <span class="at">to =</span> out<span class="sc">$</span>state,</span>
+<span id="cb51-21"><a href="#cb51-21" aria-hidden="true" tabindex="-1"></a>      <span class="at">dose =</span> out<span class="sc">$</span>context<span class="sc">$</span>dose,</span>
+<span id="cb51-22"><a href="#cb51-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">n_holds =</span> out<span class="sc">$</span>context<span class="sc">$</span>n_holds,</span>
+<span id="cb51-23"><a href="#cb51-23" aria-hidden="true" tabindex="-1"></a>      <span class="at">action =</span> out<span class="sc">$</span>context<span class="sc">$</span>last_action</span>
+<span id="cb51-24"><a href="#cb51-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb51-25"><a href="#cb51-25" aria-hidden="true" tabindex="-1"></a>    state <span class="ot">&lt;-</span> out<span class="sc">$</span>state</span>
+<span id="cb51-26"><a href="#cb51-26" aria-hidden="true" tabindex="-1"></a>    context <span class="ot">&lt;-</span> out<span class="sc">$</span>context</span>
+<span id="cb51-27"><a href="#cb51-27" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb51-28"><a href="#cb51-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(rows)</span>
+<span id="cb51-29"><a href="#cb51-29" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb51-30"><a href="#cb51-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-31"><a href="#cb51-31" aria-hidden="true" tabindex="-1"></a><span class="co"># grades with NA = resume after hold</span></span>
+<span id="cb51-32"><a href="#cb51-32" aria-hidden="true" tabindex="-1"></a><span class="fu">simulate_dose</span>(<span class="fu">c</span>(<span class="dv">1</span>L, <span class="dv">2</span>L, <span class="dv">3</span>L, <span class="cn">NA</span>, <span class="dv">3</span>L, <span class="cn">NA</span>, <span class="dv">3</span>L))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 8
+   step event  grade from    to            dose n_holds action     
+  &lt;int&gt; &lt;chr&gt;  &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;        &lt;dbl&gt;   &lt;int&gt; &lt;chr&gt;      
+1     1 tox        1 OnDose  OnDose         100       0 continue   
+2     2 tox        2 OnDose  Reduced         75       0 reduce     
+3     3 tox        3 Reduced Holding         75       1 hold       
+4     4 resume    NA Holding Reduced         75       1 resume     
+5     5 tox        3 Reduced Holding         75       2 hold       
+6     6 resume    NA Holding Reduced         75       2 resume     
+7     7 tox        3 Reduced Discontinued     0       2 discontinue</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="example-c-visit-readiness" class="level1">
+<h1>Example C: visit readiness</h1>
+<p>A lighter machine for attendance / window logic — useful when deriving visit status flags without another <code>if</code> cascade in the ADaM step.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>in_window <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>  <span class="sc">!</span><span class="fu">is.null</span>(ctx<span class="sc">$</span>study_day) <span class="sc">&amp;&amp;</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>    ctx<span class="sc">$</span>study_day <span class="sc">&gt;=</span> ctx<span class="sc">$</span>window_lo <span class="sc">&amp;&amp;</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>    ctx<span class="sc">$</span>study_day <span class="sc">&lt;=</span> ctx<span class="sc">$</span>window_hi</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>before_window <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>  <span class="sc">!</span><span class="fu">is.null</span>(ctx<span class="sc">$</span>study_day) <span class="sc">&amp;&amp;</span> ctx<span class="sc">$</span>study_day <span class="sc">&lt;</span> ctx<span class="sc">$</span>window_lo</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>after_window <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a>  <span class="sc">!</span><span class="fu">is.null</span>(ctx<span class="sc">$</span>study_day) <span class="sc">&amp;&amp;</span> ctx<span class="sc">$</span>study_day <span class="sc">&gt;</span> ctx<span class="sc">$</span>window_hi</span>
+<span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a>mark_missed <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>flag <span class="ot">&lt;-</span> <span class="st">"missed_window"</span></span>
+<span id="cb53-15"><a href="#cb53-15" aria-hidden="true" tabindex="-1"></a>  ctx</span>
+<span id="cb53-16"><a href="#cb53-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb53-17"><a href="#cb53-17" aria-hidden="true" tabindex="-1"></a>mark_done <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) {</span>
+<span id="cb53-18"><a href="#cb53-18" aria-hidden="true" tabindex="-1"></a>  ctx<span class="sc">$</span>flag <span class="ot">&lt;-</span> <span class="st">"completed"</span></span>
+<span id="cb53-19"><a href="#cb53-19" aria-hidden="true" tabindex="-1"></a>  ctx</span>
+<span id="cb53-20"><a href="#cb53-20" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb53-21"><a href="#cb53-21" aria-hidden="true" tabindex="-1"></a>identity_ctx <span class="ot">&lt;-</span> <span class="cf">function</span>(ctx) ctx</span>
+<span id="cb53-22"><a href="#cb53-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-23"><a href="#cb53-23" aria-hidden="true" tabindex="-1"></a>visit_tr <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb53-24"><a href="#cb53-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(</span>
+<span id="cb53-25"><a href="#cb53-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Scheduled"</span>, <span class="st">"Scheduled"</span>, <span class="st">"Scheduled"</span>,</span>
+<span id="cb53-26"><a href="#cb53-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">"WindowOpen"</span>, <span class="st">"WindowOpen"</span>, <span class="st">"WindowOpen"</span>,</span>
+<span id="cb53-27"><a href="#cb53-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Scheduled"</span></span>
+<span id="cb53-28"><a href="#cb53-28" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb53-29"><a href="#cb53-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">event =</span> <span class="fu">c</span>(<span class="st">"tick"</span>, <span class="st">"tick"</span>, <span class="st">"tick"</span>, <span class="st">"tick"</span>, <span class="st">"tick"</span>, <span class="st">"done"</span>, <span class="st">"done"</span>),</span>
+<span id="cb53-30"><a href="#cb53-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(</span>
+<span id="cb53-31"><a href="#cb53-31" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Scheduled"</span>, <span class="st">"WindowOpen"</span>, <span class="st">"Missed"</span>,</span>
+<span id="cb53-32"><a href="#cb53-32" aria-hidden="true" tabindex="-1"></a>    <span class="st">"WindowOpen"</span>, <span class="st">"Missed"</span>, <span class="st">"Done"</span>, <span class="st">"Done"</span></span>
+<span id="cb53-33"><a href="#cb53-33" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb53-34"><a href="#cb53-34" aria-hidden="true" tabindex="-1"></a>  <span class="at">guard =</span> <span class="fu">list</span>(</span>
+<span id="cb53-35"><a href="#cb53-35" aria-hidden="true" tabindex="-1"></a>    before_window, in_window, after_window,</span>
+<span id="cb53-36"><a href="#cb53-36" aria-hidden="true" tabindex="-1"></a>    in_window, after_window, always, in_window</span>
+<span id="cb53-37"><a href="#cb53-37" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb53-38"><a href="#cb53-38" aria-hidden="true" tabindex="-1"></a>  <span class="at">action =</span> <span class="fu">list</span>(</span>
+<span id="cb53-39"><a href="#cb53-39" aria-hidden="true" tabindex="-1"></a>    identity_ctx, identity_ctx, mark_missed,</span>
+<span id="cb53-40"><a href="#cb53-40" aria-hidden="true" tabindex="-1"></a>    identity_ctx, mark_missed, mark_done, mark_done</span>
+<span id="cb53-41"><a href="#cb53-41" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb53-42"><a href="#cb53-42" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb53-43"><a href="#cb53-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-44"><a href="#cb53-44" aria-hidden="true" tabindex="-1"></a>visit_fsm <span class="ot">&lt;-</span> <span class="fu">new_fsm</span>(</span>
+<span id="cb53-45"><a href="#cb53-45" aria-hidden="true" tabindex="-1"></a>  <span class="at">states =</span> <span class="fu">c</span>(<span class="st">"Scheduled"</span>, <span class="st">"WindowOpen"</span>, <span class="st">"Done"</span>, <span class="st">"Missed"</span>),</span>
+<span id="cb53-46"><a href="#cb53-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">events =</span> <span class="fu">c</span>(<span class="st">"tick"</span>, <span class="st">"done"</span>),</span>
+<span id="cb53-47"><a href="#cb53-47" aria-hidden="true" tabindex="-1"></a>  <span class="at">transitions =</span> visit_tr,</span>
+<span id="cb53-48"><a href="#cb53-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">initial =</span> <span class="st">"Scheduled"</span></span>
+<span id="cb53-49"><a href="#cb53-49" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb53-50"><a href="#cb53-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-51"><a href="#cb53-51" aria-hidden="true" tabindex="-1"></a><span class="co"># Week 4 window [25, 31]; subject arrives day 28</span></span>
+<span id="cb53-52"><a href="#cb53-52" aria-hidden="true" tabindex="-1"></a>vctx <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">study_day =</span> <span class="dv">28</span>, <span class="at">window_lo =</span> <span class="dv">25</span>, <span class="at">window_hi =</span> <span class="dv">31</span>, <span class="at">flag =</span> <span class="cn">NA_character_</span>)</span>
+<span id="cb53-53"><a href="#cb53-53" aria-hidden="true" tabindex="-1"></a>v1 <span class="ot">&lt;-</span> <span class="fu">step_fsm</span>(visit_fsm, <span class="st">"Scheduled"</span>, <span class="st">"tick"</span>, vctx)</span>
+<span id="cb53-54"><a href="#cb53-54" aria-hidden="true" tabindex="-1"></a>v2 <span class="ot">&lt;-</span> <span class="fu">step_fsm</span>(visit_fsm, v1<span class="sc">$</span>state, <span class="st">"done"</span>, v1<span class="sc">$</span>context)</span>
+<span id="cb53-55"><a href="#cb53-55" aria-hidden="true" tabindex="-1"></a>v2<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Done"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>v2<span class="sc">$</span>context<span class="sc">$</span>flag</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "completed"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Subject never shows up: day 40 while still Scheduled → Missed</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>vmiss <span class="ot">&lt;-</span> <span class="fu">step_fsm</span>(</span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>  visit_fsm,</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Scheduled"</span>,</span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tick"</span>,</span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">study_day =</span> <span class="dv">40</span>, <span class="at">window_lo =</span> <span class="dv">25</span>, <span class="at">window_hi =</span> <span class="dv">31</span>, <span class="at">flag =</span> <span class="cn">NA_character_</span>)</span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>vmiss<span class="sc">$</span>state</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Missed"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>vmiss<span class="sc">$</span>context<span class="sc">$</span>flag</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "missed_window"</code></pre>
+</div>
+</div>
+<div class="cell" data-fig-width="5.4" data-out-width="90%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="visit-graph">
+<div>
+<pre class="mermaid mermaid-js" data-label="visit-graph">stateDiagram-v2
+  [*] --&gt; Scheduled
+  Scheduled --&gt; Scheduled: tick before window
+  Scheduled --&gt; WindowOpen: tick in window
+  Scheduled --&gt; Done: done in window
+  Scheduled --&gt; Missed: tick after window
+  WindowOpen --&gt; WindowOpen: tick in window
+  WindowOpen --&gt; Done: done
+  WindowOpen --&gt; Missed: tick after window
+</pre>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="pattern-shape-in-clinical-code" class="level1">
+<h1>Pattern shape in clinical code</h1>
+<p>Practical placement:</p>
+<ol type="1">
+<li><strong>SAP / protocol</strong> defines the allowed graph (human text + diagram).</li>
+<li><strong>Transition table</strong> is the machine-readable SAP fragment.</li>
+<li><strong>Event log</strong> (disposition events, toxicity grades, visit ticks) drives <code>run_fsm</code> / <code>step_fsm</code>.</li>
+<li><strong>ADaM</strong> stores the resulting status / dose / visit flag — and optionally the history for traceability.</li>
+</ol>
+<p>The FSM does not replace tidy verbs for plain merges and summaries. It replaces the <em>process kernel</em> that otherwise becomes nested control flow.</p>
+</section>
+<section id="when-not-to-use-a-state-machine" class="level1">
+<h1>When not to use a state machine</h1>
+<ul>
+<li>Flat, memory-free recodes (<code>SEX</code>, <code>ARMN</code>, severity → numeric) — prefer <code>case_when</code>, formats, or a lookup table.</li>
+<li>A single branching rule with no recurring state — a plain function is clearer.</li>
+<li>Reconstructing latent disease course under missing assessments — use HMM / Viterbi (companion article), not a protocol FSM.</li>
+<li>Forcing every <code>if</code> in a reporting script into states — overkill; reserve FSMs for processes with illegal paths and history.</li>
+</ul>
+</section>
+<section id="closing" class="level1">
+<h1>Closing</h1>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Situation</th>
+<th>Prefer</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Disposition / enrollment process</td>
+<td>Table-driven FSM + event log</td>
+</tr>
+<tr class="even">
+<td>Dose modification with counters</td>
+<td>FSM with guards and actions</td>
+</tr>
+<tr class="odd">
+<td>Visit window readiness</td>
+<td>Small FSM or explicit window functions</td>
+</tr>
+<tr class="even">
+<td>One-shot ADaM derivation</td>
+<td><code>case_when</code> / joins / formats</td>
+</tr>
+<tr class="odd">
+<td>Latent path under missing visits</td>
+<td>HMM + Viterbi</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>Clinical decision rules with memory — disposition, dosing, visit readiness — are state machines whether the code admits it or not. Nested <code>if</code> / <code>else</code> hides the allowed graph inside control flow. A table-driven FSM in R surfaces <strong>states</strong>, <strong>events</strong>, <strong>guards</strong>, and <strong>actions</strong> as data: illegal transitions fail loudly, policies become reviewable rows, and cohort event logs replay through one engine.</p>
+<p>Use an FSM when the protocol defines a process with illegal paths and history. Prefer ordinary tidy recodes when there is no process memory, and probabilistic decoders when the question is the most likely latent chain rather than the next official state.</p>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<ul>
+<li>Gamma, E., Helm, R., Johnson, R., and Vlissides, J. (1994). <em>Design Patterns: Elements of Reusable Object-Oriented Software</em>. Addison-Wesley. (State pattern.)</li>
+<li>Harel, D. (1987). Statecharts: A visual formalism for complex systems. <em>Science of Computer Programming</em>, 8(3), 231–274.</li>
+<li>ICH E9(R1) (2019). <em>Addendum on Estimands and Sensitivity Analysis in Clinical Trials</em>. An FSM implements operational rules; it does not define the estimand.</li>
+<li>Companion post: Viterbi decoding for clinical response chains (HMM / latent paths under missing visits).</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/al-garik\.github\.io\/ks-blog\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>&nbsp;</p>
+</div>   
+    <div class="nav-footer-center">
+<p>Powered by <a href="https://quarto.org/">Quarto</a></p>
+</div>
+    <div class="nav-footer-right">
+<p>Made by KeyStat for the R community</p>
+<p>© 2026 KeyStat. All rights reserved.</p>
+</div>
+  </div>
+</footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
+
+
+
+
+</body></html>

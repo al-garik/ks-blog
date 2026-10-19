@@ -9,8 +9,2811 @@
 <link>https://al-garik.github.io/ks-blog/</link>
 <atom:link href="https://al-garik.github.io/ks-blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Articles about R programming, clinical data processing and analysis, and statistical reporting</description>
-<generator>quarto-1.10.18</generator>
-<lastBuildDate>Sun, 20 Sep 2026 21:00:00 GMT</lastBuildDate>
+<generator>quarto-1.10.19</generator>
+<lastBuildDate>Sun, 18 Oct 2026 21:00:00 GMT</lastBuildDate>
+<item>
+  <title>State Machines in R for Clinical Studies</title>
+  <dc:creator>Vladimir Larchenko</dc:creator>
+  <link>https://al-garik.github.io/ks-blog/posts/2026-10-19-state-machine/</link>
+  <description><![CDATA[ 
+
+
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/post-logo.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="A fairy-tale path of clinical states"><img src="https://al-garik.github.io/ks-blog/posts/2026-10-19-state-machine/images/post-logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img" alt="A fairy-tale path of clinical states"></a></p>
+</figure>
+</div>
+<figcaption>A fairy-tale path of clinical states</figcaption>
+</figure>
+</div>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Clinical programs are full of <strong>process rules with memory</strong>. A subject is screening, then eligible, then randomized, then on treatment — or screen-failed. A dose continues, reduces, holds, or stops depending on toxicity <em>and</em> how many holds already happened. A visit is scheduled, open in window, completed, or missed.</p>
+<p>Those rules are often written as nested <code>if</code> / <code>else</code> (or a giant <code>dplyr::case_when</code>). That works for a one-shot classification of a static row. It ages badly once the <em>current state</em> matters, illegal paths must be rejected, and auditors ask which transitions fired.</p>
+<p>A <strong>finite-state machine</strong> (FSM) makes the process explicit:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Piece</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>State</strong></td>
+<td>Where the subject / dose / visit is now</td>
+</tr>
+<tr class="even">
+<td><strong>Event</strong></td>
+<td>What happened (pass screen, grade 3 AE, window day)</td>
+</tr>
+<tr class="odd">
+<td><strong>Transition</strong></td>
+<td>Legal move <code>from + event → to</code></td>
+</tr>
+<tr class="even">
+<td><strong>Guard</strong></td>
+<td>Optional predicate on context (grade, labs, counters)</td>
+</tr>
+<tr class="odd">
+<td><strong>Action</strong></td>
+<td>Optional side effect (log, set next dose, raise QC flag)</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="blockquote">
+<p>Encode <em>allowed</em> clinical paths as data. Drive decisions by looking up <code>(state, event)</code> — do not re-walk a decision tree on every call.</p>
+</blockquote>
+<p>This article builds a small table-driven FSM in R, rewrites a nested disposition script and a dose-modification policy, and shows a short visit-readiness machine. The focus is <strong>deterministic</strong> protocol logic.</p>
+<p><strong>Not the same as Viterbi / HMM.</strong> Reconstructing a <em>latent</em> RECIST-like path under missing visits is a probabilistic decoding problem — see the companion post on Viterbi decoding. An FSM here is a <strong>protocol decision engine</strong>: given the current official state and an event, what is the next official state? Illegal transitions fail loudly.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(dplyr, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">warn.conflicts =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyr)</span>
+<span id="cb1-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(purrr)</span></code></pre></div></div>
+</div>
+</section>
+<section id="motivation" class="level1">
+<h1>Motivation</h1>
+<section id="nested-disposition-logic" class="level2">
+<h2 class="anchored" data-anchor-id="nested-disposition-logic">Nested disposition logic</h2>
+<p>A common first draft for subject disposition looks like this:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">update_disposition <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(status, event) {</span>
+<span id="cb2-2">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (status <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Screening"</span>) {</span>
+<span id="cb2-3">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pass_screen"</span>) {</span>
+<span id="cb2-4">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Eligible"</span></span>
+<span id="cb2-5">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fail_screen"</span>) {</span>
+<span id="cb2-6">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ScreenFail"</span></span>
+<span id="cb2-7">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb2-8">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"illegal"</span>)</span>
+<span id="cb2-9">    }</span>
+<span id="cb2-10">  } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (status <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Eligible"</span>) {</span>
+<span id="cb2-11">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"randomize"</span>) {</span>
+<span id="cb2-12">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Randomized"</span></span>
+<span id="cb2-13">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fail_screen"</span>) {</span>
+<span id="cb2-14">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ScreenFail"</span></span>
+<span id="cb2-15">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb2-16">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"illegal"</span>)</span>
+<span id="cb2-17">    }</span>
+<span id="cb2-18">  } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (status <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Randomized"</span>) {</span>
+<span id="cb2-19">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"start_tx"</span>) {</span>
+<span id="cb2-20">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnTreatment"</span></span>
+<span id="cb2-21">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"discontinue"</span>) {</span>
+<span id="cb2-22">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span></span>
+<span id="cb2-23">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb2-24">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"illegal"</span>)</span>
+<span id="cb2-25">    }</span>
+<span id="cb2-26">  } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (status <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnTreatment"</span>) {</span>
+<span id="cb2-27">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"complete"</span>) {</span>
+<span id="cb2-28">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Completed"</span></span>
+<span id="cb2-29">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"discontinue"</span>) {</span>
+<span id="cb2-30">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span></span>
+<span id="cb2-31">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb2-32">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"illegal"</span>)</span>
+<span id="cb2-33">    }</span>
+<span id="cb2-34">  } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb2-35">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"terminal or unknown status"</span>)</span>
+<span id="cb2-36">  }</span>
+<span id="cb2-37">}</span></code></pre></div></div>
+</div>
+<p>Every new status or event adds another nest. Illegal paths are easy to miss (<code>Randomized</code> + <code>pass_screen</code>). Terminal states are easy to forget. Unit tests must re-encode the same tree. Reviewers cannot <em>see</em> the allowed graph without simulating every branch.</p>
+</section>
+<section id="dose-modification-with-memory" class="level2">
+<h2 class="anchored" data-anchor-id="dose-modification-with-memory">Dose modification with memory</h2>
+<p>Dose rules usually depend on <strong>history</strong>, not only the latest grade:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># grade 1 → continue</span></span>
+<span id="cb3-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># grade 2 → reduce once, else hold</span></span>
+<span id="cb3-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># grade 3 → hold; after 2 holds → discontinue</span></span>
+<span id="cb3-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># grade 4 → discontinue</span></span>
+<span id="cb3-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># ...plus: no action while already Holding unless resume/discontinue</span></span></code></pre></div></div>
+</div>
+<p>Nested conditionals mix <em>state</em> (<code>OnDose</code>, <code>Holding</code>, <code>Reduced</code>, <code>Discontinued</code>), <em>event</em> (new toxicity grade, resume, permanent stop), and <em>context</em> (<code>n_holds</code>, <code>current_dose</code>). The FSM separates those concerns.</p>
+<div class="cell" data-fig-width="6.2" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="ifelse-vs-fsm">
+<div>
+<pre class="mermaid mermaid-js" data-label="ifelse-vs-fsm">%%{init: {"flowchart": {"rankSpacing": 24, "nodeSpacing": 14, "padding": 6}}}%%
+flowchart LR
+  subgraph tangled [NestedIfElse]
+    direction TB
+    s1[status] --&gt; deep[DeepBranches]
+    e1[event] --&gt; deep
+  end
+  subgraph machine [TableDrivenFSM]
+    direction TB
+    st[state] --&gt; tbl[transitionTable]
+    ev[event] --&gt; tbl
+    tbl --&gt; nx[nextState]
+  end
+  tangled ~~~ machine
+</pre>
+</div>
+</div>
+</div>
+</div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Nearby idea</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>case_when</code> on one snapshot</td>
+<td>Fine for ADaM recodes with no process memory</td>
+</tr>
+<tr class="even">
+<td>Nested <code>if</code> / <code>else</code></td>
+<td>Encodes the graph in control flow; hard to audit</td>
+</tr>
+<tr class="odd">
+<td>Deterministic FSM</td>
+<td>Explicit legal graph; rejects illegal moves</td>
+</tr>
+<tr class="even">
+<td>HMM + Viterbi</td>
+<td>Most probable <em>latent</em> path under noise / missingness</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="mechanics-in-r" class="level1">
+<h1>Mechanics in R</h1>
+<section id="transition-table-and-engine" class="level2">
+<h2 class="anchored" data-anchor-id="transition-table-and-engine">Transition table and engine</h2>
+<p>States and events are character labels. Transitions live in a tibble. Guards and actions are ordinary R functions of a <strong>context</strong> list (mutable counters, dose, QC notes).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1">new_fsm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(states, events, transitions, initial) {</span>
+<span id="cb4-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stopifnot</span>(initial <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> states)</span>
+<span id="cb4-3">  tr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as_tibble</span>(transitions)</span>
+<span id="cb4-4">  need <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"from"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"event"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"to"</span>)</span>
+<span id="cb4-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stopifnot</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all</span>(need <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(tr)))</span>
+<span id="cb4-6">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"guard"</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(tr)) {</span>
+<span id="cb4-7">    tr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>guard <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vector</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"list"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(tr))</span>
+<span id="cb4-8">  }</span>
+<span id="cb4-9">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"action"</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(tr)) {</span>
+<span id="cb4-10">    tr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>action <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vector</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"list"</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(tr))</span>
+<span id="cb4-11">  }</span>
+<span id="cb4-12">  tr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> tr <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-13">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb4-14">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">guard =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>(guard, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(.x)) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> .x),</span>
+<span id="cb4-15">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">action =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>(action, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(.x)) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) ctx <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> .x)</span>
+<span id="cb4-16">    )</span>
+<span id="cb4-17">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">structure</span>(</span>
+<span id="cb4-18">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb4-19">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">states =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unique</span>(states),</span>
+<span id="cb4-20">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">events =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unique</span>(events),</span>
+<span id="cb4-21">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">transitions =</span> tr,</span>
+<span id="cb4-22">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">initial =</span> initial</span>
+<span id="cb4-23">    ),</span>
+<span id="cb4-24">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">class =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"clinical_fsm"</span></span>
+<span id="cb4-25">  )</span>
+<span id="cb4-26">}</span>
+<span id="cb4-27"></span>
+<span id="cb4-28">step_fsm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(machine, state, event, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">context =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()) {</span>
+<span id="cb4-29">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stopifnot</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">inherits</span>(machine, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"clinical_fsm"</span>))</span>
+<span id="cb4-30">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>state <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> machine<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>states) {</span>
+<span id="cb4-31">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Unknown state '%s'."</span>, state), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">call. =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb4-32">  }</span>
+<span id="cb4-33">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%in%</span> machine<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>events) {</span>
+<span id="cb4-34">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Unknown event '%s'."</span>, event), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">call. =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb4-35">  }</span>
+<span id="cb4-36"></span>
+<span id="cb4-37">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># `.env$event` is required: `event` is also a column, so a bare</span></span>
+<span id="cb4-38">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># `event` on the RHS would compare the column to itself.</span></span>
+<span id="cb4-39">  cands <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> machine<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>transitions <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb4-40">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(.data<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>from <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> .env<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state, .data<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>event <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> .env<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>event)</span>
+<span id="cb4-41"></span>
+<span id="cb4-42">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(cands) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>L) {</span>
+<span id="cb4-43">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(</span>
+<span id="cb4-44">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Illegal transition: %s + %s."</span>, state, event),</span>
+<span id="cb4-45">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">call. =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb4-46">    )</span>
+<span id="cb4-47">  }</span>
+<span id="cb4-48"></span>
+<span id="cb4-49">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (i <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq_len</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(cands))) {</span>
+<span id="cb4-50">    row <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> cands[i, ]</span>
+<span id="cb4-51">    guard <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> row<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>guard[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]]</span>
+<span id="cb4-52">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">isTRUE</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">guard</span>(context))) {</span>
+<span id="cb4-53">      action <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> row<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>action[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]]</span>
+<span id="cb4-54">      new_ctx <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">action</span>(context)</span>
+<span id="cb4-55">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb4-56">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">state =</span> row<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>to[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]],</span>
+<span id="cb4-57">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">context =</span> new_ctx,</span>
+<span id="cb4-58">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fired =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb4-59">      ))</span>
+<span id="cb4-60">    }</span>
+<span id="cb4-61">  }</span>
+<span id="cb4-62"></span>
+<span id="cb4-63">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(</span>
+<span id="cb4-64">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"No guard passed for %s + %s."</span>, state, event),</span>
+<span id="cb4-65">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">call. =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb4-66">  )</span>
+<span id="cb4-67">}</span>
+<span id="cb4-68"></span>
+<span id="cb4-69">run_fsm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(machine, events, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">context =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(),</span>
+<span id="cb4-70">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">start =</span> machine<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>initial) {</span>
+<span id="cb4-71">  state <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> start</span>
+<span id="cb4-72">  history <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb4-73">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">step =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">integer</span>(),</span>
+<span id="cb4-74">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">from =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">character</span>(),</span>
+<span id="cb4-75">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">event =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">character</span>(),</span>
+<span id="cb4-76">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">to =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">character</span>()</span>
+<span id="cb4-77">  )</span>
+<span id="cb4-78">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (k <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq_along</span>(events)) {</span>
+<span id="cb4-79">    ev <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> events[[k]]</span>
+<span id="cb4-80">    out <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(machine, state, ev, context)</span>
+<span id="cb4-81">    history <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(</span>
+<span id="cb4-82">      history,</span>
+<span id="cb4-83">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">step =</span> k, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">from =</span> state, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">event =</span> ev, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">to =</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state)</span>
+<span id="cb4-84">    )</span>
+<span id="cb4-85">    state <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span>
+<span id="cb4-86">    context <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context</span>
+<span id="cb4-87">  }</span>
+<span id="cb4-88">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">state =</span> state, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">context =</span> context, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">history =</span> history)</span>
+<span id="cb4-89">}</span>
+<span id="cb4-90"></span>
+<span id="cb4-91">print.clinical_fsm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x, ...) {</span>
+<span id="cb4-92">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cat</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(</span>
+<span id="cb4-93">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"clinical_fsm: %d states, %d events, %d transitions (start = %s)</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>,</span>
+<span id="cb4-94">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>states), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>events), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>transitions), x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>initial</span>
+<span id="cb4-95">  ))</span>
+<span id="cb4-96">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">invisible</span>(x)</span>
+<span id="cb4-97">}</span></code></pre></div></div>
+</div>
+<p>The engine is deliberately small: <strong>lookup</strong>, <strong>guard</strong>, <strong>action</strong>, <strong>reject</strong>. Clinical meaning lives in the table, not in a growing <code>if</code> ladder.</p>
+</section>
+</section>
+<section id="example-a-subject-disposition" class="level1">
+<h1>Example A: subject disposition</h1>
+<section id="allowed-graph" class="level2">
+<h2 class="anchored" data-anchor-id="allowed-graph">Allowed graph</h2>
+<div class="cell" data-fig-width="5.8" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="disposition-graph">
+<div>
+<pre class="mermaid mermaid-js" data-label="disposition-graph">stateDiagram-v2
+  [*] --&gt; Screening
+  Screening --&gt; Eligible: pass_screen
+  Screening --&gt; ScreenFail: fail_screen
+  Eligible --&gt; Randomized: randomize
+  Eligible --&gt; ScreenFail: fail_screen
+  Randomized --&gt; OnTreatment: start_tx
+  Randomized --&gt; Discontinued: discontinue
+  OnTreatment --&gt; Completed: complete
+  OnTreatment --&gt; Discontinued: discontinue
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1">disp_states <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb5-2">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Screening"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Eligible"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Randomized"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnTreatment"</span>,</span>
+<span id="cb5-3">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Completed"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ScreenFail"</span></span>
+<span id="cb5-4">)</span>
+<span id="cb5-5">disp_events <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb5-6">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pass_screen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fail_screen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"randomize"</span>,</span>
+<span id="cb5-7">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"start_tx"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"complete"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"discontinue"</span></span>
+<span id="cb5-8">)</span>
+<span id="cb5-9"></span>
+<span id="cb5-10">disp_tr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tribble</span>(</span>
+<span id="cb5-11">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>from,         <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>event,         <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>to,</span>
+<span id="cb5-12">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Screening"</span>,   <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pass_screen"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Eligible"</span>,</span>
+<span id="cb5-13">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Screening"</span>,   <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fail_screen"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ScreenFail"</span>,</span>
+<span id="cb5-14">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Eligible"</span>,    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"randomize"</span>,    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Randomized"</span>,</span>
+<span id="cb5-15">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Eligible"</span>,    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fail_screen"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ScreenFail"</span>,</span>
+<span id="cb5-16">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Randomized"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"start_tx"</span>,     <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnTreatment"</span>,</span>
+<span id="cb5-17">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Randomized"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"discontinue"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>,</span>
+<span id="cb5-18">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnTreatment"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"complete"</span>,     <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Completed"</span>,</span>
+<span id="cb5-19">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnTreatment"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"discontinue"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span></span>
+<span id="cb5-20">)</span>
+<span id="cb5-21"></span>
+<span id="cb5-22">disposition_fsm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">new_fsm</span>(</span>
+<span id="cb5-23">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">states =</span> disp_states,</span>
+<span id="cb5-24">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">events =</span> disp_events,</span>
+<span id="cb5-25">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">transitions =</span> disp_tr,</span>
+<span id="cb5-26">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">initial =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Screening"</span></span>
+<span id="cb5-27">)</span>
+<span id="cb5-28">disposition_fsm</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>clinical_fsm: 7 states, 6 events, 8 transitions (start = Screening)</code></pre>
+</div>
+</div>
+</section>
+<section id="same-paths-as-the-nested-function-as-data" class="level2">
+<h2 class="anchored" data-anchor-id="same-paths-as-the-nested-function-as-data">Same paths as the nested function — as data</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1">path_ok <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_fsm</span>(</span>
+<span id="cb7-2">  disposition_fsm,</span>
+<span id="cb7-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pass_screen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"randomize"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"start_tx"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"complete"</span>)</span>
+<span id="cb7-4">)</span>
+<span id="cb7-5">path_ok<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>history</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 4
+   step from        event       to         
+  &lt;int&gt; &lt;chr&gt;       &lt;chr&gt;       &lt;chr&gt;      
+1     1 Screening   pass_screen Eligible   
+2     2 Eligible    randomize   Randomized 
+3     3 Randomized  start_tx    OnTreatment
+4     4 OnTreatment complete    Completed  </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1">path_ok<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Completed"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1">path_sf <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_fsm</span>(</span>
+<span id="cb11-2">  disposition_fsm,</span>
+<span id="cb11-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pass_screen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fail_screen"</span>)</span>
+<span id="cb11-4">)</span>
+<span id="cb11-5">path_sf<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>history</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+   step from      event       to        
+  &lt;int&gt; &lt;chr&gt;     &lt;chr&gt;       &lt;chr&gt;     
+1     1 Screening pass_screen Eligible  
+2     2 Eligible  fail_screen ScreenFail</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1">path_sf<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "ScreenFail"</code></pre>
+</div>
+</div>
+<p>Illegal moves fail instead of silently falling through an <code>else</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(disposition_fsm, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ScreenFail"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"start_tx"</span>)</span></code></pre></div></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error:
+! Illegal transition: ScreenFail + start_tx.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(disposition_fsm, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Randomized"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pass_screen"</span>)</span></code></pre></div></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error:
+! Illegal transition: Randomized + pass_screen.</code></pre>
+</div>
+</div>
+</section>
+<section id="many-subjects-one-machine" class="level2">
+<h2 class="anchored" data-anchor-id="many-subjects-one-machine">Many subjects, one machine</h2>
+<p>Event logs become ordinary tidy data. The machine is applied per subject:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1">event_log <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tribble</span>(</span>
+<span id="cb19-2">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>USUBJID, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>seq, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>event,</span>
+<span id="cb19-3">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-001"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pass_screen"</span>,</span>
+<span id="cb19-4">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-001"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"randomize"</span>,</span>
+<span id="cb19-5">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-001"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"start_tx"</span>,</span>
+<span id="cb19-6">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-001"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"complete"</span>,</span>
+<span id="cb19-7">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-002"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fail_screen"</span>,</span>
+<span id="cb19-8">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-003"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pass_screen"</span>,</span>
+<span id="cb19-9">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-003"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"randomize"</span>,</span>
+<span id="cb19-10">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-003"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"discontinue"</span></span>
+<span id="cb19-11">)</span>
+<span id="cb19-12"></span>
+<span id="cb19-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># S-001 Screening → Eligible → Randomized → OnTreatment → Completed</span></span>
+<span id="cb19-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># S-002 Screening → ScreenFail</span></span>
+<span id="cb19-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># S-003 Screening → Eligible → Randomized → Discontinued</span></span>
+<span id="cb19-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#       (withdrew after randomization, before first dose)</span></span>
+<span id="cb19-17">expected <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tribble</span>(</span>
+<span id="cb19-18">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>USUBJID, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>FINAL_STATUS, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>N_EVENTS,</span>
+<span id="cb19-19">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-001"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Completed"</span>,          <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>L,</span>
+<span id="cb19-20">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-002"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ScreenFail"</span>,         <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L,</span>
+<span id="cb19-21">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"S-003"</span>,  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>,       <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>L</span>
+<span id="cb19-22">)</span>
+<span id="cb19-23"></span>
+<span id="cb19-24">final_disp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> event_log <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb19-25">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arrange</span>(USUBJID, seq) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb19-26">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(USUBJID) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb19-27">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_modify</span>(<span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(df, key) {</span>
+<span id="cb19-28">    out <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">run_fsm</span>(disposition_fsm, df<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>event)</span>
+<span id="cb19-29">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb19-30">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">FINAL_STATUS =</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state,</span>
+<span id="cb19-31">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">N_EVENTS =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>history)</span>
+<span id="cb19-32">    )</span>
+<span id="cb19-33">  }) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb19-34">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ungroup</span>()</span>
+<span id="cb19-35"></span>
+<span id="cb19-36">final_disp</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 3
+  USUBJID FINAL_STATUS N_EVENTS
+  &lt;chr&gt;   &lt;chr&gt;           &lt;int&gt;
+1 S-001   Completed           4
+2 S-002   ScreenFail          1
+3 S-003   Discontinued        3</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stopifnot</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">identical</span>(</span>
+<span id="cb21-2">  final_disp[, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"USUBJID"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"FINAL_STATUS"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"N_EVENTS"</span>)],</span>
+<span id="cb21-3">  expected</span>
+<span id="cb21-4">))</span></code></pre></div></div>
+</div>
+<p>Compared with nested <code>if</code>s, adding <code>Randomized → ScreenFail</code> (late discovery of eligibility failure) adds <strong>one row</strong> to <code>disp_tr</code>; the engine, the callers, and the replay loop stay untouched.</p>
+</section>
+</section>
+<section id="example-b-dose-modification-as-decision-making" class="level1">
+<h1>Example B: dose modification as decision-making</h1>
+<p>A simplified oncology-style policy (illustrative — not a real SAP):</p>
+<ul>
+<li>States: <code>OnDose</code>, <code>Reduced</code>, <code>Holding</code>, <code>Discontinued</code></li>
+<li>Start at full dose 100</li>
+<li>Toxicity events carry a CTCAE-like <code>grade</code> in context</li>
+<li>Resume from hold returns to the last active dosing state</li>
+<li>Two completed holds → discontinue on the next hold-worthy event</li>
+<li>Grade ≤ 2 while <code>Holding</code> → stay in <code>Holding</code> (no new action)</li>
+</ul>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">%||%</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x, y) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(x)) y <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> x</span>
+<span id="cb22-2"></span>
+<span id="cb22-3">always <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb22-4">grade_le <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(g) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>grade) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>grade <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> g</span>
+<span id="cb22-5">grade_eq <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(g) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">isTRUE</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>grade <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> g)</span>
+<span id="cb22-6">grade_ge <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(g) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>grade) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>grade <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span> g</span>
+<span id="cb22-7"></span>
+<span id="cb22-8">continue_dose <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb22-9">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"continue"</span></span>
+<span id="cb22-10">  ctx</span>
+<span id="cb22-11">}</span>
+<span id="cb22-12"></span>
+<span id="cb22-13">reduce_dose <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb22-14">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">max</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.75</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25</span>)</span>
+<span id="cb22-15">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"reduce"</span></span>
+<span id="cb22-16">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>active <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span></span>
+<span id="cb22-17">  ctx</span>
+<span id="cb22-18">}</span>
+<span id="cb22-19"></span>
+<span id="cb22-20">start_hold <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb22-21">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>n_holds <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>n_holds <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L</span>
+<span id="cb22-22">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hold"</span></span>
+<span id="cb22-23">  ctx</span>
+<span id="cb22-24">}</span>
+<span id="cb22-25"></span>
+<span id="cb22-26">resume_dose <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb22-27">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"resume"</span></span>
+<span id="cb22-28">  ctx</span>
+<span id="cb22-29">}</span>
+<span id="cb22-30"></span>
+<span id="cb22-31">stop_tx <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb22-32">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb22-33">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"discontinue"</span></span>
+<span id="cb22-34">  ctx</span>
+<span id="cb22-35">}</span>
+<span id="cb22-36"></span>
+<span id="cb22-37">holds_lt <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(n) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">isTRUE</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>n_holds <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> n)</span>
+<span id="cb22-38">holds_ge <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(n) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">isTRUE</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>n_holds <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span> n)</span>
+<span id="cb22-39"></span>
+<span id="cb22-40">max_holds <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>L</span>
+<span id="cb22-41"></span>
+<span id="cb22-42">stay_holding <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb22-43">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"stay"</span></span>
+<span id="cb22-44">  ctx</span>
+<span id="cb22-45">}</span>
+<span id="cb22-46"></span>
+<span id="cb22-47">dose_states <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>)</span>
+<span id="cb22-48">dose_events <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"resume"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"permanent_stop"</span>)</span>
+<span id="cb22-49"></span>
+<span id="cb22-50"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Multiple rows per (from, event): first matching guard wins.</span></span>
+<span id="cb22-51"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Built with tibble() so guards/actions stay as list-columns of functions.</span></span>
+<span id="cb22-52">dose_tr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> tibble<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb22-53">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">from =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb22-54">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>,</span>
+<span id="cb22-55">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>,</span>
+<span id="cb22-56">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span></span>
+<span id="cb22-57">  ),</span>
+<span id="cb22-58">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">event =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb22-59">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"permanent_stop"</span>,</span>
+<span id="cb22-60">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"permanent_stop"</span>,</span>
+<span id="cb22-61">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"resume"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"resume"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"permanent_stop"</span></span>
+<span id="cb22-62">  ),</span>
+<span id="cb22-63">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">to =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb22-64">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>,</span>
+<span id="cb22-65">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>,</span>
+<span id="cb22-66">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>,</span>
+<span id="cb22-67">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Holding"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Discontinued"</span></span>
+<span id="cb22-68">  ),</span>
+<span id="cb22-69">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">guard =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb22-70">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_le</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>),</span>
+<span id="cb22-71">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_eq</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>),</span>
+<span id="cb22-72">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_eq</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)(ctx) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">holds_lt</span>(max_holds)(ctx),</span>
+<span id="cb22-73">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_eq</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)(ctx) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">holds_ge</span>(max_holds)(ctx),</span>
+<span id="cb22-74">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_ge</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>),</span>
+<span id="cb22-75">    always,</span>
+<span id="cb22-76">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_le</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>),</span>
+<span id="cb22-77">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb22-78">      (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_eq</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)(ctx) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">||</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_eq</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)(ctx)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">holds_lt</span>(max_holds)(ctx)</span>
+<span id="cb22-79">    },</span>
+<span id="cb22-80">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb22-81">      (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_eq</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)(ctx) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">||</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_eq</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)(ctx)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">holds_ge</span>(max_holds)(ctx)</span>
+<span id="cb22-82">    },</span>
+<span id="cb22-83">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_ge</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>),</span>
+<span id="cb22-84">    always,</span>
+<span id="cb22-85">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">identical</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>active <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%||%</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>),</span>
+<span id="cb22-86">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">identical</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>active, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Reduced"</span>),</span>
+<span id="cb22-87">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_le</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>),</span>
+<span id="cb22-88">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">grade_ge</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>),</span>
+<span id="cb22-89">    always</span>
+<span id="cb22-90">  ),</span>
+<span id="cb22-91">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">action =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb22-92">    continue_dose, reduce_dose, start_hold, stop_tx, stop_tx, stop_tx,</span>
+<span id="cb22-93">    continue_dose, start_hold, stop_tx, stop_tx, stop_tx,</span>
+<span id="cb22-94">    resume_dose, resume_dose, stay_holding, stop_tx, stop_tx</span>
+<span id="cb22-95">  )</span>
+<span id="cb22-96">)</span>
+<span id="cb22-97"></span>
+<span id="cb22-98">dose_fsm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">new_fsm</span>(</span>
+<span id="cb22-99">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">states =</span> dose_states,</span>
+<span id="cb22-100">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">events =</span> dose_events,</span>
+<span id="cb22-101">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">transitions =</span> dose_tr,</span>
+<span id="cb22-102">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">initial =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span></span>
+<span id="cb22-103">)</span></code></pre></div></div>
+</div>
+<section id="walk-a-toxicity-timeline" class="level2">
+<h2 class="anchored" data-anchor-id="walk-a-toxicity-timeline">Walk a toxicity timeline</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1">ctx0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb23-2">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>,</span>
+<span id="cb23-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n_holds =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>L,</span>
+<span id="cb23-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">active =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>,</span>
+<span id="cb23-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">last_action =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_character_</span>,</span>
+<span id="cb23-6">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">grade =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_integer_</span></span>
+<span id="cb23-7">)</span>
+<span id="cb23-8"></span>
+<span id="cb23-9">apply_tox <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(machine, state, context, grade) {</span>
+<span id="cb23-10">  context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>grade <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> grade</span>
+<span id="cb23-11">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(machine, state, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, context)</span>
+<span id="cb23-12">}</span>
+<span id="cb23-13"></span>
+<span id="cb23-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Grade 1 while on full dose → continue</span></span>
+<span id="cb23-15">s1 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply_tox</span>(dose_fsm, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OnDose"</span>, ctx0, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L)</span>
+<span id="cb23-16">s1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "OnDose"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1">s1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1">s1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "continue"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Grade 2 → reduce</span></span>
+<span id="cb29-2">s2 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply_tox</span>(dose_fsm, s1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state, s1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>L)</span>
+<span id="cb29-3">s2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Reduced"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1">s2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 75</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Grade 3 → first hold</span></span>
+<span id="cb33-2">s3 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply_tox</span>(dose_fsm, s2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state, s2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>L)</span>
+<span id="cb33-3">s3<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Holding"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1">s3<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>n_holds</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Resume to Reduced (active remembered)</span></span>
+<span id="cb37-2">s4 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(dose_fsm, s3<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"resume"</span>, s3<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context)</span>
+<span id="cb37-3">s4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Reduced"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1">s4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 75</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Another grade 3 → second hold</span></span>
+<span id="cb41-2">s5 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply_tox</span>(dose_fsm, s4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state, s4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>L)</span>
+<span id="cb41-3">s5<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Holding"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1">s5<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>n_holds</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Resume again, then grade 3 with n_holds &gt;= 2 → discontinue</span></span>
+<span id="cb45-2">s6 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(dose_fsm, s5<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"resume"</span>, s5<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context)</span>
+<span id="cb45-3">s7 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply_tox</span>(dose_fsm, s6<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state, s6<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>L)</span>
+<span id="cb45-4">s7<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Discontinued"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1">s7<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1">s7<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "discontinue"</code></pre>
+</div>
+</div>
+<p>The nested <code>if</code> version would bury <code>n_holds</code>, <code>active</code>, and grade thresholds inside each status branch. Here the <strong>policy is the table</strong>: reviewers can read every legal <code>(state, event, guard) → to</code> line. Changing “discontinue after two holds” to three is one edit to <code>max_holds</code>, not surgery inside nested blocks.</p>
+</section>
+<section id="audit-trail-for-a-subject" class="level2">
+<h2 class="anchored" data-anchor-id="audit-trail-for-a-subject">Audit trail for a subject</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1">simulate_dose <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(grades) {</span>
+<span id="cb51-2">  state <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> dose_fsm<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>initial</span>
+<span id="cb51-3">  context <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> ctx0</span>
+<span id="cb51-4">  rows <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb51-5">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (i <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq_along</span>(grades)) {</span>
+<span id="cb51-6">    g <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> grades[[i]]</span>
+<span id="cb51-7">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.na</span>(g)) {</span>
+<span id="cb51-8">      out <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(dose_fsm, state, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"resume"</span>, context)</span>
+<span id="cb51-9">      ev <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"resume"</span></span>
+<span id="cb51-10">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb51-11">      context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>grade <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> g</span>
+<span id="cb51-12">      out <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(dose_fsm, state, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span>, context)</span>
+<span id="cb51-13">      ev <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tox"</span></span>
+<span id="cb51-14">    }</span>
+<span id="cb51-15">    rows[[i]] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb51-16">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">step =</span> i,</span>
+<span id="cb51-17">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">event =</span> ev,</span>
+<span id="cb51-18">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">grade =</span> g,</span>
+<span id="cb51-19">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">from =</span> state,</span>
+<span id="cb51-20">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">to =</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state,</span>
+<span id="cb51-21">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose =</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose,</span>
+<span id="cb51-22">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n_holds =</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>n_holds,</span>
+<span id="cb51-23">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">action =</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>last_action</span>
+<span id="cb51-24">    )</span>
+<span id="cb51-25">    state <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span>
+<span id="cb51-26">    context <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> out<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context</span>
+<span id="cb51-27">  }</span>
+<span id="cb51-28">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(rows)</span>
+<span id="cb51-29">}</span>
+<span id="cb51-30"></span>
+<span id="cb51-31"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># grades with NA = resume after hold</span></span>
+<span id="cb51-32"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">simulate_dose</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>L, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>L, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>L, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>L))</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 8
+   step event  grade from    to            dose n_holds action     
+  &lt;int&gt; &lt;chr&gt;  &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;        &lt;dbl&gt;   &lt;int&gt; &lt;chr&gt;      
+1     1 tox        1 OnDose  OnDose         100       0 continue   
+2     2 tox        2 OnDose  Reduced         75       0 reduce     
+3     3 tox        3 Reduced Holding         75       1 hold       
+4     4 resume    NA Holding Reduced         75       1 resume     
+5     5 tox        3 Reduced Holding         75       2 hold       
+6     6 resume    NA Holding Reduced         75       2 resume     
+7     7 tox        3 Reduced Discontinued     0       2 discontinue</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="example-c-visit-readiness" class="level1">
+<h1>Example C: visit readiness</h1>
+<p>A lighter machine for attendance / window logic — useful when deriving visit status flags without another <code>if</code> cascade in the ADaM step.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1">in_window <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb53-2">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>study_day) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span></span>
+<span id="cb53-3">    ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>study_day <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>window_lo <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span></span>
+<span id="cb53-4">    ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>study_day <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>window_hi</span>
+<span id="cb53-5">}</span>
+<span id="cb53-6">before_window <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb53-7">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>study_day) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>study_day <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>window_lo</span>
+<span id="cb53-8">}</span>
+<span id="cb53-9">after_window <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb53-10">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>study_day) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>study_day <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>window_hi</span>
+<span id="cb53-11">}</span>
+<span id="cb53-12"></span>
+<span id="cb53-13">mark_missed <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb53-14">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>flag <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"missed_window"</span></span>
+<span id="cb53-15">  ctx</span>
+<span id="cb53-16">}</span>
+<span id="cb53-17">mark_done <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) {</span>
+<span id="cb53-18">  ctx<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>flag <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"completed"</span></span>
+<span id="cb53-19">  ctx</span>
+<span id="cb53-20">}</span>
+<span id="cb53-21">identity_ctx <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(ctx) ctx</span>
+<span id="cb53-22"></span>
+<span id="cb53-23">visit_tr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> tibble<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb53-24">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">from =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb53-25">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span>,</span>
+<span id="cb53-26">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"WindowOpen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"WindowOpen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"WindowOpen"</span>,</span>
+<span id="cb53-27">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span></span>
+<span id="cb53-28">  ),</span>
+<span id="cb53-29">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">event =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tick"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tick"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tick"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tick"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tick"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"done"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"done"</span>),</span>
+<span id="cb53-30">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">to =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb53-31">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"WindowOpen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Missed"</span>,</span>
+<span id="cb53-32">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"WindowOpen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Missed"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Done"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Done"</span></span>
+<span id="cb53-33">  ),</span>
+<span id="cb53-34">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">guard =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb53-35">    before_window, in_window, after_window,</span>
+<span id="cb53-36">    in_window, after_window, always, in_window</span>
+<span id="cb53-37">  ),</span>
+<span id="cb53-38">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">action =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb53-39">    identity_ctx, identity_ctx, mark_missed,</span>
+<span id="cb53-40">    identity_ctx, mark_missed, mark_done, mark_done</span>
+<span id="cb53-41">  )</span>
+<span id="cb53-42">)</span>
+<span id="cb53-43"></span>
+<span id="cb53-44">visit_fsm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">new_fsm</span>(</span>
+<span id="cb53-45">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">states =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"WindowOpen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Done"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Missed"</span>),</span>
+<span id="cb53-46">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">events =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tick"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"done"</span>),</span>
+<span id="cb53-47">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">transitions =</span> visit_tr,</span>
+<span id="cb53-48">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">initial =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span></span>
+<span id="cb53-49">)</span>
+<span id="cb53-50"></span>
+<span id="cb53-51"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Week 4 window [25, 31]; subject arrives day 28</span></span>
+<span id="cb53-52">vctx <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">study_day =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">window_lo =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">window_hi =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">31</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">flag =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_character_</span>)</span>
+<span id="cb53-53">v1 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(visit_fsm, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tick"</span>, vctx)</span>
+<span id="cb53-54">v2 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(visit_fsm, v1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"done"</span>, v1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context)</span>
+<span id="cb53-55">v2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Done"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1">v2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>flag</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "completed"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Subject never shows up: day 40 while still Scheduled → Missed</span></span>
+<span id="cb57-2">vmiss <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">step_fsm</span>(</span>
+<span id="cb57-3">  visit_fsm,</span>
+<span id="cb57-4">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Scheduled"</span>,</span>
+<span id="cb57-5">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tick"</span>,</span>
+<span id="cb57-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">study_day =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">40</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">window_lo =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">window_hi =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">31</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">flag =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_character_</span>)</span>
+<span id="cb57-7">)</span>
+<span id="cb57-8">vmiss<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>state</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Missed"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1">vmiss<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>context<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>flag</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "missed_window"</code></pre>
+</div>
+</div>
+<div class="cell" data-fig-width="5.4" data-out-width="90%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="visit-graph">
+<div>
+<pre class="mermaid mermaid-js" data-label="visit-graph">stateDiagram-v2
+  [*] --&gt; Scheduled
+  Scheduled --&gt; Scheduled: tick before window
+  Scheduled --&gt; WindowOpen: tick in window
+  Scheduled --&gt; Done: done in window
+  Scheduled --&gt; Missed: tick after window
+  WindowOpen --&gt; WindowOpen: tick in window
+  WindowOpen --&gt; Done: done
+  WindowOpen --&gt; Missed: tick after window
+</pre>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="pattern-shape-in-clinical-code" class="level1">
+<h1>Pattern shape in clinical code</h1>
+<p>Practical placement:</p>
+<ol type="1">
+<li><strong>SAP / protocol</strong> defines the allowed graph (human text + diagram).</li>
+<li><strong>Transition table</strong> is the machine-readable SAP fragment.</li>
+<li><strong>Event log</strong> (disposition events, toxicity grades, visit ticks) drives <code>run_fsm</code> / <code>step_fsm</code>.</li>
+<li><strong>ADaM</strong> stores the resulting status / dose / visit flag — and optionally the history for traceability.</li>
+</ol>
+<p>The FSM does not replace tidy verbs for plain merges and summaries. It replaces the <em>process kernel</em> that otherwise becomes nested control flow.</p>
+</section>
+<section id="when-not-to-use-a-state-machine" class="level1">
+<h1>When not to use a state machine</h1>
+<ul>
+<li>Flat, memory-free recodes (<code>SEX</code>, <code>ARMN</code>, severity → numeric) — prefer <code>case_when</code>, formats, or a lookup table.</li>
+<li>A single branching rule with no recurring state — a plain function is clearer.</li>
+<li>Reconstructing latent disease course under missing assessments — use HMM / Viterbi (companion article), not a protocol FSM.</li>
+<li>Forcing every <code>if</code> in a reporting script into states — overkill; reserve FSMs for processes with illegal paths and history.</li>
+</ul>
+</section>
+<section id="closing" class="level1">
+<h1>Closing</h1>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Situation</th>
+<th>Prefer</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Disposition / enrollment process</td>
+<td>Table-driven FSM + event log</td>
+</tr>
+<tr class="even">
+<td>Dose modification with counters</td>
+<td>FSM with guards and actions</td>
+</tr>
+<tr class="odd">
+<td>Visit window readiness</td>
+<td>Small FSM or explicit window functions</td>
+</tr>
+<tr class="even">
+<td>One-shot ADaM derivation</td>
+<td><code>case_when</code> / joins / formats</td>
+</tr>
+<tr class="odd">
+<td>Latent path under missing visits</td>
+<td>HMM + Viterbi</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>Clinical decision rules with memory — disposition, dosing, visit readiness — are state machines whether the code admits it or not. Nested <code>if</code> / <code>else</code> hides the allowed graph inside control flow. A table-driven FSM in R surfaces <strong>states</strong>, <strong>events</strong>, <strong>guards</strong>, and <strong>actions</strong> as data: illegal transitions fail loudly, policies become reviewable rows, and cohort event logs replay through one engine.</p>
+<p>Use an FSM when the protocol defines a process with illegal paths and history. Prefer ordinary tidy recodes when there is no process memory, and probabilistic decoders when the question is the most likely latent chain rather than the next official state.</p>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<ul>
+<li>Gamma, E., Helm, R., Johnson, R., and Vlissides, J. (1994). <em>Design Patterns: Elements of Reusable Object-Oriented Software</em>. Addison-Wesley. (State pattern.)</li>
+<li>Harel, D. (1987). Statecharts: A visual formalism for complex systems. <em>Science of Computer Programming</em>, 8(3), 231–274.</li>
+<li>ICH E9(R1) (2019). <em>Addendum on Estimands and Sensitivity Analysis in Clinical Trials</em>. An FSM implements operational rules; it does not define the estimand.</li>
+<li>Companion post: Viterbi decoding for clinical response chains (HMM / latent paths under missing visits).</li>
+</ul>
+
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <category>Clinical Trials</category>
+  <category>Data analysis</category>
+  <category>Dose modification</category>
+  <guid>https://al-garik.github.io/ks-blog/posts/2026-10-19-state-machine/</guid>
+  <pubDate>Sun, 18 Oct 2026 21:00:00 GMT</pubDate>
+  <media:content url="https://al-garik.github.io/ks-blog/posts/2026-10-19-state-machine/images/post-logo.png" medium="image" type="image/png" height="81" width="144"/>
+</item>
 <item>
   <title>Viterbi Decoding for Clinical Response Chains</title>
   <dc:creator>Vladimir Larchenko</dc:creator>

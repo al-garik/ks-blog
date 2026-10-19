@@ -1,0 +1,767 @@
+---
+title: "State Machines in R for Clinical Studies"
+subtitle: "Replacing tangled decision branches with explicit states, events, and transitions"
+author: "Vladimir Larchenko"
+date: 2026-10-19
+categories: [R, Clinical Trials, Data analysis, Dose modification]
+image: images/post-logo.png
+---
+
+![A fairy-tale path of clinical states](images/post-logo.png){fig-align="center"}
+
+# Introduction
+
+Clinical programs are full of **process rules with memory**. A subject
+is screening, then eligible, then randomized, then on treatment — or
+screen-failed. A dose continues, reduces, holds, or stops depending on
+toxicity *and* how many holds already happened. A visit is scheduled,
+open in window, completed, or missed.
+
+Those rules are often written as nested `if` / `else` (or a giant
+`dplyr::case_when`). That works for a one-shot classification of a
+static row. It ages badly once the *current state* matters, illegal
+paths must be rejected, and auditors ask which transitions fired.
+
+A **finite-state machine** (FSM) makes the process explicit:
+
+| Piece | Role |
+|---|---|
+| **State** | Where the subject / dose / visit is now |
+| **Event** | What happened (pass screen, grade 3 AE, window day) |
+| **Transition** | Legal move `from + event → to` |
+| **Guard** | Optional predicate on context (grade, labs, counters) |
+| **Action** | Optional side effect (log, set next dose, raise QC flag) |
+
+> Encode *allowed* clinical paths as data. Drive decisions by looking
+> up `(state, event)` — do not re-walk a decision tree on every call.
+
+This article builds a small table-driven FSM in R, rewrites a nested
+disposition script and a dose-modification policy, and shows a short
+visit-readiness machine. The focus is **deterministic** protocol logic.
+
+**Not the same as Viterbi / HMM.** Reconstructing a *latent* RECIST-like
+path under missing visits is a probabilistic decoding problem — see the
+companion post on Viterbi decoding. An FSM here is a **protocol
+decision engine**: given the current official state and an event, what
+is the next official state? Illegal transitions fail loudly.
+
+```{r}
+#| label: packages
+library(dplyr, warn.conflicts = FALSE)
+library(tidyr)
+library(purrr)
+```
+
+# Motivation
+
+## Nested disposition logic
+
+A common first draft for subject disposition looks like this:
+
+```{r}
+#| label: disposition-ifelse
+#| eval: false
+update_disposition <- function(status, event) {
+  if (status == "Screening") {
+    if (event == "pass_screen") {
+      "Eligible"
+    } else if (event == "fail_screen") {
+      "ScreenFail"
+    } else {
+      stop("illegal")
+    }
+  } else if (status == "Eligible") {
+    if (event == "randomize") {
+      "Randomized"
+    } else if (event == "fail_screen") {
+      "ScreenFail"
+    } else {
+      stop("illegal")
+    }
+  } else if (status == "Randomized") {
+    if (event == "start_tx") {
+      "OnTreatment"
+    } else if (event == "discontinue") {
+      "Discontinued"
+    } else {
+      stop("illegal")
+    }
+  } else if (status == "OnTreatment") {
+    if (event == "complete") {
+      "Completed"
+    } else if (event == "discontinue") {
+      "Discontinued"
+    } else {
+      stop("illegal")
+    }
+  } else {
+    stop("terminal or unknown status")
+  }
+}
+```
+
+Every new status or event adds another nest. Illegal paths are easy to
+miss (`Randomized` + `pass_screen`). Terminal states are easy to forget.
+Unit tests must re-encode the same tree. Reviewers cannot *see* the
+allowed graph without simulating every branch.
+
+## Dose modification with memory
+
+Dose rules usually depend on **history**, not only the latest grade:
+
+```{r}
+#| label: dose-ifelse-sketch
+#| eval: false
+# grade 1 → continue
+# grade 2 → reduce once, else hold
+# grade 3 → hold; after 2 holds → discontinue
+# grade 4 → discontinue
+# ...plus: no action while already Holding unless resume/discontinue
+```
+
+Nested conditionals mix *state* (`OnDose`, `Holding`, `Reduced`,
+`Discontinued`), *event* (new toxicity grade, resume, permanent stop),
+and *context* (`n_holds`, `current_dose`). The FSM separates those
+concerns.
+
+```{mermaid}
+%%| label: ifelse-vs-fsm
+%%| fig-width: 6.2
+%%| out-width: "100%"
+%%{init: {"flowchart": {"rankSpacing": 24, "nodeSpacing": 14, "padding": 6}}}%%
+flowchart LR
+  subgraph tangled [NestedIfElse]
+    direction TB
+    s1[status] --> deep[DeepBranches]
+    e1[event] --> deep
+  end
+  subgraph machine [TableDrivenFSM]
+    direction TB
+    st[state] --> tbl[transitionTable]
+    ev[event] --> tbl
+    tbl --> nx[nextState]
+  end
+  tangled ~~~ machine
+```
+
+| Nearby idea | Role |
+|---|---|
+| `case_when` on one snapshot | Fine for ADaM recodes with no process memory |
+| Nested `if` / `else` | Encodes the graph in control flow; hard to audit |
+| Deterministic FSM | Explicit legal graph; rejects illegal moves |
+| HMM + Viterbi | Most probable *latent* path under noise / missingness |
+
+# Mechanics in R
+
+## Transition table and engine
+
+States and events are character labels. Transitions live in a tibble.
+Guards and actions are ordinary R functions of a **context** list
+(mutable counters, dose, QC notes).
+
+```{r}
+#| label: fsm-engine
+new_fsm <- function(states, events, transitions, initial) {
+  stopifnot(initial %in% states)
+  tr <- as_tibble(transitions)
+  need <- c("from", "event", "to")
+  stopifnot(all(need %in% names(tr)))
+  if (!"guard" %in% names(tr)) {
+    tr$guard <- vector("list", nrow(tr))
+  }
+  if (!"action" %in% names(tr)) {
+    tr$action <- vector("list", nrow(tr))
+  }
+  tr <- tr |>
+    mutate(
+      guard = map(guard, ~ if (is.null(.x)) function(ctx) TRUE else .x),
+      action = map(action, ~ if (is.null(.x)) function(ctx) ctx else .x)
+    )
+  structure(
+    list(
+      states = unique(states),
+      events = unique(events),
+      transitions = tr,
+      initial = initial
+    ),
+    class = "clinical_fsm"
+  )
+}
+
+step_fsm <- function(machine, state, event, context = list()) {
+  stopifnot(inherits(machine, "clinical_fsm"))
+  if (!state %in% machine$states) {
+    stop(sprintf("Unknown state '%s'.", state), call. = FALSE)
+  }
+  if (!event %in% machine$events) {
+    stop(sprintf("Unknown event '%s'.", event), call. = FALSE)
+  }
+
+  # `.env$event` is required: `event` is also a column, so a bare
+  # `event` on the RHS would compare the column to itself.
+  cands <- machine$transitions |>
+    filter(.data$from == .env$state, .data$event == .env$event)
+
+  if (nrow(cands) == 0L) {
+    stop(
+      sprintf("Illegal transition: %s + %s.", state, event),
+      call. = FALSE
+    )
+  }
+
+  for (i in seq_len(nrow(cands))) {
+    row <- cands[i, ]
+    guard <- row$guard[[1]]
+    if (isTRUE(guard(context))) {
+      action <- row$action[[1]]
+      new_ctx <- action(context)
+      return(list(
+        state = row$to[[1]],
+        context = new_ctx,
+        fired = TRUE
+      ))
+    }
+  }
+
+  stop(
+    sprintf("No guard passed for %s + %s.", state, event),
+    call. = FALSE
+  )
+}
+
+run_fsm <- function(machine, events, context = list(),
+                    start = machine$initial) {
+  state <- start
+  history <- tibble(
+    step = integer(),
+    from = character(),
+    event = character(),
+    to = character()
+  )
+  for (k in seq_along(events)) {
+    ev <- events[[k]]
+    out <- step_fsm(machine, state, ev, context)
+    history <- bind_rows(
+      history,
+      tibble(step = k, from = state, event = ev, to = out$state)
+    )
+    state <- out$state
+    context <- out$context
+  }
+  list(state = state, context = context, history = history)
+}
+
+print.clinical_fsm <- function(x, ...) {
+  cat(sprintf(
+    "clinical_fsm: %d states, %d events, %d transitions (start = %s)\n",
+    length(x$states), length(x$events), nrow(x$transitions), x$initial
+  ))
+  invisible(x)
+}
+```
+
+The engine is deliberately small: **lookup**, **guard**, **action**,
+**reject**. Clinical meaning lives in the table, not in a growing
+`if` ladder.
+
+# Example A: subject disposition
+
+## Allowed graph
+
+```{mermaid}
+%%| label: disposition-graph
+%%| fig-width: 5.8
+%%| out-width: "100%"
+stateDiagram-v2
+  [*] --> Screening
+  Screening --> Eligible: pass_screen
+  Screening --> ScreenFail: fail_screen
+  Eligible --> Randomized: randomize
+  Eligible --> ScreenFail: fail_screen
+  Randomized --> OnTreatment: start_tx
+  Randomized --> Discontinued: discontinue
+  OnTreatment --> Completed: complete
+  OnTreatment --> Discontinued: discontinue
+```
+
+```{r}
+#| label: disposition-fsm
+disp_states <- c(
+  "Screening", "Eligible", "Randomized", "OnTreatment",
+  "Completed", "Discontinued", "ScreenFail"
+)
+disp_events <- c(
+  "pass_screen", "fail_screen", "randomize",
+  "start_tx", "complete", "discontinue"
+)
+
+disp_tr <- tribble(
+  ~from,         ~event,         ~to,
+  "Screening",   "pass_screen",  "Eligible",
+  "Screening",   "fail_screen",  "ScreenFail",
+  "Eligible",    "randomize",    "Randomized",
+  "Eligible",    "fail_screen",  "ScreenFail",
+  "Randomized",  "start_tx",     "OnTreatment",
+  "Randomized",  "discontinue",  "Discontinued",
+  "OnTreatment", "complete",     "Completed",
+  "OnTreatment", "discontinue",  "Discontinued"
+)
+
+disposition_fsm <- new_fsm(
+  states = disp_states,
+  events = disp_events,
+  transitions = disp_tr,
+  initial = "Screening"
+)
+disposition_fsm
+```
+
+## Same paths as the nested function — as data
+
+```{r}
+#| label: disposition-runs
+path_ok <- run_fsm(
+  disposition_fsm,
+  c("pass_screen", "randomize", "start_tx", "complete")
+)
+path_ok$history
+path_ok$state
+
+path_sf <- run_fsm(
+  disposition_fsm,
+  c("pass_screen", "fail_screen")
+)
+path_sf$history
+path_sf$state
+```
+
+Illegal moves fail instead of silently falling through an `else`:
+
+```{r}
+#| label: disposition-illegal
+#| error: true
+step_fsm(disposition_fsm, "ScreenFail", "start_tx")
+```
+
+```{r}
+#| label: disposition-illegal-2
+#| error: true
+step_fsm(disposition_fsm, "Randomized", "pass_screen")
+```
+
+## Many subjects, one machine
+
+Event logs become ordinary tidy data. The machine is applied per
+subject:
+
+```{r}
+#| label: disposition-cohort
+event_log <- tribble(
+  ~USUBJID, ~seq, ~event,
+  "S-001", 1, "pass_screen",
+  "S-001", 2, "randomize",
+  "S-001", 3, "start_tx",
+  "S-001", 4, "complete",
+  "S-002", 1, "fail_screen",
+  "S-003", 1, "pass_screen",
+  "S-003", 2, "randomize",
+  "S-003", 3, "discontinue"
+)
+
+# S-001 Screening → Eligible → Randomized → OnTreatment → Completed
+# S-002 Screening → ScreenFail
+# S-003 Screening → Eligible → Randomized → Discontinued
+#       (withdrew after randomization, before first dose)
+expected <- tribble(
+  ~USUBJID, ~FINAL_STATUS, ~N_EVENTS,
+  "S-001",  "Completed",          4L,
+  "S-002",  "ScreenFail",         1L,
+  "S-003",  "Discontinued",       3L
+)
+
+final_disp <- event_log |>
+  arrange(USUBJID, seq) |>
+  group_by(USUBJID) |>
+  group_modify(function(df, key) {
+    out <- run_fsm(disposition_fsm, df$event)
+    tibble(
+      FINAL_STATUS = out$state,
+      N_EVENTS = nrow(out$history)
+    )
+  }) |>
+  ungroup()
+
+final_disp
+stopifnot(identical(
+  final_disp[, c("USUBJID", "FINAL_STATUS", "N_EVENTS")],
+  expected
+))
+```
+
+Compared with nested `if`s, adding `Randomized → ScreenFail` (late
+discovery of eligibility failure) adds **one row** to `disp_tr`; the
+engine, the callers, and the replay loop stay untouched.
+
+# Example B: dose modification as decision-making
+
+A simplified oncology-style policy (illustrative — not a real SAP):
+
+- States: `OnDose`, `Reduced`, `Holding`, `Discontinued`
+- Start at full dose 100
+- Toxicity events carry a CTCAE-like `grade` in context
+- Resume from hold returns to the last active dosing state
+- Two completed holds → discontinue on the next hold-worthy event
+- Grade ≤ 2 while `Holding` → stay in `Holding` (no new action)
+
+```{r}
+#| label: dose-fsm
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+always <- function(ctx) TRUE
+grade_le <- function(g) function(ctx) !is.null(ctx$grade) && ctx$grade <= g
+grade_eq <- function(g) function(ctx) isTRUE(ctx$grade == g)
+grade_ge <- function(g) function(ctx) !is.null(ctx$grade) && ctx$grade >= g
+
+continue_dose <- function(ctx) {
+  ctx$last_action <- "continue"
+  ctx
+}
+
+reduce_dose <- function(ctx) {
+  ctx$dose <- max(ctx$dose * 0.75, 25)
+  ctx$last_action <- "reduce"
+  ctx$active <- "Reduced"
+  ctx
+}
+
+start_hold <- function(ctx) {
+  ctx$n_holds <- ctx$n_holds + 1L
+  ctx$last_action <- "hold"
+  ctx
+}
+
+resume_dose <- function(ctx) {
+  ctx$last_action <- "resume"
+  ctx
+}
+
+stop_tx <- function(ctx) {
+  ctx$dose <- 0
+  ctx$last_action <- "discontinue"
+  ctx
+}
+
+holds_lt <- function(n) function(ctx) isTRUE(ctx$n_holds < n)
+holds_ge <- function(n) function(ctx) isTRUE(ctx$n_holds >= n)
+
+max_holds <- 2L
+
+stay_holding <- function(ctx) {
+  ctx$last_action <- "stay"
+  ctx
+}
+
+dose_states <- c("OnDose", "Reduced", "Holding", "Discontinued")
+dose_events <- c("tox", "resume", "permanent_stop")
+
+# Multiple rows per (from, event): first matching guard wins.
+# Built with tibble() so guards/actions stay as list-columns of functions.
+dose_tr <- tibble::tibble(
+  from = c(
+    "OnDose", "OnDose", "OnDose", "OnDose", "OnDose", "OnDose",
+    "Reduced", "Reduced", "Reduced", "Reduced", "Reduced",
+    "Holding", "Holding", "Holding", "Holding", "Holding"
+  ),
+  event = c(
+    "tox", "tox", "tox", "tox", "tox", "permanent_stop",
+    "tox", "tox", "tox", "tox", "permanent_stop",
+    "resume", "resume", "tox", "tox", "permanent_stop"
+  ),
+  to = c(
+    "OnDose", "Reduced", "Holding", "Discontinued", "Discontinued",
+    "Discontinued",
+    "Reduced", "Holding", "Discontinued", "Discontinued", "Discontinued",
+    "OnDose", "Reduced", "Holding", "Discontinued", "Discontinued"
+  ),
+  guard = list(
+    grade_le(1),
+    grade_eq(2),
+    function(ctx) grade_eq(3)(ctx) && holds_lt(max_holds)(ctx),
+    function(ctx) grade_eq(3)(ctx) && holds_ge(max_holds)(ctx),
+    grade_ge(4),
+    always,
+    grade_le(1),
+    function(ctx) {
+      (grade_eq(2)(ctx) || grade_eq(3)(ctx)) && holds_lt(max_holds)(ctx)
+    },
+    function(ctx) {
+      (grade_eq(2)(ctx) || grade_eq(3)(ctx)) && holds_ge(max_holds)(ctx)
+    },
+    grade_ge(4),
+    always,
+    function(ctx) identical(ctx$active %||% "OnDose", "OnDose"),
+    function(ctx) identical(ctx$active, "Reduced"),
+    grade_le(2),
+    grade_ge(3),
+    always
+  ),
+  action = list(
+    continue_dose, reduce_dose, start_hold, stop_tx, stop_tx, stop_tx,
+    continue_dose, start_hold, stop_tx, stop_tx, stop_tx,
+    resume_dose, resume_dose, stay_holding, stop_tx, stop_tx
+  )
+)
+
+dose_fsm <- new_fsm(
+  states = dose_states,
+  events = dose_events,
+  transitions = dose_tr,
+  initial = "OnDose"
+)
+```
+## Walk a toxicity timeline
+
+```{r}
+#| label: dose-walk
+ctx0 <- list(
+  dose = 100,
+  n_holds = 0L,
+  active = "OnDose",
+  last_action = NA_character_,
+  grade = NA_integer_
+)
+
+apply_tox <- function(machine, state, context, grade) {
+  context$grade <- grade
+  step_fsm(machine, state, "tox", context)
+}
+
+# Grade 1 while on full dose → continue
+s1 <- apply_tox(dose_fsm, "OnDose", ctx0, 1L)
+s1$state
+s1$context$dose
+s1$context$last_action
+
+# Grade 2 → reduce
+s2 <- apply_tox(dose_fsm, s1$state, s1$context, 2L)
+s2$state
+s2$context$dose
+
+# Grade 3 → first hold
+s3 <- apply_tox(dose_fsm, s2$state, s2$context, 3L)
+s3$state
+s3$context$n_holds
+
+# Resume to Reduced (active remembered)
+s4 <- step_fsm(dose_fsm, s3$state, "resume", s3$context)
+s4$state
+s4$context$dose
+
+# Another grade 3 → second hold
+s5 <- apply_tox(dose_fsm, s4$state, s4$context, 3L)
+s5$state
+s5$context$n_holds
+
+# Resume again, then grade 3 with n_holds >= 2 → discontinue
+s6 <- step_fsm(dose_fsm, s5$state, "resume", s5$context)
+s7 <- apply_tox(dose_fsm, s6$state, s6$context, 3L)
+s7$state
+s7$context$dose
+s7$context$last_action
+```
+
+The nested `if` version would bury `n_holds`, `active`, and grade
+thresholds inside each status branch. Here the **policy is the table**:
+reviewers can read every legal `(state, event, guard) → to` line. Changing
+“discontinue after two holds” to three is one edit to `max_holds`, not
+surgery inside nested blocks.
+
+## Audit trail for a subject
+
+```{r}
+#| label: dose-audit
+simulate_dose <- function(grades) {
+  state <- dose_fsm$initial
+  context <- ctx0
+  rows <- list()
+  for (i in seq_along(grades)) {
+    g <- grades[[i]]
+    if (is.na(g)) {
+      out <- step_fsm(dose_fsm, state, "resume", context)
+      ev <- "resume"
+    } else {
+      context$grade <- g
+      out <- step_fsm(dose_fsm, state, "tox", context)
+      ev <- "tox"
+    }
+    rows[[i]] <- tibble(
+      step = i,
+      event = ev,
+      grade = g,
+      from = state,
+      to = out$state,
+      dose = out$context$dose,
+      n_holds = out$context$n_holds,
+      action = out$context$last_action
+    )
+    state <- out$state
+    context <- out$context
+  }
+  bind_rows(rows)
+}
+
+# grades with NA = resume after hold
+simulate_dose(c(1L, 2L, 3L, NA, 3L, NA, 3L))
+```
+
+# Example C: visit readiness
+
+A lighter machine for attendance / window logic — useful when deriving
+visit status flags without another `if` cascade in the ADaM step.
+
+```{r}
+#| label: visit-fsm
+in_window <- function(ctx) {
+  !is.null(ctx$study_day) &&
+    ctx$study_day >= ctx$window_lo &&
+    ctx$study_day <= ctx$window_hi
+}
+before_window <- function(ctx) {
+  !is.null(ctx$study_day) && ctx$study_day < ctx$window_lo
+}
+after_window <- function(ctx) {
+  !is.null(ctx$study_day) && ctx$study_day > ctx$window_hi
+}
+
+mark_missed <- function(ctx) {
+  ctx$flag <- "missed_window"
+  ctx
+}
+mark_done <- function(ctx) {
+  ctx$flag <- "completed"
+  ctx
+}
+identity_ctx <- function(ctx) ctx
+
+visit_tr <- tibble::tibble(
+  from = c(
+    "Scheduled", "Scheduled", "Scheduled",
+    "WindowOpen", "WindowOpen", "WindowOpen",
+    "Scheduled"
+  ),
+  event = c("tick", "tick", "tick", "tick", "tick", "done", "done"),
+  to = c(
+    "Scheduled", "WindowOpen", "Missed",
+    "WindowOpen", "Missed", "Done", "Done"
+  ),
+  guard = list(
+    before_window, in_window, after_window,
+    in_window, after_window, always, in_window
+  ),
+  action = list(
+    identity_ctx, identity_ctx, mark_missed,
+    identity_ctx, mark_missed, mark_done, mark_done
+  )
+)
+
+visit_fsm <- new_fsm(
+  states = c("Scheduled", "WindowOpen", "Done", "Missed"),
+  events = c("tick", "done"),
+  transitions = visit_tr,
+  initial = "Scheduled"
+)
+
+# Week 4 window [25, 31]; subject arrives day 28
+vctx <- list(study_day = 28, window_lo = 25, window_hi = 31, flag = NA_character_)
+v1 <- step_fsm(visit_fsm, "Scheduled", "tick", vctx)
+v2 <- step_fsm(visit_fsm, v1$state, "done", v1$context)
+v2$state
+v2$context$flag
+
+# Subject never shows up: day 40 while still Scheduled → Missed
+vmiss <- step_fsm(
+  visit_fsm,
+  "Scheduled",
+  "tick",
+  list(study_day = 40, window_lo = 25, window_hi = 31, flag = NA_character_)
+)
+vmiss$state
+vmiss$context$flag
+```
+
+```{mermaid}
+%%| label: visit-graph
+%%| fig-width: 5.4
+%%| out-width: "90%"
+stateDiagram-v2
+  [*] --> Scheduled
+  Scheduled --> Scheduled: tick before window
+  Scheduled --> WindowOpen: tick in window
+  Scheduled --> Done: done in window
+  Scheduled --> Missed: tick after window
+  WindowOpen --> WindowOpen: tick in window
+  WindowOpen --> Done: done
+  WindowOpen --> Missed: tick after window
+```
+
+# Pattern shape in clinical code
+
+Practical placement:
+
+1. **SAP / protocol** defines the allowed graph (human text + diagram).
+2. **Transition table** is the machine-readable SAP fragment.
+3. **Event log** (disposition events, toxicity grades, visit ticks)
+   drives `run_fsm` / `step_fsm`.
+4. **ADaM** stores the resulting status / dose / visit flag — and
+   optionally the history for traceability.
+
+The FSM does not replace tidy verbs for plain merges and summaries. It
+replaces the *process kernel* that otherwise becomes nested control flow.
+
+# When not to use a state machine
+
+- Flat, memory-free recodes (`SEX`, `ARMN`, severity → numeric) —
+  prefer `case_when`, formats, or a lookup table.
+- A single branching rule with no recurring state — a plain function
+  is clearer.
+- Reconstructing latent disease course under missing assessments —
+  use HMM / Viterbi (companion article), not a protocol FSM.
+- Forcing every `if` in a reporting script into states — overkill;
+  reserve FSMs for processes with illegal paths and history.
+
+# Closing
+
+| Situation | Prefer |
+|---|---|
+| Disposition / enrollment process | Table-driven FSM + event log |
+| Dose modification with counters | FSM with guards and actions |
+| Visit window readiness | Small FSM or explicit window functions |
+| One-shot ADaM derivation | `case_when` / joins / formats |
+| Latent path under missing visits | HMM + Viterbi |
+
+# Summary
+
+Clinical decision rules with memory — disposition, dosing, visit
+readiness — are state machines whether the code admits it or not.
+Nested `if` / `else` hides the allowed graph inside control flow. A
+table-driven FSM in R surfaces **states**, **events**, **guards**, and
+**actions** as data: illegal transitions fail loudly, policies become
+reviewable rows, and cohort event logs replay through one engine.
+
+Use an FSM when the protocol defines a process with illegal paths and
+history. Prefer ordinary tidy recodes when there is no process memory,
+and probabilistic decoders when the question is the most likely latent
+chain rather than the next official state.
+
+# References
+
+- Gamma, E., Helm, R., Johnson, R., and Vlissides, J. (1994).
+  *Design Patterns: Elements of Reusable Object-Oriented Software*.
+  Addison-Wesley. (State pattern.)
+- Harel, D. (1987). Statecharts: A visual formalism for complex
+  systems. *Science of Computer Programming*, 8(3), 231–274.
+- ICH E9(R1) (2019). *Addendum on Estimands and Sensitivity Analysis
+  in Clinical Trials*. An FSM implements operational rules; it does
+  not define the estimand.
+- Companion post: Viterbi decoding for clinical response chains
+  (HMM / latent paths under missing visits).
