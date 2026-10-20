@@ -211,6 +211,18 @@ a{ color:var(--ks-info); &:hover{ color:var(--ks-navy-700); } }
 }
 
 // ------------------------------------------------------------
+// Mermaid — vendor CSS vars (quarto's mermaid-init themeCSS reads them).
+// The gray ramp collapsed onto navy at restyle, so the template-derived
+// "lighter/lightest" turned dark blue and painted subgraph/cluster plates
+// dark under dark labels. Pin them back on-palette: plate Navy-100,
+// border/aux lines Navy-200 (aux construction lighter than data, per house rule).
+// ------------------------------------------------------------
+:root{
+  --mermaid-fg-color--lightest: var(--ks-navy-100);
+  --mermaid-fg-color--lighter:  var(--ks-navy-200);
+}
+
+// ------------------------------------------------------------
 // Code — Paper plate, hairline border (no ad-hoc grays)
 // ------------------------------------------------------------
 div.sourceCode, pre{
