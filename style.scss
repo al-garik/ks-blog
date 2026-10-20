@@ -133,8 +133,7 @@ body{background:var(--ks-paper); color:var(--ks-ink);}
   &:hover{ color:#fff !important; }
 }
 .navbar-nav .nav-link.active, .navbar-light .navbar-nav .nav-link.active{
-  color:#fff !important; background:transparent;
-  box-shadow: inset 0 -2px 0 var(--ks-orange-300);   // dark-bg accent O300 (WCAG dark pair)
+  color:#fff !important; background:transparent;   // active = white + weight only; no underline rail (brand book)
   font-weight:600;
 }
 
@@ -265,10 +264,15 @@ table{
 }
 
 // ------------------------------------------------------------
-// Hero — solid Navy plate (company-site hero treatment, retired stock photo)
+// Hero — Navy plate with the company-site hero photo behind a navy fade
+// (same gradient recipe as keystatsolutions .hero: rgba(2,37,79,.72)->.84)
+// Home page is the only page carrying .hero-section, so the front-matter
+// title block is hidden there via :has() — the hero h1 is the page heading.
 // ------------------------------------------------------------
 .hero-section{
-  background:var(--ks-navy);
+  background:linear-gradient(rgba(2,37,79,.72),rgba(2,37,79,.84)),url("images/hero/hero-bg.webp");
+  background-size:cover;
+  background-position:50% 35%;
   color:#fff;
   padding: clamp(2.25rem, 6.2vw, 4rem) 1.5rem clamp(2.25rem, 6vw, 3.25rem);
   text-align:center;
@@ -276,6 +280,8 @@ table{
   margin-bottom:3rem;
   box-shadow:none;
 }
+main#quarto-document-content:has(> div > .hero-section) > #title-block-header,
+main#quarto-document-content:has(> .hero-section) > #title-block-header{ display:none; }
 .hero-title{
   color:#fff; font-weight:700; letter-spacing:-.030em;
   font-size:clamp(1.875rem, 4.5vw, 2.34375rem);   // t-30 -> t-37

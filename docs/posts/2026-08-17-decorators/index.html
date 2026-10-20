@@ -83,7 +83,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-16814af22ff6c96fdcb020a527e07ec7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-e0eeca8460c01dfaa2622ab18b9f023c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -638,7 +638,7 @@ flowchart LR
 <pre><code>[mean_sd_by_trt] finished</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.020 s</code></pre>
+<pre><code>Elapsed: 0.019 s</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 4
@@ -670,7 +670,7 @@ flowchart LR
 <pre><code>[demog] finished</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.028 s</code></pre>
+<pre><code>Elapsed: 0.025 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>demog_out<span class="sc">$</span>result<span class="sc">$</span>result</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -752,7 +752,7 @@ $r_version
 <span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a><span class="fu">lab_pipeline</span>(demo_labs_wide)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 0.024 s</code></pre>
+<pre><code>Elapsed: 0.042 s</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 12 × 6
@@ -861,7 +861,7 @@ TRT01PPlacebo 0.3422392  1.408097 0.3956067 0.8650995 0.3869842</code></pre>
 <pre><code>Cache miss — running analysis</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Elapsed: 3.868 s</code></pre>
+<pre><code>Elapsed: 3.982 s</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>t2 <span class="ot">&lt;-</span> <span class="fu">system.time</span>(r2 <span class="ot">&lt;-</span> <span class="fu">boot_cached</span>(demo_adsl, <span class="at">n_boot =</span> <span class="dv">400</span>L, <span class="at">seed =</span> <span class="dv">1</span>L))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
@@ -877,7 +877,7 @@ TRT01PPlacebo 0.3422392  1.408097 0.3956067 0.8650995 0.3869842</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">first_s =</span> <span class="fu">unname</span>(t1[[<span class="st">"elapsed"</span>]]), <span class="at">second_s =</span> <span class="fu">unname</span>(t2[[<span class="st">"elapsed"</span>]]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> first_s second_s 
-   3.868    0.002 </code></pre>
+   3.982    0.001 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>r1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
