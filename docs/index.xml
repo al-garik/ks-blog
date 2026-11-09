@@ -9,8 +9,1576 @@
 <link>https://al-garik.github.io/ks-blog/</link>
 <atom:link href="https://al-garik.github.io/ks-blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Articles about R programming, clinical data processing and analysis, and statistical reporting</description>
-<generator>quarto-1.10.18</generator>
-<lastBuildDate>Sun, 18 Oct 2026 21:00:00 GMT</lastBuildDate>
+<generator>quarto-1.11.9</generator>
+<lastBuildDate>Sun, 08 Nov 2026 21:00:00 GMT</lastBuildDate>
+<item>
+  <title>Dynamic Programming for PK Dose Sequences</title>
+  <dc:creator>Vladimir Larchenko</dc:creator>
+  <link>https://al-garik.github.io/ks-blog/posts/2026-11-09-dp-PK/</link>
+  <description><![CDATA[ 
+
+
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/post-logo.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="DP path on a PK dose lattice"><img src="https://al-garik.github.io/ks-blog/posts/2026-11-09-dp-PK/images/post-logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img" alt="DP path on a PK dose lattice"></a></p>
+</figure>
+</div>
+<figcaption>DP path on a PK dose lattice</figcaption>
+</figure>
+</div>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>A one-compartment intravenous (IV) bolus with known elimination rate constant <img src="https://latex.codecogs.com/png.latex?k"> and volume of distribution <img src="https://latex.codecogs.com/png.latex?V"> is ordinary pharmacokinetics.<sup>1</sup> Superposition writes the concentration after a <em>given</em> sequence of doses (Rowland and Tozer, 2011). Steady state tells you the peak, trough, and average that a <em>repeating</em> regimen will settle to.</p>
+<p>Neither object is a <strong>policy</strong> — a rule that selects which dose to give at each decision point. The clinical question is sequential:</p>
+<blockquote class="blockquote">
+<p>Which dose now, given where the concentration sits, so that the whole remaining trajectory is as close as possible to a target concentration, subject to constraints on dose size and frequency?</p>
+</blockquote>
+<p>We want to minimize a <strong>cost</strong> function that penalizes both deviations from the target concentration and large doses (which may carry toxicity or inconvenience). This is a finite-horizon control problem. The pharmacokinetic model supplies the <strong>state transition</strong> — how concentration evolves under a given dose. Dynamic programming (DP) chooses the <strong>optimal dose sequence</strong> that minimizes total cost over the time horizon (Bellman, 1957; Bertsekas, 2017).</p>
+<p>A myopic “greedy” rule that only minimizes the immediate one-step cost can fail: it may lock onto the wrong concentration plateau even when it scores each step with the same stage cost the optimal policy accumulates. DP looks ahead to find a globally better trajectory.</p>
+<p>This article implements the optimizer from scratch in R: a one-compartment IV bolus, five dose options, a five-step horizon, greedy versus Bellman, and a tight <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmax%7D"> cap that removes the loading overshoot.</p>
+<p><strong>A clinical caveat, stated first.</strong> Parameters here are <strong>known exactly</strong>. There is no residual error, no interindividual variability, no delayed observation, and no Bayesian update. Therapeutic drug monitoring (TDM) and model-informed precision dosing (MIPD) live in that missing layer (Sheiner et al., 1979; Darwich et al., 2017; Keizer et al., 2018). The lattice below is a teaching control problem. It is not a prescribing rule, not a protocol dose-finding engine, and not software as a medical device. ICH M15 concerns model-informed <em>drug development</em>, not bedside automation of this recurrence (ICH, 2026).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(dplyr, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">warn.conflicts =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyr)</span>
+<span id="cb1-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(ggplot2)</span></code></pre></div></div>
+</div>
+</section>
+<section id="the-pk-map" class="level1">
+<h1>The PK map</h1>
+<section id="continuous-time-one-compartment-model" class="level2">
+<h2 class="anchored" data-anchor-id="continuous-time-one-compartment-model">Continuous-time one-compartment model</h2>
+<p>After an IV bolus of dose <img src="https://latex.codecogs.com/png.latex?D"> into volume of distribution <img src="https://latex.codecogs.com/png.latex?V">, the concentration evolves as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AC(t)=%5Cfrac%7BD%7D%7BV%7D%5C,e%5E%7B-kt%7D,%20%5Cqquad%0A%5Ctext%7Bwhere%7D%5Cquad%0Ak=%5Cfrac%7B%5Cln%202%7D%7Bt_%7B1/2%7D%7D%0A"></p>
+<p>is the elimination rate constant. For a half-life <img src="https://latex.codecogs.com/png.latex?t_%7B1/2%7D=12%5C,%5Cmathrm%7Bh%7D">, we have <img src="https://latex.codecogs.com/png.latex?k%5Capprox%200.0578%5C,%5Cmathrm%7Bh%7D%5E%7B-1%7D">.</p>
+</section>
+<section id="discrete-time-dosing-epochs" class="level2">
+<h2 class="anchored" data-anchor-id="discrete-time-dosing-epochs">Discrete-time dosing epochs</h2>
+<p>Suppose we make dosing decisions at fixed intervals <img src="https://latex.codecogs.com/png.latex?%5CDelta%20t=12%5C,%5Cmathrm%7Bh%7D"> — once per half-life. Between decisions, the drug is eliminated. The <strong>interval elimination factor</strong> is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ar=e%5E%7B-k%5CDelta%20t%7D=e%5E%7B-%5Cln%202%7D=%5Ctfrac12.%0A"></p>
+<p>This says: concentration halves over one dosing interval in the absence of new doses.</p>
+</section>
+<section id="the-transition-map" class="level2">
+<h2 class="anchored" data-anchor-id="the-transition-map">The transition map</h2>
+<p>Let <img src="https://latex.codecogs.com/png.latex?C_t"> denote the concentration at epoch <img src="https://latex.codecogs.com/png.latex?t"> (immediately after the dose at that epoch). A dose <img src="https://latex.codecogs.com/png.latex?D_t"> chosen at epoch <img src="https://latex.codecogs.com/png.latex?t"> arrives at the start of epoch <img src="https://latex.codecogs.com/png.latex?t+1">; the concentration then is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AC_%7Bt+1%7D%20=%20r%5C,C_t%20+%20%5Cfrac%7BD_t%7D%7BV%7D,%0A"></p>
+<p>where the first term accounts for elimination and the second for the instantaneous bolus. We abbreviate <img src="https://latex.codecogs.com/png.latex?C_%7Bt+1%7D"> as <img src="https://latex.codecogs.com/png.latex?C'"> when the time index is clear.</p>
+</section>
+<section id="parameters-and-action-set" class="level2">
+<h2 class="anchored" data-anchor-id="parameters-and-action-set">Parameters and action set</h2>
+<p>With <img src="https://latex.codecogs.com/png.latex?V=50%5C,%5Cmathrm%7BL%7D">, a <img src="https://latex.codecogs.com/png.latex?100%5C,%5Cmathrm%7Bmg%7D"> bolus raises <img src="https://latex.codecogs.com/png.latex?C"> by <img src="https://latex.codecogs.com/png.latex?2%5C,%5Cmathrm%7Bmg/L%7D">. We restrict doses to a discrete set:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AD%5Cin%5Cmathcal%7BD%7D=%5C%7B0,100,200,300,400%5C%7D%5C,%5Cmathrm%7Bmg%7D,%0A%5Cqquad%0Au=%5Cfrac%7BD%7D%7BV%7D%5Cin%5C%7B0,2,4,6,8%5C%7D%5C,%5Cmathrm%7Bmg/L%7D.%0A"></p>
+<p>Here <img src="https://latex.codecogs.com/png.latex?u"> is the <strong>concentration increment</strong> from a bolus. The planning horizon is <img src="https://latex.codecogs.com/png.latex?H=5"> epochs, and we start from <img src="https://latex.codecogs.com/png.latex?C_0=0">.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">half_life <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span></span>
+<span id="cb2-2">dt <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span></span>
+<span id="cb2-3">V <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span></span>
+<span id="cb2-4">r <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">exp</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">log</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dt <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> half_life)</span>
+<span id="cb2-5">target <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span></span>
+<span id="cb2-6">lambda <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.02</span></span>
+<span id="cb2-7">doses <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">200</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">300</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">400</span>)</span>
+<span id="cb2-8">H <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span></span>
+<span id="cb2-9">c0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb2-10"></span>
+<span id="cb2-11">pk_next <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(c, dose) r <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> c <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> dose <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> V</span>
+<span id="cb2-12"></span>
+<span id="cb2-13">stage_cost <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(c_next, dose) {</span>
+<span id="cb2-14">  u <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> dose <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> V</span>
+<span id="cb2-15">  (c_next <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> target)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> lambda <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> u<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb2-16">}</span>
+<span id="cb2-17"></span>
+<span id="cb2-18"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">r =</span> r, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">V =</span> V, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">target =</span> target, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">lambda =</span> lambda, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">H =</span> H)</span>
+<span id="cb2-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;      r      V target lambda      H </span></span>
+<span id="cb2-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   0.50  50.00   5.00   0.02   5.00</span></span></code></pre></div></div>
+</div>
+<p>The PK model does not choose <img src="https://latex.codecogs.com/png.latex?D">. It only answers: given this <img src="https://latex.codecogs.com/png.latex?C"> and this <img src="https://latex.codecogs.com/png.latex?D">, where do we land. The dosing policy comes from optimizing a <strong>cost function</strong> over multiple steps.</p>
+</section>
+<section id="the-cost-function-and-objective" class="level2">
+<h2 class="anchored" data-anchor-id="the-cost-function-and-objective">The cost function and objective</h2>
+<p>We want the concentration trajectory to stay close to a target <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmathrm%7Btarget%7D%7D=5%5C,%5Cmathrm%7Bmg/L%7D"> over the five epochs. The dose chosen at epoch <img src="https://latex.codecogs.com/png.latex?t"> lands in the state <img src="https://latex.codecogs.com/png.latex?C_%7Bt+1%7D">, so the <strong>stage cost</strong> <img src="https://latex.codecogs.com/png.latex?L(C_%7Bt+1%7D,D_t)"> incurred there penalizes:</p>
+<ol type="1">
+<li><strong>Deviation from target</strong>: <img src="https://latex.codecogs.com/png.latex?(C_%7Bt+1%7D%20-%20C_%7B%5Cmathrm%7Btarget%7D%7D)%5E2">, squared to penalize large deviations more heavily.</li>
+<li><strong>Dose magnitude</strong>: <img src="https://latex.codecogs.com/png.latex?%5Clambda%20u_t%5E2"> where <img src="https://latex.codecogs.com/png.latex?u_t=D_t/V">, to discourage unnecessarily large boluses (<img src="https://latex.codecogs.com/png.latex?%5Clambda=0.02"> is a small weight).</li>
+</ol>
+<p>The stage cost is therefore</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AL(C',D)%20=%20(C'%20-%205)%5E2%20+%200.02%5C,%5Cleft(%5Cfrac%7BD%7D%7BV%7D%5Cright)%5E2,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?C'"> is the post-dose concentration after giving <img src="https://latex.codecogs.com/png.latex?D">. The <strong>total cost</strong> of a dose sequence <img src="https://latex.codecogs.com/png.latex?(D_0,D_1,%5Cldots,D_%7BH-1%7D)"> is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7BTotal%20cost%7D%20=%20%5Csum_%7Bt=0%7D%5E%7BH-1%7D%20L(C_%7Bt+1%7D,%20D_t),%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?C_%7Bt+1%7D=r%20C_t%20+%20D_t/V"> under the PK transition. Our goal is to find the dose sequence that minimizes this total cost.</p>
+</section>
+<section id="the-pk-dp-feedback-loop" class="level2">
+<h2 class="anchored" data-anchor-id="the-pk-dp-feedback-loop">The PK-DP feedback loop</h2>
+<p>The interplay between the PK model and the DP optimization can be visualized as a feedback loop at each epoch:</p>
+<div class="cell" data-fig-width="8" data-fig-height="3.4" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="pk-dp-loop">
+<div>
+
+<pre class="mermaid mermaid-js" data-label="pk-dp-loop">%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "clusterBkg": "#f7f9fb", "clusterBorder": "#5d6d7e", "titleColor": "#1a252f"}, "flowchart": {"padding": 12, "nodeSpacing": 22, "rankSpacing": 36, "curve": "linear"}}}%%
+flowchart LR
+  subgraph pk [PK transition]
+    Cnow["$$C_t$$"]
+    Cnext["$$C' = r\cdot C + D/V$$"]
+    Cnow --&gt; Cnext
+  end
+  subgraph dp [DP choice]
+    Doses["D in the discrete set"]
+    Cost["min L plus  $$\:V_{t+1}$$"]
+    Doses --&gt; Cost
+  end
+  Cost --&gt; Cnext
+  classDef hid fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef pkc fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  class Cnow,Cnext pkc
+  class Doses,Cost hid
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p><strong>How to read this diagram:</strong></p>
+<p>At each decision epoch <img src="https://latex.codecogs.com/png.latex?t">, the process unfolds as follows:</p>
+<ol type="1">
+<li><p><strong>Current state (left green box):</strong> We observe the current concentration <img src="https://latex.codecogs.com/png.latex?C_t"> at epoch <img src="https://latex.codecogs.com/png.latex?t">.</p></li>
+<li><p><strong>PK transition (right green box):</strong> The pharmacokinetic model gives us a <strong>transition function</strong> <img src="https://latex.codecogs.com/png.latex?C'%20=%20r%5Ccdot%20C_t%20+%20D/V">. This is pure science — it describes how concentration evolves under elimination and dosing. The PK model does <em>not</em> tell us which dose to choose; it only predicts the outcome of any given dose.</p></li>
+<li><p><strong>DP decision (left blue box):</strong> Dynamic programming considers all possible doses <img src="https://latex.codecogs.com/png.latex?D%5Cin%5C%7B0,100,200,300,400%5C%7D"> from the discrete action set. For each candidate dose, we know where it would take us (via the PK transition).</p></li>
+<li><p><strong>Cost evaluation (right blue box):</strong> For each candidate dose, DP computes the <strong>total future cost</strong>:</p>
+<ul>
+<li><strong>Immediate cost</strong> <img src="https://latex.codecogs.com/png.latex?L(C',D)">: how much does landing at <img src="https://latex.codecogs.com/png.latex?C'"> cost us at this step?</li>
+<li><strong>Future cost-to-go</strong> <img src="https://latex.codecogs.com/png.latex?V_%7Bt+1%7D(C')">: what is the minimum cost achievable from state <img src="https://latex.codecogs.com/png.latex?C'"> onward? (This comes from having already solved later epochs backward, or from the forward table we’re building.)</li>
+</ul></li>
+<li><p><strong>Optimal choice:</strong> DP selects the dose <img src="https://latex.codecogs.com/png.latex?D"> that minimizes <img src="https://latex.codecogs.com/png.latex?L(C',D)%20+%20V_%7Bt+1%7D(C')">. This is the <strong>lookahead</strong> — it picks the dose whose total cost (immediate plus future) is smallest.</p></li>
+<li><p><strong>State update (arrow from DP back to PK):</strong> The chosen dose is applied, the PK transition computes the new concentration <img src="https://latex.codecogs.com/png.latex?C'">, and this becomes <img src="https://latex.codecogs.com/png.latex?C_%7Bt+1%7D"> for the next epoch. The loop repeats.</p></li>
+</ol>
+<p><strong>The key insight:</strong> The PK box is deterministic chemistry and physiology. The DP box is optimization — it uses the PK predictions to compare all possible futures and picks the best one. A greedy policy would ignore the <img src="https://latex.codecogs.com/png.latex?V_%7Bt+1%7D"> term and only minimize <img src="https://latex.codecogs.com/png.latex?L"> now.</p>
+</section>
+</section>
+<section id="why-greedy-is-not-enough" class="level1">
+<h1>Why greedy is not enough</h1>
+<section id="the-greedy-policy" class="level2">
+<h2 class="anchored" data-anchor-id="the-greedy-policy">The greedy policy</h2>
+<p>A <strong>greedy</strong> (myopic) policy chooses at each step the dose that minimizes <img src="https://latex.codecogs.com/png.latex?L"> <em>for that step alone</em>, ignoring future consequences. Starting from <img src="https://latex.codecogs.com/png.latex?C_0=0">, let’s evaluate the one-step cost for each possible first dose:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1">first_step <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose =</span> doses) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb3-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb3-3">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">u =</span> dose <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> V,</span>
+<span id="cb3-4">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_next =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pk_next</span>(c0, dose),</span>
+<span id="cb3-5">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sq_err =</span> (c_next <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> target)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,</span>
+<span id="cb3-6">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose_pen =</span> lambda <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> u<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,</span>
+<span id="cb3-7">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">L =</span> sq_err <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> dose_pen</span>
+<span id="cb3-8">  )</span>
+<span id="cb3-9">first_step</span>
+<span id="cb3-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; # A tibble: 5 × 6</span></span>
+<span id="cb3-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;    dose     u c_next sq_err dose_pen     L</span></span>
+<span id="cb3-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb3-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 1     0     0      0     25     0    25   </span></span>
+<span id="cb3-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 2   100     2      2      9     0.08  9.08</span></span>
+<span id="cb3-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 3   200     4      4      1     0.32  1.32</span></span>
+<span id="cb3-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 4   300     6      6      1     0.72  1.72</span></span>
+<span id="cb3-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 5   400     8      8      9     1.28 10.3</span></span></code></pre></div></div>
+</div>
+</section>
+<section id="why-greedy-fails" class="level2">
+<h2 class="anchored" data-anchor-id="why-greedy-fails">Why greedy fails</h2>
+<p>The squared error component <strong>ties</strong> <img src="https://latex.codecogs.com/png.latex?D=200%5C,%5Cmathrm%7Bmg%7D"> (giving <img src="https://latex.codecogs.com/png.latex?C'=4">) and <img src="https://latex.codecogs.com/png.latex?D=300%5C,%5Cmathrm%7Bmg%7D"> (giving <img src="https://latex.codecogs.com/png.latex?C'=6">): both land <img src="https://latex.codecogs.com/png.latex?1%5C,%5Cmathrm%7Bmg/L%7D"> away from the target. The dose penalty <img src="https://latex.codecogs.com/png.latex?%5Clambda%20u%5E2"> breaks the tie in favor of the smaller dose: <img src="https://latex.codecogs.com/png.latex?L=1.32"> for <img src="https://latex.codecogs.com/png.latex?D=200%5C,%5Cmathrm%7Bmg%7D"> versus <img src="https://latex.codecogs.com/png.latex?L=1.72"> for <img src="https://latex.codecogs.com/png.latex?D=300%5C,%5Cmathrm%7Bmg%7D">.</p>
+<p>A greedy policy therefore opens with <img src="https://latex.codecogs.com/png.latex?200%5C,%5Cmathrm%7Bmg%7D">.</p>
+<p>From <img src="https://latex.codecogs.com/png.latex?C=4">, half-life elimination gives <img src="https://latex.codecogs.com/png.latex?C=2"> before the next dose. Adding <img src="https://latex.codecogs.com/png.latex?100%5C,%5Cmathrm%7Bmg%7D"> returns <img src="https://latex.codecogs.com/png.latex?C=4">. Repeating <img src="https://latex.codecogs.com/png.latex?200%5C,%5Cmathrm%7Bmg%7D"> would give <img src="https://latex.codecogs.com/png.latex?C=6">, which has higher cost than <img src="https://latex.codecogs.com/png.latex?C=4">. So greedy locks onto</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AD=(200,100,100,100,100)%5C,%5Cmathrm%7Bmg%7D,%0A%5Cqquad%0AC=(4,4,4,4,4).%0A"></p>
+</section>
+<section id="the-discrete-dose-trap" class="level2">
+<h2 class="anchored" data-anchor-id="the-discrete-dose-trap">The discrete-dose trap</h2>
+<p>For linear kinetics with constant maintenance dose <img src="https://latex.codecogs.com/png.latex?u=D/V">, the steady-state concentration is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AC_%7B%5Cmathrm%7Bss%7D%7D%20=%20%5Cfrac%7Bu%7D%7B1-r%7D.%0A"></p>
+<p>With <img src="https://latex.codecogs.com/png.latex?r=0.5"> and <img src="https://latex.codecogs.com/png.latex?u=2"> (from <img src="https://latex.codecogs.com/png.latex?D=100%5C,%5Cmathrm%7Bmg%7D">), we get <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmathrm%7Bss%7D%7D=4">, not the target <img src="https://latex.codecogs.com/png.latex?5">. To hit <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmathrm%7Bss%7D%7D=5"> would require <img src="https://latex.codecogs.com/png.latex?u=2.5">, hence <img src="https://latex.codecogs.com/png.latex?D=125%5C,%5Cmathrm%7Bmg%7D">, which is <strong>not in our discrete set</strong> <img src="https://latex.codecogs.com/png.latex?%5C%7B0,100,200,300,400%5C%7D">.</p>
+<p>Greedy picks the best available steady state on the grid, which is <img src="https://latex.codecogs.com/png.latex?C=4">. But dynamic programming can do better by exploiting <strong>transient behavior</strong>.</p>
+<p>The five arrows out of <img src="https://latex.codecogs.com/png.latex?C=0">:</p>
+<div class="cell" data-fig-width="8.5" data-fig-height="4.2" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="dose-fan">
+<div>
+
+<pre class="mermaid mermaid-js" data-label="dose-fan">%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "clusterBkg": "#f7f9fb", "clusterBorder": "#5d6d7e", "titleColor": "#1a252f"}, "flowchart": {"padding": 10, "nodeSpacing": 16, "rankSpacing": 48, "curve": "linear"}}}%%
+flowchart LR
+  S["(t, C = 0)"]
+  S --&gt;|"0 mg"| A["C' = 0"]
+  S --&gt;|"100 mg"| B["C' = 2"]
+  S --&gt;|"200 mg"| G["C' = 4 greedy"]
+  S --&gt;|"300 mg"| D["C' = 6 DP"]
+  S --&gt;|"400 mg"| E["C' = 8"]
+  classDef hid fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef pkc fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  classDef greedy fill:#fdebd0,stroke:#b9770e,color:#1a252f,stroke-width:1.8px
+  classDef dp fill:#1f6f8b,stroke:#15485a,color:#ffffff,stroke-width:1.8px
+  class S hid
+  class A,B,E pkc
+  class G greedy
+  class D dp
+</pre>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="the-loading-overshoot-insight" class="level2">
+<h2 class="anchored" data-anchor-id="the-loading-overshoot-insight">The loading overshoot insight</h2>
+<p>DP asks a different question: what if we pay the higher cost <img src="https://latex.codecogs.com/png.latex?L=1.72"> now to reach <img src="https://latex.codecogs.com/png.latex?C=6">, accepting the overshoot? After one epoch of elimination, <img src="https://latex.codecogs.com/png.latex?C"> drops to <img src="https://latex.codecogs.com/png.latex?3">, and adding <img src="https://latex.codecogs.com/png.latex?100%5C,%5Cmathrm%7Bmg%7D"> gives</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AC_%7Bt=2%7D%20=%200.5%5Ccdot%206%20+%202%20=%205,%0A"></p>
+<p>hitting the target exactly at <img src="https://latex.codecogs.com/png.latex?t=2">. From there, the trajectory decays more slowly through <img src="https://latex.codecogs.com/png.latex?(5,%204.5,%204.25,%204.125)"> — staying closer to target on average than the greedy path stuck at <img src="https://latex.codecogs.com/png.latex?4">.</p>
+<p>This is the <strong>loading overshoot</strong> strategy. Greedy never considers it because <img src="https://latex.codecogs.com/png.latex?1.32%3C1.72"> at the first step; it cannot see that the short-term sacrifice buys a better long-term trajectory.</p>
+</section>
+</section>
+<section id="bellmans-principle-and-the-dp-recurrence" class="level1">
+<h1>Bellman’s principle and the DP recurrence</h1>
+<section id="state-action-and-transition" class="level2">
+<h2 class="anchored" data-anchor-id="state-action-and-transition">State, action, and transition</h2>
+<p>A <strong>state</strong> is <img src="https://latex.codecogs.com/png.latex?(t,C)"> — the current epoch and concentration. An <strong>action</strong> is a dose <img src="https://latex.codecogs.com/png.latex?D%5Cin%5Cmathcal%7BD%7D">. The <strong>transition</strong> is <img src="https://latex.codecogs.com/png.latex?C'=rC+D/V">.</p>
+</section>
+<section id="value-function-and-cost-to-go" class="level2">
+<h2 class="anchored" data-anchor-id="value-function-and-cost-to-go">Value function and cost-to-go</h2>
+<p>Let <img src="https://latex.codecogs.com/png.latex?V_t(C)"> denote the <strong>minimum achievable cost</strong> from epoch <img src="https://latex.codecogs.com/png.latex?t"> onward, starting from concentration <img src="https://latex.codecogs.com/png.latex?C"> at that epoch. This is called the <strong>cost-to-go</strong> or <strong>value function</strong>.</p>
+<p>At the terminal epoch <img src="https://latex.codecogs.com/png.latex?t=H">, we incur no further cost:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AV_H(C)%20=%200%20%5Cquad%20%5Ctext%7Bfor%20all%20%7D%20C.%0A"></p>
+<p>For earlier epochs <img src="https://latex.codecogs.com/png.latex?t%3CH">, Bellman’s principle of optimality states:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AV_t(C)%20=%20%5Cmin_%7BD%5Cin%5Cmathcal%7BD%7D%7D%0A%5CBigl%5B%0A%20%20%5Cunderbrace%7BL(C',D)%7D_%7B%5Ctext%7Bimmediate%20cost%7D%7D%0A%20%20+%0A%20%20%5Cunderbrace%7BV_%7Bt+1%7D(C')%7D_%7B%5Ctext%7Bfuture%20cost-to-go%7D%7D%0A%5CBigr%5D,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?C'=rC+D/V"> is the post-dose concentration. This says: the optimal cost-to-go equals the immediate stage cost plus the optimal future cost from the resulting state, minimized over all possible dose choices.</p>
+<p>We solve this <strong>backward</strong> from <img src="https://latex.codecogs.com/png.latex?t=H"> down to <img src="https://latex.codecogs.com/png.latex?t=0">, building up the optimal policy at each state.</p>
+</section>
+<section id="analogy-to-other-dp-problems" class="level2">
+<h2 class="anchored" data-anchor-id="analogy-to-other-dp-problems">Analogy to other DP problems</h2>
+<p>This is the same tabular DP pattern as a 0-1 knapsack or longest common subsequence problem, only the meaning of the state changes (here a minimization over all five doses at once, not the knapsack’s binary take-or-skip):</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Knapsack</th>
+<th>This PK problem</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>What is a state?</td>
+<td>(item <img src="https://latex.codecogs.com/png.latex?i">, capacity <img src="https://latex.codecogs.com/png.latex?w">)</td>
+<td>(epoch <img src="https://latex.codecogs.com/png.latex?t">, concentration <img src="https://latex.codecogs.com/png.latex?C">)</td>
+</tr>
+<tr class="even">
+<td>What is a transition?</td>
+<td>take / skip the item</td>
+<td>PK map <img src="https://latex.codecogs.com/png.latex?C%5Cmapsto%20C'"> under <img src="https://latex.codecogs.com/png.latex?D"></td>
+</tr>
+<tr class="odd">
+<td>What is terminal?</td>
+<td><img src="https://latex.codecogs.com/png.latex?i=0"> or <img src="https://latex.codecogs.com/png.latex?w=0"></td>
+<td><img src="https://latex.codecogs.com/png.latex?t=H">, no salvage cost</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="shortest-path-interpretation" class="level2">
+<h2 class="anchored" data-anchor-id="shortest-path-interpretation">Shortest path interpretation</h2>
+<p>The same recurrence is a <strong>shortest path</strong> problem on a directed acyclic graph (DAG). Nodes are reachable states <img src="https://latex.codecogs.com/png.latex?(t,C)">. Each arrow from <img src="https://latex.codecogs.com/png.latex?(t,C)"> to <img src="https://latex.codecogs.com/png.latex?(t+1,C')"> represents giving dose <img src="https://latex.codecogs.com/png.latex?D">, with edge weight <img src="https://latex.codecogs.com/png.latex?L(C',D)">. We seek the cheapest path from the initial state <img src="https://latex.codecogs.com/png.latex?(0,0)"> to any terminal state <img src="https://latex.codecogs.com/png.latex?(H,C)"> (Bertsekas, 2017).</p>
+</section>
+<section id="forward-versus-backward-computation" class="level2">
+<h2 class="anchored" data-anchor-id="forward-versus-backward-computation">Forward versus backward computation</h2>
+<p>The theoretical formulation above computes <img src="https://latex.codecogs.com/png.latex?V_t"> backward from <img src="https://latex.codecogs.com/png.latex?t=H"> to <img src="https://latex.codecogs.com/png.latex?t=0">. For a DAG, we can equivalently compute <strong>cost-to-reach</strong> forward from <img src="https://latex.codecogs.com/png.latex?t=0">, storing at each node the minimum cumulative cost to reach that state and the predecessor state. After reaching <img src="https://latex.codecogs.com/png.latex?t=H">, we backtrack through predecessors to reconstruct the optimal path.</p>
+<p>The code below uses forward accumulation — analogous to Viterbi decoding, with <img src="https://latex.codecogs.com/png.latex?L"> in place of <img src="https://latex.codecogs.com/png.latex?-%5Clog%20p">. This is sometimes easier to implement and matches the natural left-to-right flow of the dosing timeline.</p>
+</section>
+</section>
+<section id="implementation-in-r" class="level1">
+<h1>Implementation in R</h1>
+<p>Reachable concentrations under this grid stay a <strong>sparse</strong> set: five nodes after the first dose, then <img src="https://latex.codecogs.com/png.latex?13">, <img src="https://latex.codecogs.com/png.latex?29">, <img src="https://latex.codecogs.com/png.latex?61">, <img src="https://latex.codecogs.com/png.latex?125">. A dense mesh in <img src="https://latex.codecogs.com/png.latex?C"> is unnecessary. Encode <img src="https://latex.codecogs.com/png.latex?C"> by rounding when grouping so that floating keys do not split a state.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1">reconstruct_path <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(nodes, H) {</span>
+<span id="cb4-2">  cur <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> nodes <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-3">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(t <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> H) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-4">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">slice_min</span>(cost, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">with_ties =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb4-5">  acc <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vector</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"list"</span>, H <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb4-6">  acc[[H <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> cur</span>
+<span id="cb4-7">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (tt <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> H<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) {</span>
+<span id="cb4-8">    prev <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> nodes <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-9">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(</span>
+<span id="cb4-10">        t <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> tt <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,</span>
+<span id="cb4-11">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">round</span>(.data<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>c, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">round</span>(cur<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>prev_c[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]], <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)</span>
+<span id="cb4-12">      )</span>
+<span id="cb4-13">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(prev) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) {</span>
+<span id="cb4-14">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"predecessor lookup at t="</span>, tt <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" matched "</span>,</span>
+<span id="cb4-15">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(prev), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" node(s); states are no longer unique"</span>)</span>
+<span id="cb4-16">    }</span>
+<span id="cb4-17">    acc[[tt]] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> prev</span>
+<span id="cb4-18">    cur <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> prev</span>
+<span id="cb4-19">  }</span>
+<span id="cb4-20">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(acc)</span>
+<span id="cb4-21">}</span>
+<span id="cb4-22"></span>
+<span id="cb4-23">solve_dose_dp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_min =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">Inf</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_max =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">Inf</span>) {</span>
+<span id="cb4-24">  nodes <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb4-25">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">t =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>,</span>
+<span id="cb4-26">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c =</span> c0,</span>
+<span id="cb4-27">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cost =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>,</span>
+<span id="cb4-28">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prev_c =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_real_</span>,</span>
+<span id="cb4-29">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_real_</span></span>
+<span id="cb4-30">  )</span>
+<span id="cb4-31">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (tt <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>(H <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)) {</span>
+<span id="cb4-32">    layer <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(nodes, t <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> tt)</span>
+<span id="cb4-33">    expanded <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> tidyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">crossing</span>(layer, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose_new =</span> doses) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-34">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb4-35">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_next =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pk_next</span>(c, dose_new),</span>
+<span id="cb4-36">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cost_next =</span> cost <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stage_cost</span>(c_next, dose_new)</span>
+<span id="cb4-37">      ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-38">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(c_next <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span> c_min, c_next <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> c_max) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-39">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_key =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">round</span>(c_next, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-40">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(c_key) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-41">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">slice_min</span>(cost_next, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">with_ties =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-42">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ungroup</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-43">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">transmute</span>(</span>
+<span id="cb4-44">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">t =</span> tt <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,</span>
+<span id="cb4-45">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prev_c =</span> c,</span>
+<span id="cb4-46">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c =</span> c_next,</span>
+<span id="cb4-47">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cost =</span> cost_next,</span>
+<span id="cb4-48">        <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose =</span> dose_new</span>
+<span id="cb4-49">      )</span>
+<span id="cb4-50">    nodes <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(nodes, expanded)</span>
+<span id="cb4-51">  }</span>
+<span id="cb4-52">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">nodes =</span> nodes, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">path =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">reconstruct_path</span>(nodes, H))</span>
+<span id="cb4-53">}</span>
+<span id="cb4-54"></span>
+<span id="cb4-55">greedy_policy <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>() {</span>
+<span id="cb4-56">  c <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> c0</span>
+<span id="cb4-57">  total <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb4-58">  rows <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vector</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"list"</span>, H)</span>
+<span id="cb4-59">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (tt <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>H) {</span>
+<span id="cb4-60">    step <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose =</span> doses, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_next =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pk_next</span>(c, doses)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-61">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">L =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stage_cost</span>(c_next, dose)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb4-62">      <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">slice_min</span>(L, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">with_ties =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>)</span>
+<span id="cb4-63">    total <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> total <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> step<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>L</span>
+<span id="cb4-64">    rows[[tt]] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb4-65">      <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">t =</span> tt, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c =</span> step<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>c_next, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose =</span> step<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cost =</span> total</span>
+<span id="cb4-66">    )</span>
+<span id="cb4-67">    c <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> step<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>c_next</span>
+<span id="cb4-68">  }</span>
+<span id="cb4-69">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(</span>
+<span id="cb4-70">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">t =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c =</span> c0, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dose =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_real_</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">cost =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>),</span>
+<span id="cb4-71">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(rows)</span>
+<span id="cb4-72">  )</span>
+<span id="cb4-73">}</span></code></pre></div></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1">dp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">solve_dose_dp</span>()</span>
+<span id="cb5-2">greedy <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">greedy_policy</span>()</span>
+<span id="cb5-3"></span>
+<span id="cb5-4">n_states <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> dp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>nodes <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb5-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">count</span>(t, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n_reachable"</span>)</span>
+<span id="cb5-6">n_states</span>
+<span id="cb5-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; # A tibble: 6 × 2</span></span>
+<span id="cb5-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;       t n_reachable</span></span>
+<span id="cb5-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   &lt;dbl&gt;       &lt;int&gt;</span></span>
+<span id="cb5-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 1     0           1</span></span>
+<span id="cb5-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 2     1           5</span></span>
+<span id="cb5-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 3     2          13</span></span>
+<span id="cb5-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 4     3          29</span></span>
+<span id="cb5-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 5     4          61</span></span>
+<span id="cb5-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 6     5         125</span></span>
+<span id="cb5-16"></span>
+<span id="cb5-17">dp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>path <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb5-18">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">transmute</span>(t, dose, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">C =</span> c, cost)</span>
+<span id="cb5-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb5-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;       t  dose     C  cost</span></span>
+<span id="cb5-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb5-22"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 1     0    NA  0     0   </span></span>
+<span id="cb5-23"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 2     1   300  6     1.72</span></span>
+<span id="cb5-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 3     2   100  5     1.8 </span></span>
+<span id="cb5-25"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 4     3   100  4.5   2.13</span></span>
+<span id="cb5-26"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 5     4   100  4.25  2.77</span></span>
+<span id="cb5-27"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 6     5   100  4.12  3.62</span></span>
+<span id="cb5-28">greedy <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb5-29">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">transmute</span>(t, dose, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">C =</span> c, cost)</span>
+<span id="cb5-30"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb5-31"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;       t  dose     C  cost</span></span>
+<span id="cb5-32"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb5-33"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 1     0    NA     0  0   </span></span>
+<span id="cb5-34"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 2     1   200     4  1.32</span></span>
+<span id="cb5-35"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 3     2   100     4  2.4 </span></span>
+<span id="cb5-36"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 4     3   100     4  3.48</span></span>
+<span id="cb5-37"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 5     4   100     4  4.56</span></span>
+<span id="cb5-38"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 6     5   100     4  5.64</span></span></code></pre></div></div>
+</div>
+<p>DP opens with <img src="https://latex.codecogs.com/png.latex?300%5C,%5Cmathrm%7Bmg%7D">, visits <img src="https://latex.codecogs.com/png.latex?C=6">, then holds <img src="https://latex.codecogs.com/png.latex?100%5C,%5Cmathrm%7Bmg%7D">. Greedy opens with <img src="https://latex.codecogs.com/png.latex?200%5C,%5Cmathrm%7Bmg%7D"> and never leaves <img src="https://latex.codecogs.com/png.latex?C=4">. After <img src="https://latex.codecogs.com/png.latex?t=1"> both policies use the same maintenance dose; the <strong>only</strong> disagreement is the loading bolus. That is the lookahead.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tibble</span>(</span>
+<span id="cb6-2">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">policy =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"DP (Bellman)"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Greedy (one-step L)"</span>),</span>
+<span id="cb6-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">doses =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb6-4">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste</span>(dp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>path<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose[<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">collapse =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">", "</span>),</span>
+<span id="cb6-5">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste</span>(greedy<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>dose[<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">collapse =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">", "</span>)</span>
+<span id="cb6-6">  ),</span>
+<span id="cb6-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">C_path =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb6-8">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste</span>(dp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>path<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>c[<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">collapse =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">", "</span>),</span>
+<span id="cb6-9">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste</span>(greedy<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>c[<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">collapse =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">", "</span>)</span>
+<span id="cb6-10">  ),</span>
+<span id="cb6-11">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">total_cost =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">last</span>(dp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>path<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>cost), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">last</span>(greedy<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>cost))</span>
+<span id="cb6-12">)</span>
+<span id="cb6-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; # A tibble: 2 × 4</span></span>
+<span id="cb6-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   policy              doses                   C_path                 total_cost</span></span>
+<span id="cb6-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   &lt;chr&gt;               &lt;chr&gt;                   &lt;chr&gt;                       &lt;dbl&gt;</span></span>
+<span id="cb6-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 1 DP (Bellman)        300, 100, 100, 100, 100 6, 5, 4.5, 4.25, 4.125       3.62</span></span>
+<span id="cb6-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 2 Greedy (one-step L) 200, 100, 100, 100, 100 4, 4, 4, 4, 4                5.64</span></span></code></pre></div></div>
+</div>
+<p>Total cost <img src="https://latex.codecogs.com/png.latex?3.618"> versus <img src="https://latex.codecogs.com/png.latex?5.64">. The extra <img src="https://latex.codecogs.com/png.latex?0.40"> paid at the first step (<img src="https://latex.codecogs.com/png.latex?1.72"> versus the greedy <img src="https://latex.codecogs.com/png.latex?1.32">) buys a visit to <img src="https://latex.codecogs.com/png.latex?C=5"> at <img src="https://latex.codecogs.com/png.latex?t=2"> and a slower drift toward the discrete steady state <img src="https://latex.codecogs.com/png.latex?4">.</p>
+<p><strong>Why does the DP path decay after <img src="https://latex.codecogs.com/png.latex?t=2">?</strong> Not because the objective is blind at the endpoint: the final arrival is priced like every other one — the last stage cost is <img src="https://latex.codecogs.com/png.latex?(4.125-5)%5E2%20+%200.08%20=%0A0.846">, close to a quarter of the total. The decay is the discrete-dose trap at work. Holding <img src="https://latex.codecogs.com/png.latex?C=5"> would take <img src="https://latex.codecogs.com/png.latex?125%5C,%5Cmathrm%7Bmg%7D"> at every epoch; off that dose, from <img src="https://latex.codecogs.com/png.latex?C=5"> the only reachable next states are <img src="https://latex.codecogs.com/png.latex?%5C%7B2.5,%204.5,%206.5,%208.5,%2010.5%5C%7D">, and <img src="https://latex.codecogs.com/png.latex?4.5"> (one <img src="https://latex.codecogs.com/png.latex?100%5C,%5Cmathrm%7Bmg%7D"> step, cost <img src="https://latex.codecogs.com/png.latex?0.33">) is closest to target. The same comparison recurs at <img src="https://latex.codecogs.com/png.latex?4.5"> and <img src="https://latex.codecogs.com/png.latex?4.25"> — cheaper to decay a little than to pay for a <img src="https://latex.codecogs.com/png.latex?200%5C,%5Cmathrm%7Bmg%7D"> swing back up. A terminal penalty <img src="https://latex.codecogs.com/png.latex?(C_H-5)%5E2"> prices the endpoint, not the flight path: even when we add it at weight <img src="https://latex.codecogs.com/png.latex?1">, brute force over all 3125 sequences still runs the middle of the path through <img src="https://latex.codecogs.com/png.latex?(6,%205,%204.5)"> before rerouting the last dose to finish at <img src="https://latex.codecogs.com/png.latex?5.125">.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1">col_dp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#1F6F8B"</span></span>
+<span id="cb7-2">col_greedy <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#B9770E"</span></span>
+<span id="cb7-3">col_target <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#1E8449"</span></span>
+<span id="cb7-4">col_ink <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#1A252F"</span></span>
+<span id="cb7-5"></span>
+<span id="cb7-6">traj <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(</span>
+<span id="cb7-7">  dp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>path <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">transmute</span>(t, c, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">policy =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"DP"</span>),</span>
+<span id="cb7-8">  greedy <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">transmute</span>(t, c, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">policy =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Greedy"</span>)</span>
+<span id="cb7-9">)</span>
+<span id="cb7-10"></span>
+<span id="cb7-11"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(traj, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(t, c, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> policy, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linetype =</span> policy)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-12">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_hline</span>(</span>
+<span id="cb7-13">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">yintercept =</span> target, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> col_target, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linewidth =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.5</span>,</span>
+<span id="cb7-14">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linetype =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"22"</span></span>
+<span id="cb7-15">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-16">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_line</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linewidth =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.95</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-17">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_point</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">size =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.6</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-18">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_colour_manual</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">DP =</span> col_dp, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Greedy =</span> col_greedy)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-19">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_linetype_manual</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">DP =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"solid"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Greedy =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"22"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-20">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_x_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">breaks =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>H) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-21">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"epoch t"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"C (mg/L)"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linetype =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-22">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">base_size =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb7-23">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme</span>(</span>
+<span id="cb7-24">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">legend.position =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"top"</span>,</span>
+<span id="cb7-25">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">panel.grid.minor =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">element_blank</span>(),</span>
+<span id="cb7-26">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">axis.title =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">element_text</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> col_ink),</span>
+<span id="cb7-27">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">axis.text =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">element_text</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> col_ink)</span>
+<span id="cb7-28">  )</span></code></pre></div></div>
+<div class="cell-output-display">
+<div id="fig-trajectories" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-trajectories-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-trajectories-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;1: Post-dose concentration under DP and greedy. Dashed line: target 5 mg/L."><img src="https://al-garik.github.io/ks-blog/posts/2026-11-09-dp-PK/index_files/figure-html/fig-trajectories-1.png" class="img-fluid figure-img" width="787"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-trajectories-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Post-dose concentration under DP and greedy. Dashed line: target 5 mg/L.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="therapeutic-window-as-a-hard-constraint" class="level1">
+<h1>Therapeutic window as a hard constraint</h1>
+<p>Drop any transition with <img src="https://latex.codecogs.com/png.latex?C'"> outside <img src="https://latex.codecogs.com/png.latex?%5BC_%7B%5Cmin%7D,C_%7B%5Cmax%7D%5D">. The solver does not change; the action set becomes state-dependent.</p>
+<p>A <em>realistic</em> window for this toy, say <img src="https://latex.codecogs.com/png.latex?2%5Cle%20C'%5Cle%208">, still admits the loading peak of <img src="https://latex.codecogs.com/png.latex?6">. The Bellman path is unchanged:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1">dp_win_wide <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">solve_dose_dp</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_min =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_max =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)</span>
+<span id="cb8-2">dp_win_wide<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>path <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb8-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">transmute</span>(t, dose, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">C =</span> c, cost)</span>
+<span id="cb8-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb8-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;       t  dose     C  cost</span></span>
+<span id="cb8-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb8-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 1     0    NA  0     0   </span></span>
+<span id="cb8-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 2     1   300  6     1.72</span></span>
+<span id="cb8-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 3     2   100  5     1.8 </span></span>
+<span id="cb8-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 4     3   100  4.5   2.13</span></span>
+<span id="cb8-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 5     4   100  4.25  2.77</span></span>
+<span id="cb8-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 6     5   100  4.12  3.62</span></span></code></pre></div></div>
+</div>
+<p>A <strong>tight peak cap</strong> <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmax%7D=5.5"> forbids <img src="https://latex.codecogs.com/png.latex?C'=6"> and <img src="https://latex.codecogs.com/png.latex?C'=8"> from <img src="https://latex.codecogs.com/png.latex?C=0">. The loading overshoot is illegal. DP collapses onto the greedy opening:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1">dp_win_tight <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">solve_dose_dp</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_min =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">c_max =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5.5</span>)</span>
+<span id="cb9-2">dp_win_tight<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>path <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%&gt;%</span></span>
+<span id="cb9-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">transmute</span>(t, dose, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">C =</span> c, cost)</span>
+<span id="cb9-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb9-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;       t  dose     C  cost</span></span>
+<span id="cb9-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb9-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 1     0    NA     0  0   </span></span>
+<span id="cb9-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 2     1   200     4  1.32</span></span>
+<span id="cb9-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 3     2   100     4  2.4 </span></span>
+<span id="cb9-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 4     3   100     4  3.48</span></span>
+<span id="cb9-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 5     4   100     4  4.56</span></span>
+<span id="cb9-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#&gt; 6     5   100     4  5.64</span></span></code></pre></div></div>
+</div>
+<p>That is the clinical reading of the constraint: if the protocol forbids the overshoot that lookahead wanted, the extra future value of <img src="https://latex.codecogs.com/png.latex?C=6"> is simply not in the feasible set. The DP path collapses onto the greedy path not because the algorithm changed, but because the loading peak is now illegal.</p>
+<p>Hard <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmax%7D/C_%7B%5Cmin%7D"> bounds are one way a therapeutic window enters this DP. Soft penalties on excursions are the other, milder, encoding — already present as <img src="https://latex.codecogs.com/png.latex?(C'-5)%5E2"> in the stage cost. The trade-off is: hard constraints guarantee safety but may force a suboptimal trajectory; soft penalties allow occasional excursions if the overall cost benefit is large enough.</p>
+</section>
+<section id="what-this-is-not" class="level1">
+<h1>What this is not</h1>
+<p>The state here is a scalar <img src="https://latex.codecogs.com/png.latex?C">. An oral one-compartment model has <img src="https://latex.codecogs.com/png.latex?(A_g,A_c)"> and the map needs <img src="https://latex.codecogs.com/png.latex?k_a"> as well as <img src="https://latex.codecogs.com/png.latex?k_e">. A two-compartment IV model has <img src="https://latex.codecogs.com/png.latex?(A_c,A_p)">. The Bellman update does not change; the node key becomes a pair, and the lattice grows fast. That is the natural sequel, not this post.</p>
+<p>Three other missing pieces, on purpose:</p>
+<ul>
+<li><strong>Unknown <img src="https://latex.codecogs.com/png.latex?%5Ctheta">.</strong> Real MIPD updates <img src="https://latex.codecogs.com/png.latex?k"> and <img src="https://latex.codecogs.com/png.latex?V"> from measured concentrations (Sheiner et al., 1979; Jelliffe et al., 1993). That is Bayesian forecasting, then a <em>new</em> open-loop plan — or a receding-horizon step of model predictive control (Rawlings, Mayne, and Diehl, 2017).</li>
+<li><strong>Stochastic DP.</strong> Interindividual variability and residual error turn <img src="https://latex.codecogs.com/png.latex?C'"> into a distribution. Expectation of <img src="https://latex.codecogs.com/png.latex?L"> replaces <img src="https://latex.codecogs.com/png.latex?L">. The table is then an MDP (Puterman, 1994).</li>
+<li><strong>Continuous <img src="https://latex.codecogs.com/png.latex?D"> or free times.</strong> A discrete <img src="https://latex.codecogs.com/png.latex?D"> on a fixed clock is what makes the DAG small. Optimizing dose <em>and</em> clock is a different mixed-integer problem.</li>
+</ul>
+<p>PK model + DP + state estimation is sequential dosing optimization. It is close in spirit to target-concentration intervention (Holford, 1999) and to MIPD. It is not a substitute for either until the error model and the update are there.</p>
+</section>
+<section id="when-not-to-use-this" class="level1">
+<h1>When not to use this</h1>
+<ul>
+<li><strong>ADaM tables and CSR displays.</strong> SDTM/ADaM programming is joins, windows, and estimators — not a Bellman table.</li>
+<li><strong>Protocol dose finding.</strong> Phase I/II designs (3+3, CRM, BOIN, MCP-Mod) answer a <em>population</em> question. This lattice answers an individual sequence under a known model.</li>
+<li><strong>Primary TDM in the clinic.</strong> Use a residual-error model and a posterior for <img src="https://latex.codecogs.com/png.latex?%5Ctheta">, then a dose that hits AUC, trough, or <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmathrm%7Bss%7D%7D"> (Sheiner et al., 1979; Rowland and Tozer, 2011). Vancomycin AUC/MIC workflows are in that family, not in an open-loop five-step DAG with <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> known.</li>
+<li><strong>Nonlinear PK</strong> unless you discretize the state after the nonlinear map. Superposition is gone; the transition is still a function <img src="https://latex.codecogs.com/png.latex?f(x,u)">, so DP still applies, but the sparse grid of this toy will not.</li>
+<li><strong>Production MIPD software.</strong> Audit, device regulation, and covariate models live elsewhere (Darwich et al., 2017; Keizer et al., 2018; ICH, 2026). The recurrence above is the teaching object you can read.</li>
+</ul>
+</section>
+<section id="closing" class="level1">
+<h1>Closing</h1>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>What it optimizes</th>
+<th>Typical failure</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Repeat a labeled <img src="https://latex.codecogs.com/png.latex?D"></td>
+<td>convenience</td>
+<td>wrong <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmathrm%7Bss%7D%7D"> on a coarse grid</td>
+</tr>
+<tr class="even">
+<td>Myopic / greedy</td>
+<td>one-step <img src="https://latex.codecogs.com/png.latex?L"></td>
+<td>skips the loading overshoot</td>
+</tr>
+<tr class="odd">
+<td>Steady-state formula</td>
+<td>peak / trough / <img src="https://latex.codecogs.com/png.latex?C_%7B%5Cmathrm%7Bav,ss%7D%7D"></td>
+<td>ignores the transient path</td>
+</tr>
+<tr class="even">
+<td><strong>DP on the PK DAG</strong></td>
+<td><img src="https://latex.codecogs.com/png.latex?%5Csum_t%20L(C_%7Bt+1%7D,D_t)"></td>
+<td>known <img src="https://latex.codecogs.com/png.latex?%5Ctheta">; discrete <img src="https://latex.codecogs.com/png.latex?D">; no error model</td>
+</tr>
+<tr class="odd">
+<td>Bayesian TDM / MIPD</td>
+<td>posterior predictive target</td>
+<td>needs data, <img src="https://latex.codecogs.com/png.latex?g(%5Ctheta)">, and an update</td>
+</tr>
+</tbody>
+</table>
+<p>Use this DP when the scientific sentence is: <strong>the PK model supplies the transition, and we want the cheapest feasible dose sequence on a known discrete set.</strong> Use superposition and steady-state formulae to understand a <em>fixed</em> regimen. Use TDM / MIPD when <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> is the patient’s, not the textbook’s.</p>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<section id="dynamic-programming-and-control" class="level2">
+<h2 class="anchored" data-anchor-id="dynamic-programming-and-control">Dynamic programming and control</h2>
+<ul>
+<li>Bellman, R. (1957). <em>Dynamic Programming</em>. Princeton University Press.</li>
+<li>Bertsekas, D. P. (2017). <em>Dynamic Programming and Optimal Control</em>. 4th ed.&nbsp;Athena Scientific.</li>
+<li>Puterman, M. L. (1994). <em>Markov Decision Processes: Discrete Stochastic Dynamic Programming</em>. Wiley. <a href="https://doi.org/10.1002/9780470316887" class="uri">https://doi.org/10.1002/9780470316887</a></li>
+<li>Rawlings, J. B., Mayne, D. Q., and Diehl, M. (2017). <em>Model Predictive Control: Theory, Computation, and Design</em>. 2nd ed. Nob Hill Publishing.</li>
+</ul>
+</section>
+<section id="pharmacokinetics" class="level2">
+<h2 class="anchored" data-anchor-id="pharmacokinetics">Pharmacokinetics</h2>
+<ul>
+<li>Rowland, M., and Tozer, T. N. (2011). <em>Clinical Pharmacokinetics and Pharmacodynamics: Concepts and Applications</em>. 4th ed. Lippincott Williams and Wilkins.</li>
+<li>Gabrielsson, J., and Weiner, D. (2016). <em>Pharmacokinetic and Pharmacodynamic Data Analysis</em>. 5th ed.&nbsp;Swedish Pharmaceutical Press.</li>
+<li>Gibaldi, M., and Perrier, D. (1982). <em>Pharmacokinetics</em>. 2nd ed. Marcel Dekker.</li>
+</ul>
+</section>
+<section id="tdm-bayesian-forecasting-and-mipd" class="level2">
+<h2 class="anchored" data-anchor-id="tdm-bayesian-forecasting-and-mipd">TDM, Bayesian forecasting, and MIPD</h2>
+<ul>
+<li>Sheiner, L. B., Beal, S., Rosenberg, B., and Marathe, V. V. (1979). Forecasting individual pharmacokinetics. <em>Clinical Pharmacology and Therapeutics</em>, 26(3), 294–305. <a href="https://doi.org/10.1002/cpt1979263294" class="uri">https://doi.org/10.1002/cpt1979263294</a></li>
+<li>Jelliffe, R. W., Schumitzky, A., Van Guilder, M., Liu, M., Hu, L., Maire, P., Gomis, P., Barbaut, X., and Tahani, B. (1993). Individualizing drug dosage regimens: roles of population pharmacokinetic and dynamic models, Bayesian fitting, and adaptive control. <em>Therapeutic Drug Monitoring</em>, 15(5), 380–393. <a href="https://doi.org/10.1097/00007691-199310000-00005" class="uri">https://doi.org/10.1097/00007691-199310000-00005</a></li>
+<li>Holford, N. H. G. (1999). Target concentration intervention: beyond Y2K. <em>British Journal of Clinical Pharmacology</em>, 48(1), 9–13. <a href="https://doi.org/10.1046/j.1365-2125.1999.00971.x" class="uri">https://doi.org/10.1046/j.1365-2125.1999.00971.x</a></li>
+<li>Darwich, A. S., Ogungbenro, K., Vinks, A. A., Powell, J. R., Reny, J.-L., Marsousi, N., Daali, Y., Fairman, D., Cook, J., Lesko, L. J., and others (2017). Why has model-informed precision dosing not yet become common clinical reality? Lessons from the past and a roadmap for the future. <em>Clinical Pharmacology and Therapeutics</em>, 101(5), 646–656. <a href="https://doi.org/10.1002/cpt.659" class="uri">https://doi.org/10.1002/cpt.659</a></li>
+<li>Keizer, R. J., ter Heine, R., Frymoyer, A., Lesko, L. J., Mangat, R., and Goswami, S. (2018). Model-informed precision dosing at the bedside: scientific challenges and opportunities. <em>CPT: Pharmacometrics and Systems Pharmacology</em>, 7(12), 785–787. <a href="https://doi.org/10.1002/psp4.12353" class="uri">https://doi.org/10.1002/psp4.12353</a></li>
+<li>ICH (2026). <em>ICH M15: General Principles for Model-Informed Drug Development</em>. International Council for Harmonisation.</li>
+</ul>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Amount <img src="https://latex.codecogs.com/png.latex?A(t)"> in a single well-mixed compartment; <img src="https://latex.codecogs.com/png.latex?C=A/V">; first-order elimination <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Bd%7DA/%5Cmathrm%7Bd%7Dt=-kA">.↩︎</p></li>
+</ol>
+</section></div> ]]></description>
+  <category>R</category>
+  <category>Clinical Trials</category>
+  <category>Data analysis</category>
+  <category>Dose finding</category>
+  <guid>https://al-garik.github.io/ks-blog/posts/2026-11-09-dp-PK/</guid>
+  <pubDate>Sun, 08 Nov 2026 21:00:00 GMT</pubDate>
+  <media:content url="https://al-garik.github.io/ks-blog/posts/2026-11-09-dp-PK/images/post-logo.png" medium="image" type="image/png" height="73" width="144"/>
+</item>
 <item>
   <title>State Machines in R for Clinical Studies</title>
   <dc:creator>Vladimir Larchenko</dc:creator>

@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.11.9">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Vladimir Larchenko">
+<meta name="dcterms.date" content="2026-11-09">
+
+<title>Dynamic Programming for PK Dose Sequences – KeyStat Technical Blog</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<link href="../../images/favicon/favicon.png" rel="icon" type="image/png">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/scrollable-regions/scrollable-regions.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-63b5708e65d6cd79cd7618c58d0c21e7.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-240610b6e2aa54723d30845972b172a8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script>
+(function(){
+  // Robustly ensure the navbar title links to the site Home (same as the Home menu link).
+  function setTitleToHome() {
+    try {
+      var brandContainer = document.querySelector('.navbar-brand-container');
+      if (!brandContainer) return false;
+      var titleAnchor = brandContainer.querySelector('a.navbar-brand:not(.navbar-brand-logo)');
+      var homeLink = document.querySelector('a.nav-link[href$="index.html"]') || document.querySelector('a.nav-link');
+      if (!titleAnchor || !homeLink) return false;
+      var homeHref = homeLink.getAttribute('href');
+      var resolved = new URL(homeHref, window.location.href).href;
+      titleAnchor.setAttribute('href', resolved);
+      return true;
+    } catch (err) {
+      console && console.warn && console.warn('navbar-fix error', err);
+      return false;
+    }
+  }
+
+  // Try a few strategies: immediate attempt, repeated attempts, and a MutationObserver.
+  var tried = false;
+  function attempt() {
+    if (setTitleToHome()) {
+      tried = true;
+      if (interval) clearInterval(interval);
+      if (observer) observer.disconnect();
+    }
+  }
+
+  var interval = setInterval(attempt, 200);
+
+  var observer = new MutationObserver(function() {
+    if (!tried) attempt();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var root = document.querySelector('body');
+    if (root) observer.observe(root, { childList: true, subtree: true });
+    attempt();
+  });
+})();
+</script>
+<script>
+(function () {
+  // ks-blog TOC behavior (brand restyle), two clean mechanisms:
+  // 1. Desktop sidebar: archive rows (year/month) toggle their nested list on click.
+  // 2. Narrow screens (<992px, where Quarto display:none's the margin sidebar): build a
+  //    CLONE of the toc list as a <details class="mobile-toc"> inserted right after the
+  //    post title block. Cloning (not moving) leaves the original sidebar DOM untouched, so
+  //    scrollspy/desktop styles keep working; the clone drops role="doc-toc" because the
+  //    vendor rule `nav[role=doc-toc]{display:none}` (mobile media) would hide it.
+  //    IDs are stripped from the clone (no duplicate ids); anchor hrefs stay valid.
+  var NARROW = '(max-width: 991.98px)';
+
+  function wireToc(toc) {
+    if (!toc || toc.dataset.ksWired) return;
+    toc.dataset.ksWired = '1';
+    toc.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      var li = a.parentElement;
+      if (li && li.querySelector(':scope > ul')) li.classList.toggle('toc-open');
+    });
+  }
+
+  function stripIds(node) {
+    if (node.removeAttribute) node.removeAttribute('id');
+    node.querySelectorAll && node.querySelectorAll('[id]').forEach(function (n) { n.removeAttribute('id'); });
+  }
+
+  function buildMobileToc() {
+    if (!window.matchMedia(NARROW).matches) return;
+    if (document.querySelector('.mobile-toc')) return;
+    var src = document.querySelector('#quarto-margin-sidebar #TOC > ul');
+    var main = document.querySelector('#quarto-document-content');
+    if (!src || !main) return;
+    var det = document.createElement('details');
+    det.className = 'mobile-toc';
+    var sum = document.createElement('summary');
+    var t = document.querySelector('#quarto-margin-sidebar #toc-title');
+    sum.textContent = t ? t.textContent.trim() : 'On this page';
+    var nav = document.createElement('nav');
+    nav.setAttribute('aria-label', 'Table of contents');
+    var clone = src.cloneNode(true);
+    stripIds(clone);
+    // the source list is a bootstrap .collapse wrapper (hidden by CSS unless .show);
+    // the clone is our own <details> accordion — drop collapse state from every list level
+    clone.classList.remove('collapse', 'collapsing', 'show');
+    clone.querySelectorAll('ul.collapse, ul.collapsing').forEach(function (u) {
+      u.classList.remove('collapse', 'collapsing');
+    });
+    nav.appendChild(clone);
+    det.appendChild(sum);
+    det.appendChild(nav);
+    var hdr = main.querySelector('#title-block-header') || main.querySelector('.quarto-title');
+    if (hdr) hdr.insertAdjacentElement('afterend', det);
+    else main.insertBefore(det, main.firstChild);
+    // archive rows in the clone toggle months, and a picked section closes the accordion
+    clone.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      var li = a.parentElement;
+      if (li && li.querySelector(':scope > ul')) li.classList.toggle('toc-open');
+      if (e.target.tagName !== 'A' || !e.target.getAttribute('href') || e.target.getAttribute('href').length < 2) return;
+      det.open = false;
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    wireToc(document.querySelector('#quarto-margin-sidebar #TOC'));
+    buildMobileToc();
+  });
+  window.addEventListener('resize', function () {
+    if (window.matchMedia(NARROW).matches) buildMobileToc();
+  });
+})();
+</script>
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-fixed quarto-light"><a id="quarto-skip-link" class="visually-hidden-focusable" href="#quarto-document-content">Skip to main content</a>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark" aria-label="Site">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="https://keystatsolutions.com" class="navbar-brand navbar-brand-logo">
+    <img src="../../images/brand/logo-navbar-en.svg" alt="KeyStat" class="navbar-logo light-content">
+    <img src="../../images/brand/logo-navbar-en.svg" alt="KeyStat" class="navbar-logo dark-content">
+    </a>
+    <a class="navbar-brand" href="https://keystatsolutions.com">
+    <span class="navbar-title">Technical Blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://al-garik.github.io/ks-blog/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+            <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" aria-labelledby="toc-title" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#the-pk-map" id="toc-the-pk-map" class="nav-link" data-scroll-target="#the-pk-map">The PK map</a>
+  <ul class="collapse">
+  <li><a href="#continuous-time-one-compartment-model" id="toc-continuous-time-one-compartment-model" class="nav-link" data-scroll-target="#continuous-time-one-compartment-model">Continuous-time one-compartment model</a></li>
+  <li><a href="#discrete-time-dosing-epochs" id="toc-discrete-time-dosing-epochs" class="nav-link" data-scroll-target="#discrete-time-dosing-epochs">Discrete-time dosing epochs</a></li>
+  <li><a href="#the-transition-map" id="toc-the-transition-map" class="nav-link" data-scroll-target="#the-transition-map">The transition map</a></li>
+  <li><a href="#parameters-and-action-set" id="toc-parameters-and-action-set" class="nav-link" data-scroll-target="#parameters-and-action-set">Parameters and action set</a></li>
+  <li><a href="#the-cost-function-and-objective" id="toc-the-cost-function-and-objective" class="nav-link" data-scroll-target="#the-cost-function-and-objective">The cost function and objective</a></li>
+  <li><a href="#the-pk-dp-feedback-loop" id="toc-the-pk-dp-feedback-loop" class="nav-link" data-scroll-target="#the-pk-dp-feedback-loop">The PK-DP feedback loop</a></li>
+  </ul></li>
+  <li><a href="#why-greedy-is-not-enough" id="toc-why-greedy-is-not-enough" class="nav-link" data-scroll-target="#why-greedy-is-not-enough">Why greedy is not enough</a>
+  <ul class="collapse">
+  <li><a href="#the-greedy-policy" id="toc-the-greedy-policy" class="nav-link" data-scroll-target="#the-greedy-policy">The greedy policy</a></li>
+  <li><a href="#why-greedy-fails" id="toc-why-greedy-fails" class="nav-link" data-scroll-target="#why-greedy-fails">Why greedy fails</a></li>
+  <li><a href="#the-discrete-dose-trap" id="toc-the-discrete-dose-trap" class="nav-link" data-scroll-target="#the-discrete-dose-trap">The discrete-dose trap</a></li>
+  <li><a href="#the-loading-overshoot-insight" id="toc-the-loading-overshoot-insight" class="nav-link" data-scroll-target="#the-loading-overshoot-insight">The loading overshoot insight</a></li>
+  </ul></li>
+  <li><a href="#bellmans-principle-and-the-dp-recurrence" id="toc-bellmans-principle-and-the-dp-recurrence" class="nav-link" data-scroll-target="#bellmans-principle-and-the-dp-recurrence">Bellman’s principle and the DP recurrence</a>
+  <ul class="collapse">
+  <li><a href="#state-action-and-transition" id="toc-state-action-and-transition" class="nav-link" data-scroll-target="#state-action-and-transition">State, action, and transition</a></li>
+  <li><a href="#value-function-and-cost-to-go" id="toc-value-function-and-cost-to-go" class="nav-link" data-scroll-target="#value-function-and-cost-to-go">Value function and cost-to-go</a></li>
+  <li><a href="#analogy-to-other-dp-problems" id="toc-analogy-to-other-dp-problems" class="nav-link" data-scroll-target="#analogy-to-other-dp-problems">Analogy to other DP problems</a></li>
+  <li><a href="#shortest-path-interpretation" id="toc-shortest-path-interpretation" class="nav-link" data-scroll-target="#shortest-path-interpretation">Shortest path interpretation</a></li>
+  <li><a href="#forward-versus-backward-computation" id="toc-forward-versus-backward-computation" class="nav-link" data-scroll-target="#forward-versus-backward-computation">Forward versus backward computation</a></li>
+  </ul></li>
+  <li><a href="#implementation-in-r" id="toc-implementation-in-r" class="nav-link" data-scroll-target="#implementation-in-r">Implementation in R</a></li>
+  <li><a href="#therapeutic-window-as-a-hard-constraint" id="toc-therapeutic-window-as-a-hard-constraint" class="nav-link" data-scroll-target="#therapeutic-window-as-a-hard-constraint">Therapeutic window as a hard constraint</a></li>
+  <li><a href="#what-this-is-not" id="toc-what-this-is-not" class="nav-link" data-scroll-target="#what-this-is-not">What this is not</a></li>
+  <li><a href="#when-not-to-use-this" id="toc-when-not-to-use-this" class="nav-link" data-scroll-target="#when-not-to-use-this">When not to use this</a></li>
+  <li><a href="#closing" id="toc-closing" class="nav-link" data-scroll-target="#closing">Closing</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a>
+  <ul class="collapse">
+  <li><a href="#dynamic-programming-and-control" id="toc-dynamic-programming-and-control" class="nav-link" data-scroll-target="#dynamic-programming-and-control">Dynamic programming and control</a></li>
+  <li><a href="#pharmacokinetics" id="toc-pharmacokinetics" class="nav-link" data-scroll-target="#pharmacokinetics">Pharmacokinetics</a></li>
+  <li><a href="#tdm-bayesian-forecasting-and-mipd" id="toc-tdm-bayesian-forecasting-and-mipd" class="nav-link" data-scroll-target="#tdm-bayesian-forecasting-and-mipd">TDM, Bayesian forecasting, and MIPD</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content" tabindex="-1">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Dynamic Programming for PK Dose Sequences</h1>
+<p class="subtitle lead">The PK model supplies the transition; Bellman chooses the doses</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">R</div>
+    <div class="quarto-category">Clinical Trials</div>
+    <div class="quarto-category">Data analysis</div>
+    <div class="quarto-category">Dose finding</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Vladimir Larchenko </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">November 9, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/post-logo.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="DP path on a PK dose lattice"><img src="images/post-logo.png" class="img-fluid quarto-figure quarto-figure-center figure-img" alt="DP path on a PK dose lattice"></a></p>
+</figure>
+</div>
+<figcaption>DP path on a PK dose lattice</figcaption>
+</figure>
+</div>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>A one-compartment intravenous (IV) bolus with known elimination rate constant <span class="math inline">\(k\)</span> and volume of distribution <span class="math inline">\(V\)</span> is ordinary pharmacokinetics.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> Superposition writes the concentration after a <em>given</em> sequence of doses (Rowland and Tozer, 2011). Steady state tells you the peak, trough, and average that a <em>repeating</em> regimen will settle to.</p>
+<p>Neither object is a <strong>policy</strong> — a rule that selects which dose to give at each decision point. The clinical question is sequential:</p>
+<blockquote class="blockquote">
+<p>Which dose now, given where the concentration sits, so that the whole remaining trajectory is as close as possible to a target concentration, subject to constraints on dose size and frequency?</p>
+</blockquote>
+<p>We want to minimize a <strong>cost</strong> function that penalizes both deviations from the target concentration and large doses (which may carry toxicity or inconvenience). This is a finite-horizon control problem. The pharmacokinetic model supplies the <strong>state transition</strong> — how concentration evolves under a given dose. Dynamic programming (DP) chooses the <strong>optimal dose sequence</strong> that minimizes total cost over the time horizon (Bellman, 1957; Bertsekas, 2017).</p>
+<p>A myopic “greedy” rule that only minimizes the immediate one-step cost can fail: it may lock onto the wrong concentration plateau even when it scores each step with the same stage cost the optimal policy accumulates. DP looks ahead to find a globally better trajectory.</p>
+<p>This article implements the optimizer from scratch in R: a one-compartment IV bolus, five dose options, a five-step horizon, greedy versus Bellman, and a tight <span class="math inline">\(C_{\max}\)</span> cap that removes the loading overshoot.</p>
+<p><strong>A clinical caveat, stated first.</strong> Parameters here are <strong>known exactly</strong>. There is no residual error, no interindividual variability, no delayed observation, and no Bayesian update. Therapeutic drug monitoring (TDM) and model-informed precision dosing (MIPD) live in that missing layer (Sheiner et al., 1979; Darwich et al., 2017; Keizer et al., 2018). The lattice below is a teaching control problem. It is not a prescribing rule, not a protocol dose-finding engine, and not software as a medical device. ICH M15 concerns model-informed <em>drug development</em>, not bedside automation of this recurrence (ICH, 2026).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr, <span class="at">warn.conflicts =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="the-pk-map" class="level1">
+<h1>The PK map</h1>
+<section id="continuous-time-one-compartment-model" class="level2">
+<h2 class="anchored" data-anchor-id="continuous-time-one-compartment-model">Continuous-time one-compartment model</h2>
+<p>After an IV bolus of dose <span class="math inline">\(D\)</span> into volume of distribution <span class="math inline">\(V\)</span>, the concentration evolves as</p>
+<p><span class="math display">\[
+C(t)=\frac{D}{V}\,e^{-kt}, \qquad
+\text{where}\quad
+k=\frac{\ln 2}{t_{1/2}}
+\]</span></p>
+<p>is the elimination rate constant. For a half-life <span class="math inline">\(t_{1/2}=12\,\mathrm{h}\)</span>, we have <span class="math inline">\(k\approx 0.0578\,\mathrm{h}^{-1}\)</span>.</p>
+</section>
+<section id="discrete-time-dosing-epochs" class="level2">
+<h2 class="anchored" data-anchor-id="discrete-time-dosing-epochs">Discrete-time dosing epochs</h2>
+<p>Suppose we make dosing decisions at fixed intervals <span class="math inline">\(\Delta t=12\,\mathrm{h}\)</span> — once per half-life. Between decisions, the drug is eliminated. The <strong>interval elimination factor</strong> is</p>
+<p><span class="math display">\[
+r=e^{-k\Delta t}=e^{-\ln 2}=\tfrac12.
+\]</span></p>
+<p>This says: concentration halves over one dosing interval in the absence of new doses.</p>
+</section>
+<section id="the-transition-map" class="level2">
+<h2 class="anchored" data-anchor-id="the-transition-map">The transition map</h2>
+<p>Let <span class="math inline">\(C_t\)</span> denote the concentration at epoch <span class="math inline">\(t\)</span> (immediately after the dose at that epoch). A dose <span class="math inline">\(D_t\)</span> chosen at epoch <span class="math inline">\(t\)</span> arrives at the start of epoch <span class="math inline">\(t+1\)</span>; the concentration then is</p>
+<p><span class="math display">\[
+C_{t+1} = r\,C_t + \frac{D_t}{V},
+\]</span></p>
+<p>where the first term accounts for elimination and the second for the instantaneous bolus. We abbreviate <span class="math inline">\(C_{t+1}\)</span> as <span class="math inline">\(C'\)</span> when the time index is clear.</p>
+</section>
+<section id="parameters-and-action-set" class="level2">
+<h2 class="anchored" data-anchor-id="parameters-and-action-set">Parameters and action set</h2>
+<p>With <span class="math inline">\(V=50\,\mathrm{L}\)</span>, a <span class="math inline">\(100\,\mathrm{mg}\)</span> bolus raises <span class="math inline">\(C\)</span> by <span class="math inline">\(2\,\mathrm{mg/L}\)</span>. We restrict doses to a discrete set:</p>
+<p><span class="math display">\[
+D\in\mathcal{D}=\{0,100,200,300,400\}\,\mathrm{mg},
+\qquad
+u=\frac{D}{V}\in\{0,2,4,6,8\}\,\mathrm{mg/L}.
+\]</span></p>
+<p>Here <span class="math inline">\(u\)</span> is the <strong>concentration increment</strong> from a bolus. The planning horizon is <span class="math inline">\(H=5\)</span> epochs, and we start from <span class="math inline">\(C_0=0\)</span>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>half_life <span class="ot">&lt;-</span> <span class="dv">12</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> <span class="dv">12</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>V <span class="ot">&lt;-</span> <span class="dv">50</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>r <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fu">log</span>(<span class="dv">2</span>) <span class="sc">*</span> dt <span class="sc">/</span> half_life)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>target <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fl">0.02</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>doses <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="dv">200</span>, <span class="dv">300</span>, <span class="dv">400</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>H <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>c0 <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>pk_next <span class="ot">&lt;-</span> <span class="cf">function</span>(c, dose) r <span class="sc">*</span> c <span class="sc">+</span> dose <span class="sc">/</span> V</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>stage_cost <span class="ot">&lt;-</span> <span class="cf">function</span>(c_next, dose) {</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  u <span class="ot">&lt;-</span> dose <span class="sc">/</span> V</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  (c_next <span class="sc">-</span> target)<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> lambda <span class="sc">*</span> u<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="at">r =</span> r, <span class="at">V =</span> V, <span class="at">target =</span> target, <span class="at">lambda =</span> lambda, <span class="at">H =</span> H)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      r      V target lambda      H </span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   0.50  50.00   5.00   0.02   5.00</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The PK model does not choose <span class="math inline">\(D\)</span>. It only answers: given this <span class="math inline">\(C\)</span> and this <span class="math inline">\(D\)</span>, where do we land. The dosing policy comes from optimizing a <strong>cost function</strong> over multiple steps.</p>
+</section>
+<section id="the-cost-function-and-objective" class="level2">
+<h2 class="anchored" data-anchor-id="the-cost-function-and-objective">The cost function and objective</h2>
+<p>We want the concentration trajectory to stay close to a target <span class="math inline">\(C_{\mathrm{target}}=5\,\mathrm{mg/L}\)</span> over the five epochs. The dose chosen at epoch <span class="math inline">\(t\)</span> lands in the state <span class="math inline">\(C_{t+1}\)</span>, so the <strong>stage cost</strong> <span class="math inline">\(L(C_{t+1},D_t)\)</span> incurred there penalizes:</p>
+<ol type="1">
+<li><strong>Deviation from target</strong>: <span class="math inline">\((C_{t+1} - C_{\mathrm{target}})^2\)</span>, squared to penalize large deviations more heavily.</li>
+<li><strong>Dose magnitude</strong>: <span class="math inline">\(\lambda u_t^2\)</span> where <span class="math inline">\(u_t=D_t/V\)</span>, to discourage unnecessarily large boluses (<span class="math inline">\(\lambda=0.02\)</span> is a small weight).</li>
+</ol>
+<p>The stage cost is therefore</p>
+<p><span class="math display">\[
+L(C',D) = (C' - 5)^2 + 0.02\,\left(\frac{D}{V}\right)^2,
+\]</span></p>
+<p>where <span class="math inline">\(C'\)</span> is the post-dose concentration after giving <span class="math inline">\(D\)</span>. The <strong>total cost</strong> of a dose sequence <span class="math inline">\((D_0,D_1,\ldots,D_{H-1})\)</span> is</p>
+<p><span class="math display">\[
+\text{Total cost} = \sum_{t=0}^{H-1} L(C_{t+1}, D_t),
+\]</span></p>
+<p>where <span class="math inline">\(C_{t+1}=r C_t + D_t/V\)</span> under the PK transition. Our goal is to find the dose sequence that minimizes this total cost.</p>
+</section>
+<section id="the-pk-dp-feedback-loop" class="level2">
+<h2 class="anchored" data-anchor-id="the-pk-dp-feedback-loop">The PK-DP feedback loop</h2>
+<p>The interplay between the PK model and the DP optimization can be visualized as a feedback loop at each epoch:</p>
+<div class="cell" data-fig-width="8" data-fig-height="3.4" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="pk-dp-loop">
+<div>
+
+<pre class="mermaid mermaid-js" data-label="pk-dp-loop">%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "clusterBkg": "#f7f9fb", "clusterBorder": "#5d6d7e", "titleColor": "#1a252f"}, "flowchart": {"padding": 12, "nodeSpacing": 22, "rankSpacing": 36, "curve": "linear"}}}%%
+flowchart LR
+  subgraph pk [PK transition]
+    Cnow["$$C_t$$"]
+    Cnext["$$C' = r\cdot C + D/V$$"]
+    Cnow --&gt; Cnext
+  end
+  subgraph dp [DP choice]
+    Doses["D in the discrete set"]
+    Cost["min L plus  $$\:V_{t+1}$$"]
+    Doses --&gt; Cost
+  end
+  Cost --&gt; Cnext
+  classDef hid fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef pkc fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  class Cnow,Cnext pkc
+  class Doses,Cost hid
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p><strong>How to read this diagram:</strong></p>
+<p>At each decision epoch <span class="math inline">\(t\)</span>, the process unfolds as follows:</p>
+<ol type="1">
+<li><p><strong>Current state (left green box):</strong> We observe the current concentration <span class="math inline">\(C_t\)</span> at epoch <span class="math inline">\(t\)</span>.</p></li>
+<li><p><strong>PK transition (right green box):</strong> The pharmacokinetic model gives us a <strong>transition function</strong> <span class="math inline">\(C' = r\cdot C_t + D/V\)</span>. This is pure science — it describes how concentration evolves under elimination and dosing. The PK model does <em>not</em> tell us which dose to choose; it only predicts the outcome of any given dose.</p></li>
+<li><p><strong>DP decision (left blue box):</strong> Dynamic programming considers all possible doses <span class="math inline">\(D\in\{0,100,200,300,400\}\)</span> from the discrete action set. For each candidate dose, we know where it would take us (via the PK transition).</p></li>
+<li><p><strong>Cost evaluation (right blue box):</strong> For each candidate dose, DP computes the <strong>total future cost</strong>:</p>
+<ul>
+<li><strong>Immediate cost</strong> <span class="math inline">\(L(C',D)\)</span>: how much does landing at <span class="math inline">\(C'\)</span> cost us at this step?</li>
+<li><strong>Future cost-to-go</strong> <span class="math inline">\(V_{t+1}(C')\)</span>: what is the minimum cost achievable from state <span class="math inline">\(C'\)</span> onward? (This comes from having already solved later epochs backward, or from the forward table we’re building.)</li>
+</ul></li>
+<li><p><strong>Optimal choice:</strong> DP selects the dose <span class="math inline">\(D\)</span> that minimizes <span class="math inline">\(L(C',D) + V_{t+1}(C')\)</span>. This is the <strong>lookahead</strong> — it picks the dose whose total cost (immediate plus future) is smallest.</p></li>
+<li><p><strong>State update (arrow from DP back to PK):</strong> The chosen dose is applied, the PK transition computes the new concentration <span class="math inline">\(C'\)</span>, and this becomes <span class="math inline">\(C_{t+1}\)</span> for the next epoch. The loop repeats.</p></li>
+</ol>
+<p><strong>The key insight:</strong> The PK box is deterministic chemistry and physiology. The DP box is optimization — it uses the PK predictions to compare all possible futures and picks the best one. A greedy policy would ignore the <span class="math inline">\(V_{t+1}\)</span> term and only minimize <span class="math inline">\(L\)</span> now.</p>
+</section>
+</section>
+<section id="why-greedy-is-not-enough" class="level1">
+<h1>Why greedy is not enough</h1>
+<section id="the-greedy-policy" class="level2">
+<h2 class="anchored" data-anchor-id="the-greedy-policy">The greedy policy</h2>
+<p>A <strong>greedy</strong> (myopic) policy chooses at each step the dose that minimizes <span class="math inline">\(L\)</span> <em>for that step alone</em>, ignoring future consequences. Starting from <span class="math inline">\(C_0=0\)</span>, let’s evaluate the one-step cost for each possible first dose:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>first_step <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">dose =</span> doses) <span class="sc">%&gt;%</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">u =</span> dose <span class="sc">/</span> V,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">c_next =</span> <span class="fu">pk_next</span>(c0, dose),</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">sq_err =</span> (c_next <span class="sc">-</span> target)<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">dose_pen =</span> lambda <span class="sc">*</span> u<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">L =</span> sq_err <span class="sc">+</span> dose_pen</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>first_step</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 6</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    dose     u c_next sq_err dose_pen     L</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     0     0      0     25     0    25   </span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2   100     2      2      9     0.08  9.08</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3   200     4      4      1     0.32  1.32</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4   300     6      6      1     0.72  1.72</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5   400     8      8      9     1.28 10.3</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="why-greedy-fails" class="level2">
+<h2 class="anchored" data-anchor-id="why-greedy-fails">Why greedy fails</h2>
+<p>The squared error component <strong>ties</strong> <span class="math inline">\(D=200\,\mathrm{mg}\)</span> (giving <span class="math inline">\(C'=4\)</span>) and <span class="math inline">\(D=300\,\mathrm{mg}\)</span> (giving <span class="math inline">\(C'=6\)</span>): both land <span class="math inline">\(1\,\mathrm{mg/L}\)</span> away from the target. The dose penalty <span class="math inline">\(\lambda u^2\)</span> breaks the tie in favor of the smaller dose: <span class="math inline">\(L=1.32\)</span> for <span class="math inline">\(D=200\,\mathrm{mg}\)</span> versus <span class="math inline">\(L=1.72\)</span> for <span class="math inline">\(D=300\,\mathrm{mg}\)</span>.</p>
+<p>A greedy policy therefore opens with <span class="math inline">\(200\,\mathrm{mg}\)</span>.</p>
+<p>From <span class="math inline">\(C=4\)</span>, half-life elimination gives <span class="math inline">\(C=2\)</span> before the next dose. Adding <span class="math inline">\(100\,\mathrm{mg}\)</span> returns <span class="math inline">\(C=4\)</span>. Repeating <span class="math inline">\(200\,\mathrm{mg}\)</span> would give <span class="math inline">\(C=6\)</span>, which has higher cost than <span class="math inline">\(C=4\)</span>. So greedy locks onto</p>
+<p><span class="math display">\[
+D=(200,100,100,100,100)\,\mathrm{mg},
+\qquad
+C=(4,4,4,4,4).
+\]</span></p>
+</section>
+<section id="the-discrete-dose-trap" class="level2">
+<h2 class="anchored" data-anchor-id="the-discrete-dose-trap">The discrete-dose trap</h2>
+<p>For linear kinetics with constant maintenance dose <span class="math inline">\(u=D/V\)</span>, the steady-state concentration is</p>
+<p><span class="math display">\[
+C_{\mathrm{ss}} = \frac{u}{1-r}.
+\]</span></p>
+<p>With <span class="math inline">\(r=0.5\)</span> and <span class="math inline">\(u=2\)</span> (from <span class="math inline">\(D=100\,\mathrm{mg}\)</span>), we get <span class="math inline">\(C_{\mathrm{ss}}=4\)</span>, not the target <span class="math inline">\(5\)</span>. To hit <span class="math inline">\(C_{\mathrm{ss}}=5\)</span> would require <span class="math inline">\(u=2.5\)</span>, hence <span class="math inline">\(D=125\,\mathrm{mg}\)</span>, which is <strong>not in our discrete set</strong> <span class="math inline">\(\{0,100,200,300,400\}\)</span>.</p>
+<p>Greedy picks the best available steady state on the grid, which is <span class="math inline">\(C=4\)</span>. But dynamic programming can do better by exploiting <strong>transient behavior</strong>.</p>
+<p>The five arrows out of <span class="math inline">\(C=0\)</span>:</p>
+<div class="cell" data-fig-width="8.5" data-fig-height="4.2" data-out-width="100%" data-layout-align="default">
+<div class="cell-output-display">
+<div id="dose-fan">
+<div>
+
+<pre class="mermaid mermaid-js" data-label="dose-fan">%%{init: {"theme": "base", "themeVariables": {"darkMode": false, "background": "#ffffff", "primaryColor": "#d6eaf8", "primaryTextColor": "#1a252f", "primaryBorderColor": "#1f6f8b", "lineColor": "#2c3e50", "mainBkg": "#d6eaf8", "clusterBkg": "#f7f9fb", "clusterBorder": "#5d6d7e", "titleColor": "#1a252f"}, "flowchart": {"padding": 10, "nodeSpacing": 16, "rankSpacing": 48, "curve": "linear"}}}%%
+flowchart LR
+  S["(t, C = 0)"]
+  S --&gt;|"0 mg"| A["C' = 0"]
+  S --&gt;|"100 mg"| B["C' = 2"]
+  S --&gt;|"200 mg"| G["C' = 4 greedy"]
+  S --&gt;|"300 mg"| D["C' = 6 DP"]
+  S --&gt;|"400 mg"| E["C' = 8"]
+  classDef hid fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px
+  classDef pkc fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px
+  classDef greedy fill:#fdebd0,stroke:#b9770e,color:#1a252f,stroke-width:1.8px
+  classDef dp fill:#1f6f8b,stroke:#15485a,color:#ffffff,stroke-width:1.8px
+  class S hid
+  class A,B,E pkc
+  class G greedy
+  class D dp
+</pre>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="the-loading-overshoot-insight" class="level2">
+<h2 class="anchored" data-anchor-id="the-loading-overshoot-insight">The loading overshoot insight</h2>
+<p>DP asks a different question: what if we pay the higher cost <span class="math inline">\(L=1.72\)</span> now to reach <span class="math inline">\(C=6\)</span>, accepting the overshoot? After one epoch of elimination, <span class="math inline">\(C\)</span> drops to <span class="math inline">\(3\)</span>, and adding <span class="math inline">\(100\,\mathrm{mg}\)</span> gives</p>
+<p><span class="math display">\[
+C_{t=2} = 0.5\cdot 6 + 2 = 5,
+\]</span></p>
+<p>hitting the target exactly at <span class="math inline">\(t=2\)</span>. From there, the trajectory decays more slowly through <span class="math inline">\((5, 4.5, 4.25, 4.125)\)</span> — staying closer to target on average than the greedy path stuck at <span class="math inline">\(4\)</span>.</p>
+<p>This is the <strong>loading overshoot</strong> strategy. Greedy never considers it because <span class="math inline">\(1.32&lt;1.72\)</span> at the first step; it cannot see that the short-term sacrifice buys a better long-term trajectory.</p>
+</section>
+</section>
+<section id="bellmans-principle-and-the-dp-recurrence" class="level1">
+<h1>Bellman’s principle and the DP recurrence</h1>
+<section id="state-action-and-transition" class="level2">
+<h2 class="anchored" data-anchor-id="state-action-and-transition">State, action, and transition</h2>
+<p>A <strong>state</strong> is <span class="math inline">\((t,C)\)</span> — the current epoch and concentration. An <strong>action</strong> is a dose <span class="math inline">\(D\in\mathcal{D}\)</span>. The <strong>transition</strong> is <span class="math inline">\(C'=rC+D/V\)</span>.</p>
+</section>
+<section id="value-function-and-cost-to-go" class="level2">
+<h2 class="anchored" data-anchor-id="value-function-and-cost-to-go">Value function and cost-to-go</h2>
+<p>Let <span class="math inline">\(V_t(C)\)</span> denote the <strong>minimum achievable cost</strong> from epoch <span class="math inline">\(t\)</span> onward, starting from concentration <span class="math inline">\(C\)</span> at that epoch. This is called the <strong>cost-to-go</strong> or <strong>value function</strong>.</p>
+<p>At the terminal epoch <span class="math inline">\(t=H\)</span>, we incur no further cost:</p>
+<p><span class="math display">\[
+V_H(C) = 0 \quad \text{for all } C.
+\]</span></p>
+<p>For earlier epochs <span class="math inline">\(t&lt;H\)</span>, Bellman’s principle of optimality states:</p>
+<p><span class="math display">\[
+V_t(C) = \min_{D\in\mathcal{D}}
+\Bigl[
+  \underbrace{L(C',D)}_{\text{immediate cost}}
+  +
+  \underbrace{V_{t+1}(C')}_{\text{future cost-to-go}}
+\Bigr],
+\]</span></p>
+<p>where <span class="math inline">\(C'=rC+D/V\)</span> is the post-dose concentration. This says: the optimal cost-to-go equals the immediate stage cost plus the optimal future cost from the resulting state, minimized over all possible dose choices.</p>
+<p>We solve this <strong>backward</strong> from <span class="math inline">\(t=H\)</span> down to <span class="math inline">\(t=0\)</span>, building up the optimal policy at each state.</p>
+</section>
+<section id="analogy-to-other-dp-problems" class="level2">
+<h2 class="anchored" data-anchor-id="analogy-to-other-dp-problems">Analogy to other DP problems</h2>
+<p>This is the same tabular DP pattern as a 0-1 knapsack or longest common subsequence problem, only the meaning of the state changes (here a minimization over all five doses at once, not the knapsack’s binary take-or-skip):</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Knapsack</th>
+<th>This PK problem</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>What is a state?</td>
+<td>(item <span class="math inline">\(i\)</span>, capacity <span class="math inline">\(w\)</span>)</td>
+<td>(epoch <span class="math inline">\(t\)</span>, concentration <span class="math inline">\(C\)</span>)</td>
+</tr>
+<tr class="even">
+<td>What is a transition?</td>
+<td>take / skip the item</td>
+<td>PK map <span class="math inline">\(C\mapsto C'\)</span> under <span class="math inline">\(D\)</span></td>
+</tr>
+<tr class="odd">
+<td>What is terminal?</td>
+<td><span class="math inline">\(i=0\)</span> or <span class="math inline">\(w=0\)</span></td>
+<td><span class="math inline">\(t=H\)</span>, no salvage cost</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="shortest-path-interpretation" class="level2">
+<h2 class="anchored" data-anchor-id="shortest-path-interpretation">Shortest path interpretation</h2>
+<p>The same recurrence is a <strong>shortest path</strong> problem on a directed acyclic graph (DAG). Nodes are reachable states <span class="math inline">\((t,C)\)</span>. Each arrow from <span class="math inline">\((t,C)\)</span> to <span class="math inline">\((t+1,C')\)</span> represents giving dose <span class="math inline">\(D\)</span>, with edge weight <span class="math inline">\(L(C',D)\)</span>. We seek the cheapest path from the initial state <span class="math inline">\((0,0)\)</span> to any terminal state <span class="math inline">\((H,C)\)</span> (Bertsekas, 2017).</p>
+</section>
+<section id="forward-versus-backward-computation" class="level2">
+<h2 class="anchored" data-anchor-id="forward-versus-backward-computation">Forward versus backward computation</h2>
+<p>The theoretical formulation above computes <span class="math inline">\(V_t\)</span> backward from <span class="math inline">\(t=H\)</span> to <span class="math inline">\(t=0\)</span>. For a DAG, we can equivalently compute <strong>cost-to-reach</strong> forward from <span class="math inline">\(t=0\)</span>, storing at each node the minimum cumulative cost to reach that state and the predecessor state. After reaching <span class="math inline">\(t=H\)</span>, we backtrack through predecessors to reconstruct the optimal path.</p>
+<p>The code below uses forward accumulation — analogous to Viterbi decoding, with <span class="math inline">\(L\)</span> in place of <span class="math inline">\(-\log p\)</span>. This is sometimes easier to implement and matches the natural left-to-right flow of the dosing timeline.</p>
+</section>
+</section>
+<section id="implementation-in-r" class="level1">
+<h1>Implementation in R</h1>
+<p>Reachable concentrations under this grid stay a <strong>sparse</strong> set: five nodes after the first dose, then <span class="math inline">\(13\)</span>, <span class="math inline">\(29\)</span>, <span class="math inline">\(61\)</span>, <span class="math inline">\(125\)</span>. A dense mesh in <span class="math inline">\(C\)</span> is unnecessary. Encode <span class="math inline">\(C\)</span> by rounding when grouping so that floating keys do not split a state.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>reconstruct_path <span class="ot">&lt;-</span> <span class="cf">function</span>(nodes, H) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  cur <span class="ot">&lt;-</span> nodes <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(t <span class="sc">==</span> H) <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">slice_min</span>(cost, <span class="at">n =</span> <span class="dv">1</span>, <span class="at">with_ties =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  acc <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, H <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  acc[[H <span class="sc">+</span> <span class="dv">1</span>]] <span class="ot">&lt;-</span> cur</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (tt <span class="cf">in</span> H<span class="sc">:</span><span class="dv">1</span>) {</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    prev <span class="ot">&lt;-</span> nodes <span class="sc">%&gt;%</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        t <span class="sc">==</span> tt <span class="sc">-</span> <span class="dv">1</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">round</span>(.data<span class="sc">$</span>c, <span class="dv">8</span>) <span class="sc">==</span> <span class="fu">round</span>(cur<span class="sc">$</span>prev_c[[<span class="dv">1</span>]], <span class="dv">8</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(prev) <span class="sc">!=</span> <span class="dv">1</span>) {</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"predecessor lookup at t="</span>, tt <span class="sc">-</span> <span class="dv">1</span>, <span class="st">" matched "</span>,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">nrow</span>(prev), <span class="st">" node(s); states are no longer unique"</span>)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    acc[[tt]] <span class="ot">&lt;-</span> prev</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    cur <span class="ot">&lt;-</span> prev</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(acc)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>solve_dose_dp <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">c_min =</span> <span class="sc">-</span><span class="cn">Inf</span>, <span class="at">c_max =</span> <span class="cn">Inf</span>) {</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  nodes <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">t =</span> <span class="dv">0</span>,</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">c =</span> c0,</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">cost =</span> <span class="dv">0</span>,</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_c =</span> <span class="cn">NA_real_</span>,</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">dose =</span> <span class="cn">NA_real_</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (tt <span class="cf">in</span> <span class="dv">0</span><span class="sc">:</span>(H <span class="sc">-</span> <span class="dv">1</span>)) {</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    layer <span class="ot">&lt;-</span> <span class="fu">filter</span>(nodes, t <span class="sc">==</span> tt)</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    expanded <span class="ot">&lt;-</span> tidyr<span class="sc">::</span><span class="fu">crossing</span>(layer, <span class="at">dose_new =</span> doses) <span class="sc">%&gt;%</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>        <span class="at">c_next =</span> <span class="fu">pk_next</span>(c, dose_new),</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>        <span class="at">cost_next =</span> cost <span class="sc">+</span> <span class="fu">stage_cost</span>(c_next, dose_new)</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>      ) <span class="sc">%&gt;%</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(c_next <span class="sc">&gt;=</span> c_min, c_next <span class="sc">&lt;=</span> c_max) <span class="sc">%&gt;%</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">c_key =</span> <span class="fu">round</span>(c_next, <span class="dv">8</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>      <span class="fu">group_by</span>(c_key) <span class="sc">%&gt;%</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>      <span class="fu">slice_min</span>(cost_next, <span class="at">n =</span> <span class="dv">1</span>, <span class="at">with_ties =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>      <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>      <span class="fu">transmute</span>(</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>        <span class="at">t =</span> tt <span class="sc">+</span> <span class="dv">1</span>,</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>        <span class="at">prev_c =</span> c,</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>        <span class="at">c =</span> c_next,</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>        <span class="at">cost =</span> cost_next,</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>        <span class="at">dose =</span> dose_new</span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    nodes <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(nodes, expanded)</span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">nodes =</span> nodes, <span class="at">path =</span> <span class="fu">reconstruct_path</span>(nodes, H))</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>greedy_policy <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>  c <span class="ot">&lt;-</span> c0</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>  total <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, H)</span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (tt <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>H) {</span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>    step <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">dose =</span> doses, <span class="at">c_next =</span> <span class="fu">pk_next</span>(c, doses)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">L =</span> <span class="fu">stage_cost</span>(c_next, dose)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>      <span class="fu">slice_min</span>(L, <span class="at">n =</span> <span class="dv">1</span>, <span class="at">with_ties =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a>    total <span class="ot">&lt;-</span> total <span class="sc">+</span> step<span class="sc">$</span>L</span>
+<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>    rows[[tt]] <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>      <span class="at">t =</span> tt, <span class="at">c =</span> step<span class="sc">$</span>c_next, <span class="at">dose =</span> step<span class="sc">$</span>dose, <span class="at">cost =</span> total</span>
+<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a>    c <span class="ot">&lt;-</span> step<span class="sc">$</span>c_next</span>
+<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(</span>
+<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(<span class="at">t =</span> <span class="dv">0</span>, <span class="at">c =</span> c0, <span class="at">dose =</span> <span class="cn">NA_real_</span>, <span class="at">cost =</span> <span class="dv">0</span>),</span>
+<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>(rows)</span>
+<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dp <span class="ot">&lt;-</span> <span class="fu">solve_dose_dp</span>()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>greedy <span class="ot">&lt;-</span> <span class="fu">greedy_policy</span>()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>n_states <span class="ot">&lt;-</span> dp<span class="sc">$</span>nodes <span class="sc">%&gt;%</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(t, <span class="at">name =</span> <span class="st">"n_reachable"</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>n_states</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 2</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       t n_reachable</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;dbl&gt;       &lt;int&gt;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     0           1</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     1           5</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3     2          13</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     3          29</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5     4          61</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6     5         125</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>dp<span class="sc">$</span>path <span class="sc">%&gt;%</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(t, dose, <span class="at">C =</span> c, cost)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       t  dose     C  cost</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     0    NA  0     0   </span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     1   300  6     1.72</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3     2   100  5     1.8 </span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     3   100  4.5   2.13</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5     4   100  4.25  2.77</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6     5   100  4.12  3.62</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>greedy <span class="sc">%&gt;%</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(t, dose, <span class="at">C =</span> c, cost)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       t  dose     C  cost</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     0    NA     0  0   </span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     1   200     4  1.32</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3     2   100     4  2.4 </span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     3   100     4  3.48</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5     4   100     4  4.56</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6     5   100     4  5.64</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>DP opens with <span class="math inline">\(300\,\mathrm{mg}\)</span>, visits <span class="math inline">\(C=6\)</span>, then holds <span class="math inline">\(100\,\mathrm{mg}\)</span>. Greedy opens with <span class="math inline">\(200\,\mathrm{mg}\)</span> and never leaves <span class="math inline">\(C=4\)</span>. After <span class="math inline">\(t=1\)</span> both policies use the same maintenance dose; the <strong>only</strong> disagreement is the loading bolus. That is the lookahead.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">policy =</span> <span class="fu">c</span>(<span class="st">"DP (Bellman)"</span>, <span class="st">"Greedy (one-step L)"</span>),</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">doses =</span> <span class="fu">c</span>(</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(dp<span class="sc">$</span>path<span class="sc">$</span>dose[<span class="sc">-</span><span class="dv">1</span>], <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(greedy<span class="sc">$</span>dose[<span class="sc">-</span><span class="dv">1</span>], <span class="at">collapse =</span> <span class="st">", "</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">C_path =</span> <span class="fu">c</span>(</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(dp<span class="sc">$</span>path<span class="sc">$</span>c[<span class="sc">-</span><span class="dv">1</span>], <span class="at">collapse =</span> <span class="st">", "</span>),</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(greedy<span class="sc">$</span>c[<span class="sc">-</span><span class="dv">1</span>], <span class="at">collapse =</span> <span class="st">", "</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">total_cost =</span> <span class="fu">c</span>(<span class="fu">last</span>(dp<span class="sc">$</span>path<span class="sc">$</span>cost), <span class="fu">last</span>(greedy<span class="sc">$</span>cost))</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 4</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   policy              doses                   C_path                 total_cost</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;               &lt;chr&gt;                   &lt;chr&gt;                       &lt;dbl&gt;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 DP (Bellman)        300, 100, 100, 100, 100 6, 5, 4.5, 4.25, 4.125       3.62</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 Greedy (one-step L) 200, 100, 100, 100, 100 4, 4, 4, 4, 4                5.64</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Total cost <span class="math inline">\(3.618\)</span> versus <span class="math inline">\(5.64\)</span>. The extra <span class="math inline">\(0.40\)</span> paid at the first step (<span class="math inline">\(1.72\)</span> versus the greedy <span class="math inline">\(1.32\)</span>) buys a visit to <span class="math inline">\(C=5\)</span> at <span class="math inline">\(t=2\)</span> and a slower drift toward the discrete steady state <span class="math inline">\(4\)</span>.</p>
+<p><strong>Why does the DP path decay after <span class="math inline">\(t=2\)</span>?</strong> Not because the objective is blind at the endpoint: the final arrival is priced like every other one — the last stage cost is <span class="math inline">\((4.125-5)^2 + 0.08 =
+0.846\)</span>, close to a quarter of the total. The decay is the discrete-dose trap at work. Holding <span class="math inline">\(C=5\)</span> would take <span class="math inline">\(125\,\mathrm{mg}\)</span> at every epoch; off that dose, from <span class="math inline">\(C=5\)</span> the only reachable next states are <span class="math inline">\(\{2.5, 4.5, 6.5, 8.5, 10.5\}\)</span>, and <span class="math inline">\(4.5\)</span> (one <span class="math inline">\(100\,\mathrm{mg}\)</span> step, cost <span class="math inline">\(0.33\)</span>) is closest to target. The same comparison recurs at <span class="math inline">\(4.5\)</span> and <span class="math inline">\(4.25\)</span> — cheaper to decay a little than to pay for a <span class="math inline">\(200\,\mathrm{mg}\)</span> swing back up. A terminal penalty <span class="math inline">\((C_H-5)^2\)</span> prices the endpoint, not the flight path: even when we add it at weight <span class="math inline">\(1\)</span>, brute force over all 3125 sequences still runs the middle of the path through <span class="math inline">\((6, 5, 4.5)\)</span> before rerouting the last dose to finish at <span class="math inline">\(5.125\)</span>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>col_dp <span class="ot">&lt;-</span> <span class="st">"#1F6F8B"</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>col_greedy <span class="ot">&lt;-</span> <span class="st">"#B9770E"</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>col_target <span class="ot">&lt;-</span> <span class="st">"#1E8449"</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>col_ink <span class="ot">&lt;-</span> <span class="st">"#1A252F"</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>traj <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  dp<span class="sc">$</span>path <span class="sc">%&gt;%</span> <span class="fu">transmute</span>(t, c, <span class="at">policy =</span> <span class="st">"DP"</span>),</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  greedy <span class="sc">%&gt;%</span> <span class="fu">transmute</span>(t, c, <span class="at">policy =</span> <span class="st">"Greedy"</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(traj, <span class="fu">aes</span>(t, c, <span class="at">colour =</span> policy, <span class="at">linetype =</span> policy)) <span class="sc">+</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept =</span> target, <span class="at">colour =</span> col_target, <span class="at">linewidth =</span> <span class="fl">0.5</span>,</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"22"</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="fl">0.95</span>) <span class="sc">+</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="fl">2.6</span>) <span class="sc">+</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="at">DP =</span> col_dp, <span class="at">Greedy =</span> col_greedy)) <span class="sc">+</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_linetype_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="at">DP =</span> <span class="st">"solid"</span>, <span class="at">Greedy =</span> <span class="st">"22"</span>)) <span class="sc">+</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="dv">0</span><span class="sc">:</span>H) <span class="sc">+</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"epoch t"</span>, <span class="at">y =</span> <span class="st">"C (mg/L)"</span>, <span class="at">colour =</span> <span class="cn">NULL</span>, <span class="at">linetype =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"top"</span>,</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title =</span> <span class="fu">element_text</span>(<span class="at">colour =</span> col_ink),</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">colour =</span> col_ink)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div id="fig-trajectories" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-trajectories-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="index_files/figure-html/fig-trajectories-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;1: Post-dose concentration under DP and greedy. Dashed line: target 5 mg/L."><img src="index_files/figure-html/fig-trajectories-1.png" class="img-fluid figure-img" width="787"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-trajectories-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Post-dose concentration under DP and greedy. Dashed line: target 5 mg/L.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="therapeutic-window-as-a-hard-constraint" class="level1">
+<h1>Therapeutic window as a hard constraint</h1>
+<p>Drop any transition with <span class="math inline">\(C'\)</span> outside <span class="math inline">\([C_{\min},C_{\max}]\)</span>. The solver does not change; the action set becomes state-dependent.</p>
+<p>A <em>realistic</em> window for this toy, say <span class="math inline">\(2\le C'\le 8\)</span>, still admits the loading peak of <span class="math inline">\(6\)</span>. The Bellman path is unchanged:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>dp_win_wide <span class="ot">&lt;-</span> <span class="fu">solve_dose_dp</span>(<span class="at">c_min =</span> <span class="dv">2</span>, <span class="at">c_max =</span> <span class="dv">8</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>dp_win_wide<span class="sc">$</span>path <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(t, dose, <span class="at">C =</span> c, cost)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       t  dose     C  cost</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     0    NA  0     0   </span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     1   300  6     1.72</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3     2   100  5     1.8 </span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     3   100  4.5   2.13</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5     4   100  4.25  2.77</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6     5   100  4.12  3.62</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>A <strong>tight peak cap</strong> <span class="math inline">\(C_{\max}=5.5\)</span> forbids <span class="math inline">\(C'=6\)</span> and <span class="math inline">\(C'=8\)</span> from <span class="math inline">\(C=0\)</span>. The loading overshoot is illegal. DP collapses onto the greedy opening:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>dp_win_tight <span class="ot">&lt;-</span> <span class="fu">solve_dose_dp</span>(<span class="at">c_min =</span> <span class="dv">0</span>, <span class="at">c_max =</span> <span class="fl">5.5</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>dp_win_tight<span class="sc">$</span>path <span class="sc">%&gt;%</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(t, dose, <span class="at">C =</span> c, cost)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       t  dose     C  cost</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     0    NA     0  0   </span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     1   200     4  1.32</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3     2   100     4  2.4 </span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     3   100     4  3.48</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5     4   100     4  4.56</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6     5   100     4  5.64</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>That is the clinical reading of the constraint: if the protocol forbids the overshoot that lookahead wanted, the extra future value of <span class="math inline">\(C=6\)</span> is simply not in the feasible set. The DP path collapses onto the greedy path not because the algorithm changed, but because the loading peak is now illegal.</p>
+<p>Hard <span class="math inline">\(C_{\max}/C_{\min}\)</span> bounds are one way a therapeutic window enters this DP. Soft penalties on excursions are the other, milder, encoding — already present as <span class="math inline">\((C'-5)^2\)</span> in the stage cost. The trade-off is: hard constraints guarantee safety but may force a suboptimal trajectory; soft penalties allow occasional excursions if the overall cost benefit is large enough.</p>
+</section>
+<section id="what-this-is-not" class="level1">
+<h1>What this is not</h1>
+<p>The state here is a scalar <span class="math inline">\(C\)</span>. An oral one-compartment model has <span class="math inline">\((A_g,A_c)\)</span> and the map needs <span class="math inline">\(k_a\)</span> as well as <span class="math inline">\(k_e\)</span>. A two-compartment IV model has <span class="math inline">\((A_c,A_p)\)</span>. The Bellman update does not change; the node key becomes a pair, and the lattice grows fast. That is the natural sequel, not this post.</p>
+<p>Three other missing pieces, on purpose:</p>
+<ul>
+<li><strong>Unknown <span class="math inline">\(\theta\)</span>.</strong> Real MIPD updates <span class="math inline">\(k\)</span> and <span class="math inline">\(V\)</span> from measured concentrations (Sheiner et al., 1979; Jelliffe et al., 1993). That is Bayesian forecasting, then a <em>new</em> open-loop plan — or a receding-horizon step of model predictive control (Rawlings, Mayne, and Diehl, 2017).</li>
+<li><strong>Stochastic DP.</strong> Interindividual variability and residual error turn <span class="math inline">\(C'\)</span> into a distribution. Expectation of <span class="math inline">\(L\)</span> replaces <span class="math inline">\(L\)</span>. The table is then an MDP (Puterman, 1994).</li>
+<li><strong>Continuous <span class="math inline">\(D\)</span> or free times.</strong> A discrete <span class="math inline">\(D\)</span> on a fixed clock is what makes the DAG small. Optimizing dose <em>and</em> clock is a different mixed-integer problem.</li>
+</ul>
+<p>PK model + DP + state estimation is sequential dosing optimization. It is close in spirit to target-concentration intervention (Holford, 1999) and to MIPD. It is not a substitute for either until the error model and the update are there.</p>
+</section>
+<section id="when-not-to-use-this" class="level1">
+<h1>When not to use this</h1>
+<ul>
+<li><strong>ADaM tables and CSR displays.</strong> SDTM/ADaM programming is joins, windows, and estimators — not a Bellman table.</li>
+<li><strong>Protocol dose finding.</strong> Phase I/II designs (3+3, CRM, BOIN, MCP-Mod) answer a <em>population</em> question. This lattice answers an individual sequence under a known model.</li>
+<li><strong>Primary TDM in the clinic.</strong> Use a residual-error model and a posterior for <span class="math inline">\(\theta\)</span>, then a dose that hits AUC, trough, or <span class="math inline">\(C_{\mathrm{ss}}\)</span> (Sheiner et al., 1979; Rowland and Tozer, 2011). Vancomycin AUC/MIC workflows are in that family, not in an open-loop five-step DAG with <span class="math inline">\(\theta\)</span> known.</li>
+<li><strong>Nonlinear PK</strong> unless you discretize the state after the nonlinear map. Superposition is gone; the transition is still a function <span class="math inline">\(f(x,u)\)</span>, so DP still applies, but the sparse grid of this toy will not.</li>
+<li><strong>Production MIPD software.</strong> Audit, device regulation, and covariate models live elsewhere (Darwich et al., 2017; Keizer et al., 2018; ICH, 2026). The recurrence above is the teaching object you can read.</li>
+</ul>
+</section>
+<section id="closing" class="level1">
+<h1>Closing</h1>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>What it optimizes</th>
+<th>Typical failure</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Repeat a labeled <span class="math inline">\(D\)</span></td>
+<td>convenience</td>
+<td>wrong <span class="math inline">\(C_{\mathrm{ss}}\)</span> on a coarse grid</td>
+</tr>
+<tr class="even">
+<td>Myopic / greedy</td>
+<td>one-step <span class="math inline">\(L\)</span></td>
+<td>skips the loading overshoot</td>
+</tr>
+<tr class="odd">
+<td>Steady-state formula</td>
+<td>peak / trough / <span class="math inline">\(C_{\mathrm{av,ss}}\)</span></td>
+<td>ignores the transient path</td>
+</tr>
+<tr class="even">
+<td><strong>DP on the PK DAG</strong></td>
+<td><span class="math inline">\(\sum_t L(C_{t+1},D_t)\)</span></td>
+<td>known <span class="math inline">\(\theta\)</span>; discrete <span class="math inline">\(D\)</span>; no error model</td>
+</tr>
+<tr class="odd">
+<td>Bayesian TDM / MIPD</td>
+<td>posterior predictive target</td>
+<td>needs data, <span class="math inline">\(g(\theta)\)</span>, and an update</td>
+</tr>
+</tbody>
+</table>
+<p>Use this DP when the scientific sentence is: <strong>the PK model supplies the transition, and we want the cheapest feasible dose sequence on a known discrete set.</strong> Use superposition and steady-state formulae to understand a <em>fixed</em> regimen. Use TDM / MIPD when <span class="math inline">\(\theta\)</span> is the patient’s, not the textbook’s.</p>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<section id="dynamic-programming-and-control" class="level2">
+<h2 class="anchored" data-anchor-id="dynamic-programming-and-control">Dynamic programming and control</h2>
+<ul>
+<li>Bellman, R. (1957). <em>Dynamic Programming</em>. Princeton University Press.</li>
+<li>Bertsekas, D. P. (2017). <em>Dynamic Programming and Optimal Control</em>. 4th ed.&nbsp;Athena Scientific.</li>
+<li>Puterman, M. L. (1994). <em>Markov Decision Processes: Discrete Stochastic Dynamic Programming</em>. Wiley. <a href="https://doi.org/10.1002/9780470316887" class="uri">https://doi.org/10.1002/9780470316887</a></li>
+<li>Rawlings, J. B., Mayne, D. Q., and Diehl, M. (2017). <em>Model Predictive Control: Theory, Computation, and Design</em>. 2nd ed. Nob Hill Publishing.</li>
+</ul>
+</section>
+<section id="pharmacokinetics" class="level2">
+<h2 class="anchored" data-anchor-id="pharmacokinetics">Pharmacokinetics</h2>
+<ul>
+<li>Rowland, M., and Tozer, T. N. (2011). <em>Clinical Pharmacokinetics and Pharmacodynamics: Concepts and Applications</em>. 4th ed. Lippincott Williams and Wilkins.</li>
+<li>Gabrielsson, J., and Weiner, D. (2016). <em>Pharmacokinetic and Pharmacodynamic Data Analysis</em>. 5th ed.&nbsp;Swedish Pharmaceutical Press.</li>
+<li>Gibaldi, M., and Perrier, D. (1982). <em>Pharmacokinetics</em>. 2nd ed. Marcel Dekker.</li>
+</ul>
+</section>
+<section id="tdm-bayesian-forecasting-and-mipd" class="level2">
+<h2 class="anchored" data-anchor-id="tdm-bayesian-forecasting-and-mipd">TDM, Bayesian forecasting, and MIPD</h2>
+<ul>
+<li>Sheiner, L. B., Beal, S., Rosenberg, B., and Marathe, V. V. (1979). Forecasting individual pharmacokinetics. <em>Clinical Pharmacology and Therapeutics</em>, 26(3), 294–305. <a href="https://doi.org/10.1002/cpt1979263294" class="uri">https://doi.org/10.1002/cpt1979263294</a></li>
+<li>Jelliffe, R. W., Schumitzky, A., Van Guilder, M., Liu, M., Hu, L., Maire, P., Gomis, P., Barbaut, X., and Tahani, B. (1993). Individualizing drug dosage regimens: roles of population pharmacokinetic and dynamic models, Bayesian fitting, and adaptive control. <em>Therapeutic Drug Monitoring</em>, 15(5), 380–393. <a href="https://doi.org/10.1097/00007691-199310000-00005" class="uri">https://doi.org/10.1097/00007691-199310000-00005</a></li>
+<li>Holford, N. H. G. (1999). Target concentration intervention: beyond Y2K. <em>British Journal of Clinical Pharmacology</em>, 48(1), 9–13. <a href="https://doi.org/10.1046/j.1365-2125.1999.00971.x" class="uri">https://doi.org/10.1046/j.1365-2125.1999.00971.x</a></li>
+<li>Darwich, A. S., Ogungbenro, K., Vinks, A. A., Powell, J. R., Reny, J.-L., Marsousi, N., Daali, Y., Fairman, D., Cook, J., Lesko, L. J., and others (2017). Why has model-informed precision dosing not yet become common clinical reality? Lessons from the past and a roadmap for the future. <em>Clinical Pharmacology and Therapeutics</em>, 101(5), 646–656. <a href="https://doi.org/10.1002/cpt.659" class="uri">https://doi.org/10.1002/cpt.659</a></li>
+<li>Keizer, R. J., ter Heine, R., Frymoyer, A., Lesko, L. J., Mangat, R., and Goswami, S. (2018). Model-informed precision dosing at the bedside: scientific challenges and opportunities. <em>CPT: Pharmacometrics and Systems Pharmacology</em>, 7(12), 785–787. <a href="https://doi.org/10.1002/psp4.12353" class="uri">https://doi.org/10.1002/psp4.12353</a></li>
+<li>ICH (2026). <em>ICH M15: General Principles for Model-Informed Drug Development</em>. International Council for Harmonisation.</li>
+</ul>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Amount <span class="math inline">\(A(t)\)</span> in a single well-mixed compartment; <span class="math inline">\(C=A/V\)</span>; first-order elimination <span class="math inline">\(\mathrm{d}A/\mathrm{d}t=-kA\)</span>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/al-garik\.github\.io\/ks-blog\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+      window.quartoDecorateExternalLinks = function (root) {
+     var links = (root || window.document).querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+          if (!link.classList.contains('no-external-icon')) {
+          }
+        }
+      }
+      };
+      window.quartoDecorateExternalLinks(window.document);
+    // Esc closes the popup (WCAG 1.4.13) and focus leaving both trigger and
+    // popup closes it (WCAG 2.4.11); tippy handles neither for interactive popups.
+    const hideOnEscAndFocusOut = {
+      name: 'hideOnEscAndFocusOut',
+      defaultValue: true,
+      fn(instance) {
+        const dismiss = () => {
+          // A show scheduled by the trigger delay would otherwise reopen it
+          instance.clearDelayTimeouts();
+          instance.hide();
+        };
+        const onKeyDown = (event) => {
+          if (event.key !== 'Escape') {
+            return;
+          }
+          // Keep Esc from also reaching page handlers (e.g. reveal.js overview),
+          // except an open reveal.js slide menu, which Esc should close too.
+          // The menu handles keys only when its keyboard option is on.
+          const menuHandlesEsc = window.Reveal?.getPlugin?.('menu')?.isOpen() &&
+            window.Reveal.getConfig().menu?.keyboard !== false;
+          if (!menuHandlesEsc) {
+            event.stopPropagation();
+          }
+          if (instance.popper.contains(window.document.activeElement)) {
+            // Disabled while refocusing so the focus trigger does not reopen it
+            instance.disable();
+            instance.reference.focus();
+            instance.enable();
+          }
+          dismiss();
+        };
+        const onFocusOut = (event) => {
+          const target = event.relatedTarget;
+          if (target && !instance.reference.contains(target) &&
+              !instance.popper.contains(target)) {
+            dismiss();
+          }
+        };
+        // On the trigger too: a click trigger (code-annotations: select) has no
+        // blur handling. Attached for the instance's lifetime so leaving the
+        // trigger also cancels a show still pending on the trigger delay.
+        instance.reference.addEventListener('focusout', onFocusOut);
+        return {
+          onShow() {
+            window.document.addEventListener('keydown', onKeyDown, true);
+            instance.popper.addEventListener('focusout', onFocusOut);
+          },
+          onHide() {
+            window.document.removeEventListener('keydown', onKeyDown, true);
+            instance.popper.removeEventListener('focusout', onFocusOut);
+          },
+          onDestroy() {
+            instance.reference.removeEventListener('focusout', onFocusOut);
+          },
+        };
+      },
+    };
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+        plugins: [hideOnEscAndFocusOut],
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          // Each band is positioned against its own containing block, which is
+          // not the offsetParent of the lines, so place it from client rects.
+          const placeBand = (band, firstEl, lastEl, codeBlock) => {
+            const container = band.offsetParent;
+            if (container === null) {
+              return;
+            }
+            const containerRect = container.getBoundingClientRect();
+            // Reveal.js scales slides with a transform, so convert client
+            // pixels back to the CSS pixels of the container.
+            const scale = containerRect.height / container.offsetHeight || 1;
+            const firstRect = firstEl.getBoundingClientRect();
+            const lastRect = lastEl.getBoundingClientRect();
+            const top = (firstRect.top - containerRect.top) / scale - container.clientTop + container.scrollTop;
+            const height = (lastRect.bottom - firstRect.top) / scale;
+            band.style.top = top - 2 + "px";
+            band.style.height = height + 4 + "px";
+            if (codeBlock) {
+              // Without the copy button wrapper, the containing block is wider
+              // than the code block, so span the code block explicitly.
+              const blockRect = codeBlock.getBoundingClientRect();
+              band.style.left = (blockRect.left - containerRect.left) / scale - container.clientLeft + container.scrollLeft + "px";
+              band.style.width = blockRect.width / scale + "px";
+            }
+          };
+          if (lineIds.length > 0) {
+            const el = window.document.getElementById(lineIds[0]);
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const parent = el.parentElement.parentElement;
+            // cook up a div (if necessary) and position it
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            placeBand(div, el, lastEl, parent.closest("div.sourceCode") || parent);
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            placeBand(gutterDiv, el, lastEl);
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+  <script type="application/javascript">
+  window.quartoScrollableRegionsLabels = {"code":"Scrollable code","output":"Scrollable output"};
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>&nbsp;</p>
+</div>   
+    <div class="nav-footer-center">
+<p>Powered by <a href="https://quarto.org/">Quarto</a></p>
+</div>
+    <div class="nav-footer-right">
+<p>Made by KeyStat for the R community</p>
+<p>© 2026 KeyStat. All rights reserved.</p>
+</div>
+  </div>
+</footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
+
+
+
+
+</body></html>

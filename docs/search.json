@@ -725,7 +725,7 @@
     "href": "index.html#all-posts",
     "title": "KeyStat Technical Blog",
     "section": "All Posts",
-    "text": "All Posts\nBelow is a condensed list of all posts grouped by year and month.\n\n2026\n\nOctober\n\nState Machines in R for Clinical Studies\n\n\n\nSeptember\n\nViterbi Decoding for Clinical Response Chains\n\n\nTipping-Point Analysis under Multiple Imputation\n\n\n\nAugust\n\nDecorator Pattern in R for Clinical Statistics\n\n\nPowerful Data Validation Engine\n\n\n\nJuly\n\nMultiple Imputation Analysis with mianalyze()\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\nGetting Current R-script name in R automatically\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table"
+    "text": "All Posts\nBelow is a condensed list of all posts grouped by year and month.\n\n2026\n\nNovember\n\nDynamic Programming for PK Dose Sequences\n\n\n\nOctober\n\nState Machines in R for Clinical Studies\n\n\n\nSeptember\n\nViterbi Decoding for Clinical Response Chains\n\n\nTipping-Point Analysis under Multiple Imputation\n\n\n\nAugust\n\nDecorator Pattern in R for Clinical Statistics\n\n\nPowerful Data Validation Engine\n\n\n\nJuly\n\nMultiple Imputation Analysis with mianalyze()\n\n\nHow Long Are You Ready to Wait for Your Clinical Tables?\n\n\nGetting Current R-script name in R automatically\n\n\nNon-standard Applications of ksformat R-Package in Clinical Trials and Other Tasks\n\n\nGetting Started with ksTFL: Creating Your First Clinical Table"
   },
   {
     "objectID": "posts/2026-07-09-getting-current-script-name-in-r/index.html",
@@ -1335,5 +1335,145 @@
     "title": "Multiple Imputation Analysis with mianalyze()",
     "section": "Hypothesis Test",
     "text": "Hypothesis Test\n\n\n\nMinimum\nMaximum\nTheta0\nStatistic\nPValue\n\n\n\n\n5\n5\n0\n5\n1e-06"
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html",
+    "href": "posts/2026-11-09-dp-PK/index.html",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "",
+    "text": "DP path on a PK dose lattice"
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#continuous-time-one-compartment-model",
+    "href": "posts/2026-11-09-dp-PK/index.html#continuous-time-one-compartment-model",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Continuous-time one-compartment model",
+    "text": "Continuous-time one-compartment model\nAfter an IV bolus of dose \\(D\\) into volume of distribution \\(V\\), the concentration evolves as\n\\[\nC(t)=\\frac{D}{V}\\,e^{-kt}, \\qquad\n\\text{where}\\quad\nk=\\frac{\\ln 2}{t_{1/2}}\n\\]\nis the elimination rate constant. For a half-life \\(t_{1/2}=12\\,\\mathrm{h}\\), we have \\(k\\approx 0.0578\\,\\mathrm{h}^{-1}\\)."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#discrete-time-dosing-epochs",
+    "href": "posts/2026-11-09-dp-PK/index.html#discrete-time-dosing-epochs",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Discrete-time dosing epochs",
+    "text": "Discrete-time dosing epochs\nSuppose we make dosing decisions at fixed intervals \\(\\Delta t=12\\,\\mathrm{h}\\) — once per half-life. Between decisions, the drug is eliminated. The interval elimination factor is\n\\[\nr=e^{-k\\Delta t}=e^{-\\ln 2}=\\tfrac12.\n\\]\nThis says: concentration halves over one dosing interval in the absence of new doses."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#the-transition-map",
+    "href": "posts/2026-11-09-dp-PK/index.html#the-transition-map",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "The transition map",
+    "text": "The transition map\nLet \\(C_t\\) denote the concentration at epoch \\(t\\) (immediately after the dose at that epoch). A dose \\(D_t\\) chosen at epoch \\(t\\) arrives at the start of epoch \\(t+1\\); the concentration then is\n\\[\nC_{t+1} = r\\,C_t + \\frac{D_t}{V},\n\\]\nwhere the first term accounts for elimination and the second for the instantaneous bolus. We abbreviate \\(C_{t+1}\\) as \\(C'\\) when the time index is clear."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#parameters-and-action-set",
+    "href": "posts/2026-11-09-dp-PK/index.html#parameters-and-action-set",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Parameters and action set",
+    "text": "Parameters and action set\nWith \\(V=50\\,\\mathrm{L}\\), a \\(100\\,\\mathrm{mg}\\) bolus raises \\(C\\) by \\(2\\,\\mathrm{mg/L}\\). We restrict doses to a discrete set:\n\\[\nD\\in\\mathcal{D}=\\{0,100,200,300,400\\}\\,\\mathrm{mg},\n\\qquad\nu=\\frac{D}{V}\\in\\{0,2,4,6,8\\}\\,\\mathrm{mg/L}.\n\\]\nHere \\(u\\) is the concentration increment from a bolus. The planning horizon is \\(H=5\\) epochs, and we start from \\(C_0=0\\).\n\nhalf_life &lt;- 12\ndt &lt;- 12\nV &lt;- 50\nr &lt;- exp(-log(2) * dt / half_life)\ntarget &lt;- 5\nlambda &lt;- 0.02\ndoses &lt;- c(0, 100, 200, 300, 400)\nH &lt;- 5\nc0 &lt;- 0\n\npk_next &lt;- function(c, dose) r * c + dose / V\n\nstage_cost &lt;- function(c_next, dose) {\n  u &lt;- dose / V\n  (c_next - target)^2 + lambda * u^2\n}\n\nc(r = r, V = V, target = target, lambda = lambda, H = H)\n#&gt;      r      V target lambda      H \n#&gt;   0.50  50.00   5.00   0.02   5.00\n\nThe PK model does not choose \\(D\\). It only answers: given this \\(C\\) and this \\(D\\), where do we land. The dosing policy comes from optimizing a cost function over multiple steps."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#the-cost-function-and-objective",
+    "href": "posts/2026-11-09-dp-PK/index.html#the-cost-function-and-objective",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "The cost function and objective",
+    "text": "The cost function and objective\nWe want the concentration trajectory to stay close to a target \\(C_{\\mathrm{target}}=5\\,\\mathrm{mg/L}\\) over the five epochs. The dose chosen at epoch \\(t\\) lands in the state \\(C_{t+1}\\), so the stage cost \\(L(C_{t+1},D_t)\\) incurred there penalizes:\n\nDeviation from target: \\((C_{t+1} - C_{\\mathrm{target}})^2\\), squared to penalize large deviations more heavily.\nDose magnitude: \\(\\lambda u_t^2\\) where \\(u_t=D_t/V\\), to discourage unnecessarily large boluses (\\(\\lambda=0.02\\) is a small weight).\n\nThe stage cost is therefore\n\\[\nL(C',D) = (C' - 5)^2 + 0.02\\,\\left(\\frac{D}{V}\\right)^2,\n\\]\nwhere \\(C'\\) is the post-dose concentration after giving \\(D\\). The total cost of a dose sequence \\((D_0,D_1,\\ldots,D_{H-1})\\) is\n\\[\n\\text{Total cost} = \\sum_{t=0}^{H-1} L(C_{t+1}, D_t),\n\\]\nwhere \\(C_{t+1}=r C_t + D_t/V\\) under the PK transition. Our goal is to find the dose sequence that minimizes this total cost."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#the-pk-dp-feedback-loop",
+    "href": "posts/2026-11-09-dp-PK/index.html#the-pk-dp-feedback-loop",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "The PK-DP feedback loop",
+    "text": "The PK-DP feedback loop\nThe interplay between the PK model and the DP optimization can be visualized as a feedback loop at each epoch:\n\n\n\n\n\n%%{init: {\"theme\": \"base\", \"themeVariables\": {\"darkMode\": false, \"background\": \"#ffffff\", \"primaryColor\": \"#d6eaf8\", \"primaryTextColor\": \"#1a252f\", \"primaryBorderColor\": \"#1f6f8b\", \"lineColor\": \"#2c3e50\", \"mainBkg\": \"#d6eaf8\", \"clusterBkg\": \"#f7f9fb\", \"clusterBorder\": \"#5d6d7e\", \"titleColor\": \"#1a252f\"}, \"flowchart\": {\"padding\": 12, \"nodeSpacing\": 22, \"rankSpacing\": 36, \"curve\": \"linear\"}}}%%\nflowchart LR\n  subgraph pk [PK transition]\n    Cnow[\"$$C_t$$\"]\n    Cnext[\"$$C' = r\\cdot C + D/V$$\"]\n    Cnow --&gt; Cnext\n  end\n  subgraph dp [DP choice]\n    Doses[\"D in the discrete set\"]\n    Cost[\"min L plus  $$\\:V_{t+1}$$\"]\n    Doses --&gt; Cost\n  end\n  Cost --&gt; Cnext\n  classDef hid fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px\n  classDef pkc fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px\n  class Cnow,Cnext pkc\n  class Doses,Cost hid\n\n\n\n\n\nHow to read this diagram:\nAt each decision epoch \\(t\\), the process unfolds as follows:\n\nCurrent state (left green box): We observe the current concentration \\(C_t\\) at epoch \\(t\\).\nPK transition (right green box): The pharmacokinetic model gives us a transition function \\(C' = r\\cdot C_t + D/V\\). This is pure science — it describes how concentration evolves under elimination and dosing. The PK model does not tell us which dose to choose; it only predicts the outcome of any given dose.\nDP decision (left blue box): Dynamic programming considers all possible doses \\(D\\in\\{0,100,200,300,400\\}\\) from the discrete action set. For each candidate dose, we know where it would take us (via the PK transition).\nCost evaluation (right blue box): For each candidate dose, DP computes the total future cost:\n\nImmediate cost \\(L(C',D)\\): how much does landing at \\(C'\\) cost us at this step?\nFuture cost-to-go \\(V_{t+1}(C')\\): what is the minimum cost achievable from state \\(C'\\) onward? (This comes from having already solved later epochs backward, or from the forward table we’re building.)\n\nOptimal choice: DP selects the dose \\(D\\) that minimizes \\(L(C',D) + V_{t+1}(C')\\). This is the lookahead — it picks the dose whose total cost (immediate plus future) is smallest.\nState update (arrow from DP back to PK): The chosen dose is applied, the PK transition computes the new concentration \\(C'\\), and this becomes \\(C_{t+1}\\) for the next epoch. The loop repeats.\n\nThe key insight: The PK box is deterministic chemistry and physiology. The DP box is optimization — it uses the PK predictions to compare all possible futures and picks the best one. A greedy policy would ignore the \\(V_{t+1}\\) term and only minimize \\(L\\) now."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#the-greedy-policy",
+    "href": "posts/2026-11-09-dp-PK/index.html#the-greedy-policy",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "The greedy policy",
+    "text": "The greedy policy\nA greedy (myopic) policy chooses at each step the dose that minimizes \\(L\\) for that step alone, ignoring future consequences. Starting from \\(C_0=0\\), let’s evaluate the one-step cost for each possible first dose:\n\nfirst_step &lt;- tibble(dose = doses) %&gt;%\n  mutate(\n    u = dose / V,\n    c_next = pk_next(c0, dose),\n    sq_err = (c_next - target)^2,\n    dose_pen = lambda * u^2,\n    L = sq_err + dose_pen\n  )\nfirst_step\n#&gt; # A tibble: 5 × 6\n#&gt;    dose     u c_next sq_err dose_pen     L\n#&gt;   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;\n#&gt; 1     0     0      0     25     0    25   \n#&gt; 2   100     2      2      9     0.08  9.08\n#&gt; 3   200     4      4      1     0.32  1.32\n#&gt; 4   300     6      6      1     0.72  1.72\n#&gt; 5   400     8      8      9     1.28 10.3"
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#why-greedy-fails",
+    "href": "posts/2026-11-09-dp-PK/index.html#why-greedy-fails",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Why greedy fails",
+    "text": "Why greedy fails\nThe squared error component ties \\(D=200\\,\\mathrm{mg}\\) (giving \\(C'=4\\)) and \\(D=300\\,\\mathrm{mg}\\) (giving \\(C'=6\\)): both land \\(1\\,\\mathrm{mg/L}\\) away from the target. The dose penalty \\(\\lambda u^2\\) breaks the tie in favor of the smaller dose: \\(L=1.32\\) for \\(D=200\\,\\mathrm{mg}\\) versus \\(L=1.72\\) for \\(D=300\\,\\mathrm{mg}\\).\nA greedy policy therefore opens with \\(200\\,\\mathrm{mg}\\).\nFrom \\(C=4\\), half-life elimination gives \\(C=2\\) before the next dose. Adding \\(100\\,\\mathrm{mg}\\) returns \\(C=4\\). Repeating \\(200\\,\\mathrm{mg}\\) would give \\(C=6\\), which has higher cost than \\(C=4\\). So greedy locks onto\n\\[\nD=(200,100,100,100,100)\\,\\mathrm{mg},\n\\qquad\nC=(4,4,4,4,4).\n\\]"
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#the-discrete-dose-trap",
+    "href": "posts/2026-11-09-dp-PK/index.html#the-discrete-dose-trap",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "The discrete-dose trap",
+    "text": "The discrete-dose trap\nFor linear kinetics with constant maintenance dose \\(u=D/V\\), the steady-state concentration is\n\\[\nC_{\\mathrm{ss}} = \\frac{u}{1-r}.\n\\]\nWith \\(r=0.5\\) and \\(u=2\\) (from \\(D=100\\,\\mathrm{mg}\\)), we get \\(C_{\\mathrm{ss}}=4\\), not the target \\(5\\). To hit \\(C_{\\mathrm{ss}}=5\\) would require \\(u=2.5\\), hence \\(D=125\\,\\mathrm{mg}\\), which is not in our discrete set \\(\\{0,100,200,300,400\\}\\).\nGreedy picks the best available steady state on the grid, which is \\(C=4\\). But dynamic programming can do better by exploiting transient behavior.\nThe five arrows out of \\(C=0\\):\n\n\n\n\n\n%%{init: {\"theme\": \"base\", \"themeVariables\": {\"darkMode\": false, \"background\": \"#ffffff\", \"primaryColor\": \"#d6eaf8\", \"primaryTextColor\": \"#1a252f\", \"primaryBorderColor\": \"#1f6f8b\", \"lineColor\": \"#2c3e50\", \"mainBkg\": \"#d6eaf8\", \"clusterBkg\": \"#f7f9fb\", \"clusterBorder\": \"#5d6d7e\", \"titleColor\": \"#1a252f\"}, \"flowchart\": {\"padding\": 10, \"nodeSpacing\": 16, \"rankSpacing\": 48, \"curve\": \"linear\"}}}%%\nflowchart LR\n  S[\"(t, C = 0)\"]\n  S --&gt;|\"0 mg\"| A[\"C' = 0\"]\n  S --&gt;|\"100 mg\"| B[\"C' = 2\"]\n  S --&gt;|\"200 mg\"| G[\"C' = 4 greedy\"]\n  S --&gt;|\"300 mg\"| D[\"C' = 6 DP\"]\n  S --&gt;|\"400 mg\"| E[\"C' = 8\"]\n  classDef hid fill:#d6eaf8,stroke:#1f6f8b,color:#1a252f,stroke-width:1.5px\n  classDef pkc fill:#d5f5e3,stroke:#1e8449,color:#1a252f,stroke-width:1.5px\n  classDef greedy fill:#fdebd0,stroke:#b9770e,color:#1a252f,stroke-width:1.8px\n  classDef dp fill:#1f6f8b,stroke:#15485a,color:#ffffff,stroke-width:1.8px\n  class S hid\n  class A,B,E pkc\n  class G greedy\n  class D dp"
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#the-loading-overshoot-insight",
+    "href": "posts/2026-11-09-dp-PK/index.html#the-loading-overshoot-insight",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "The loading overshoot insight",
+    "text": "The loading overshoot insight\nDP asks a different question: what if we pay the higher cost \\(L=1.72\\) now to reach \\(C=6\\), accepting the overshoot? After one epoch of elimination, \\(C\\) drops to \\(3\\), and adding \\(100\\,\\mathrm{mg}\\) gives\n\\[\nC_{t=2} = 0.5\\cdot 6 + 2 = 5,\n\\]\nhitting the target exactly at \\(t=2\\). From there, the trajectory decays more slowly through \\((5, 4.5, 4.25, 4.125)\\) — staying closer to target on average than the greedy path stuck at \\(4\\).\nThis is the loading overshoot strategy. Greedy never considers it because \\(1.32&lt;1.72\\) at the first step; it cannot see that the short-term sacrifice buys a better long-term trajectory."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#state-action-and-transition",
+    "href": "posts/2026-11-09-dp-PK/index.html#state-action-and-transition",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "State, action, and transition",
+    "text": "State, action, and transition\nA state is \\((t,C)\\) — the current epoch and concentration. An action is a dose \\(D\\in\\mathcal{D}\\). The transition is \\(C'=rC+D/V\\)."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#value-function-and-cost-to-go",
+    "href": "posts/2026-11-09-dp-PK/index.html#value-function-and-cost-to-go",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Value function and cost-to-go",
+    "text": "Value function and cost-to-go\nLet \\(V_t(C)\\) denote the minimum achievable cost from epoch \\(t\\) onward, starting from concentration \\(C\\) at that epoch. This is called the cost-to-go or value function.\nAt the terminal epoch \\(t=H\\), we incur no further cost:\n\\[\nV_H(C) = 0 \\quad \\text{for all } C.\n\\]\nFor earlier epochs \\(t&lt;H\\), Bellman’s principle of optimality states:\n\\[\nV_t(C) = \\min_{D\\in\\mathcal{D}}\n\\Bigl[\n  \\underbrace{L(C',D)}_{\\text{immediate cost}}\n  +\n  \\underbrace{V_{t+1}(C')}_{\\text{future cost-to-go}}\n\\Bigr],\n\\]\nwhere \\(C'=rC+D/V\\) is the post-dose concentration. This says: the optimal cost-to-go equals the immediate stage cost plus the optimal future cost from the resulting state, minimized over all possible dose choices.\nWe solve this backward from \\(t=H\\) down to \\(t=0\\), building up the optimal policy at each state."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#analogy-to-other-dp-problems",
+    "href": "posts/2026-11-09-dp-PK/index.html#analogy-to-other-dp-problems",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Analogy to other DP problems",
+    "text": "Analogy to other DP problems\nThis is the same tabular DP pattern as a 0-1 knapsack or longest common subsequence problem, only the meaning of the state changes (here a minimization over all five doses at once, not the knapsack’s binary take-or-skip):\n\n\n\n\n\n\n\n\nQuestion\nKnapsack\nThis PK problem\n\n\n\n\nWhat is a state?\n(item \\(i\\), capacity \\(w\\))\n(epoch \\(t\\), concentration \\(C\\))\n\n\nWhat is a transition?\ntake / skip the item\nPK map \\(C\\mapsto C'\\) under \\(D\\)\n\n\nWhat is terminal?\n\\(i=0\\) or \\(w=0\\)\n\\(t=H\\), no salvage cost"
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#shortest-path-interpretation",
+    "href": "posts/2026-11-09-dp-PK/index.html#shortest-path-interpretation",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Shortest path interpretation",
+    "text": "Shortest path interpretation\nThe same recurrence is a shortest path problem on a directed acyclic graph (DAG). Nodes are reachable states \\((t,C)\\). Each arrow from \\((t,C)\\) to \\((t+1,C')\\) represents giving dose \\(D\\), with edge weight \\(L(C',D)\\). We seek the cheapest path from the initial state \\((0,0)\\) to any terminal state \\((H,C)\\) (Bertsekas, 2017)."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#forward-versus-backward-computation",
+    "href": "posts/2026-11-09-dp-PK/index.html#forward-versus-backward-computation",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Forward versus backward computation",
+    "text": "Forward versus backward computation\nThe theoretical formulation above computes \\(V_t\\) backward from \\(t=H\\) to \\(t=0\\). For a DAG, we can equivalently compute cost-to-reach forward from \\(t=0\\), storing at each node the minimum cumulative cost to reach that state and the predecessor state. After reaching \\(t=H\\), we backtrack through predecessors to reconstruct the optimal path.\nThe code below uses forward accumulation — analogous to Viterbi decoding, with \\(L\\) in place of \\(-\\log p\\). This is sometimes easier to implement and matches the natural left-to-right flow of the dosing timeline."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#dynamic-programming-and-control",
+    "href": "posts/2026-11-09-dp-PK/index.html#dynamic-programming-and-control",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Dynamic programming and control",
+    "text": "Dynamic programming and control\n\nBellman, R. (1957). Dynamic Programming. Princeton University Press.\nBertsekas, D. P. (2017). Dynamic Programming and Optimal Control. 4th ed. Athena Scientific.\nPuterman, M. L. (1994). Markov Decision Processes: Discrete Stochastic Dynamic Programming. Wiley. https://doi.org/10.1002/9780470316887\nRawlings, J. B., Mayne, D. Q., and Diehl, M. (2017). Model Predictive Control: Theory, Computation, and Design. 2nd ed. Nob Hill Publishing."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#pharmacokinetics",
+    "href": "posts/2026-11-09-dp-PK/index.html#pharmacokinetics",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Pharmacokinetics",
+    "text": "Pharmacokinetics\n\nRowland, M., and Tozer, T. N. (2011). Clinical Pharmacokinetics and Pharmacodynamics: Concepts and Applications. 4th ed. Lippincott Williams and Wilkins.\nGabrielsson, J., and Weiner, D. (2016). Pharmacokinetic and Pharmacodynamic Data Analysis. 5th ed. Swedish Pharmaceutical Press.\nGibaldi, M., and Perrier, D. (1982). Pharmacokinetics. 2nd ed. Marcel Dekker."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#tdm-bayesian-forecasting-and-mipd",
+    "href": "posts/2026-11-09-dp-PK/index.html#tdm-bayesian-forecasting-and-mipd",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "TDM, Bayesian forecasting, and MIPD",
+    "text": "TDM, Bayesian forecasting, and MIPD\n\nSheiner, L. B., Beal, S., Rosenberg, B., and Marathe, V. V. (1979). Forecasting individual pharmacokinetics. Clinical Pharmacology and Therapeutics, 26(3), 294–305. https://doi.org/10.1002/cpt1979263294\nJelliffe, R. W., Schumitzky, A., Van Guilder, M., Liu, M., Hu, L., Maire, P., Gomis, P., Barbaut, X., and Tahani, B. (1993). Individualizing drug dosage regimens: roles of population pharmacokinetic and dynamic models, Bayesian fitting, and adaptive control. Therapeutic Drug Monitoring, 15(5), 380–393. https://doi.org/10.1097/00007691-199310000-00005\nHolford, N. H. G. (1999). Target concentration intervention: beyond Y2K. British Journal of Clinical Pharmacology, 48(1), 9–13. https://doi.org/10.1046/j.1365-2125.1999.00971.x\nDarwich, A. S., Ogungbenro, K., Vinks, A. A., Powell, J. R., Reny, J.-L., Marsousi, N., Daali, Y., Fairman, D., Cook, J., Lesko, L. J., and others (2017). Why has model-informed precision dosing not yet become common clinical reality? Lessons from the past and a roadmap for the future. Clinical Pharmacology and Therapeutics, 101(5), 646–656. https://doi.org/10.1002/cpt.659\nKeizer, R. J., ter Heine, R., Frymoyer, A., Lesko, L. J., Mangat, R., and Goswami, S. (2018). Model-informed precision dosing at the bedside: scientific challenges and opportunities. CPT: Pharmacometrics and Systems Pharmacology, 7(12), 785–787. https://doi.org/10.1002/psp4.12353\nICH (2026). ICH M15: General Principles for Model-Informed Drug Development. International Council for Harmonisation."
+  },
+  {
+    "objectID": "posts/2026-11-09-dp-PK/index.html#footnotes",
+    "href": "posts/2026-11-09-dp-PK/index.html#footnotes",
+    "title": "Dynamic Programming for PK Dose Sequences",
+    "section": "Footnotes",
+    "text": "Footnotes\n\n\nAmount \\(A(t)\\) in a single well-mixed compartment; \\(C=A/V\\); first-order elimination \\(\\mathrm{d}A/\\mathrm{d}t=-kA\\).↩︎"
   }
 ]
